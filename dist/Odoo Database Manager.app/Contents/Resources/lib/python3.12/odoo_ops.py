@@ -343,12 +343,43 @@ def get_script_path_for_db(db_name: str) -> Optional[Path]:
     return None
 
 
-def is_script_industry(db_name: str) -> bool:
-    """True si le script de la base est dans un dossier inc (ex: /scripts/inc)."""
+def list_scripts_subdirectories(scripts_dir: str) -> list[str]:
+    """Liste les sous-dossiers directs d'un dossier scripts (noms uniquement)."""
+    root = Path(os.path.expanduser(scripts_dir))
+    if not root.is_dir():
+        return []
+    return sorted(
+        item.name
+        for item in root.iterdir()
+        if item.is_dir() and not item.name.startswith(".")
+    )
+
+
+def _safe_scripts_subdir(name: str) -> Optional[str]:
+    """Valide un nom de sous-dossier (pas de traversal)."""
+    name = (name or "").strip()
+    if not name or name in {".", ".."}:
+        return None
+    if "/" in name or "\\" in name or name.startswith("."):
+        return None
+    return name
+
+
+def get_script_subdirectory(db_name: str) -> Optional[str]:
+    """Premier niveau de sous-dossier sous la racine scripts, si le script n'est pas à la racine."""
     path = get_script_path_for_db(db_name)
     if not path:
-        return False
-    return "inc" in path.parts
+        return None
+    parent = path.parent
+    for scripts_dir in _scripts_search_dirs():
+        try:
+            rel = parent.relative_to(scripts_dir)
+        except ValueError:
+            continue
+        parts = [p for p in rel.parts if p and p != "."]
+        if parts:
+            return parts[0]
+    return None
 
 
 def quit_warp() -> bool:
@@ -694,6 +725,22 @@ def run_odoo_in_terminal(
     return _open_in_terminal(cmd, cwd=str(core_path))
 
 
+def _parse_shell_var_line(line: str, var_name: str) -> Optional[str]:
+    """Lit une affectation shell exacte (pas PYENV_VERSION quand var_name=VERSION)."""
+    line = line.strip()
+    if not re.match(rf"^(?:export\s+)?{var_name}\s*=", line, re.IGNORECASE):
+        return None
+    m = re.match(rf"^(?:export\s+)?{var_name}\s*=\s*(.+)$", line, re.IGNORECASE)
+    if not m:
+        return None
+    raw = m.group(1).strip()
+    if not raw:
+        return None
+    if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'") and raw.endswith("'")):
+        return raw[1:-1]
+    return raw.split("#", 1)[0].strip().strip('"').strip("'")
+
+
 def _parse_script_for_db(scripts_dir: Path, db_name: str) -> tuple[Optional[str], Optional[str]]:
     """Parse les scripts .sh pour trouver VERSION et BRANCH. Retourne (version, branch)."""
     for script in scripts_dir.rglob("*.sh"):
@@ -702,17 +749,16 @@ def _parse_script_for_db(scripts_dir: Path, db_name: str) -> tuple[Optional[str]
             if not _script_filename_matches_db(script, db_name) and not _script_matches_db(text, db_name):
                 continue
             version, branch = None, None
-            for line in text.replace("\r", "\n").split("\n")[:30]:
-                line = line.strip()
-                m = re.search(r"[vV]ERSION\s*=\s*['\"]?(\d+)['\"]?", line, re.IGNORECASE)
-                if m:
-                    version = m.group(1)
-                m = re.search(r"[bB]RANCH\s*=\s*['\"]?([\w.-]+)['\"]?", line, re.IGNORECASE)
-                if m:
-                    branch = m.group(1).strip()
+            for line in text.replace("\r", "\n").split("\n")[:40]:
+                v = _parse_shell_var_line(line, "VERSION")
+                if v is not None:
+                    version = v
+                b = _parse_shell_var_line(line, "BRANCH")
+                if b is not None:
+                    branch = b
             if version or branch:
                 if not version and branch:
-                    version = "19" if ("19" in branch or branch.startswith("saas-19")) else "18"
+                    version = "19" if "19" in branch else "18"
                 return (version or None, branch)
         except Exception:
             pass
@@ -751,10 +797,12 @@ def _scripts_search_dirs() -> list[Path]:
 
 
 def get_db_version(db_name: str) -> Optional[str]:
-    """Retourne la version (18/19) pour une base en parsant les scripts .sh."""
+    """Libellé affiché dans l'UI : BRANCH si présente, sinon VERSION du script."""
     for scripts_dir in _scripts_search_dirs():
         if scripts_dir.exists():
-            version, _ = _parse_script_for_db(scripts_dir, db_name)
+            version, branch = _parse_script_for_db(scripts_dir, db_name)
+            if branch:
+                return branch
             if version:
                 return version
     return None
@@ -1050,24 +1098,29 @@ def create_launch_script(
     version: str = "19",
     branch: str = "19.0",
     scripts_dir: Optional[str] = None,
-    industry: bool = False,
+    scripts_subdir: Optional[str] = None,
     install_modules: Optional[list[str]] = None,
     update_modules: Optional[list[str]] = None,
     update_mode: str = "reinit",
 ) -> tuple[bool, str]:
     """
     Crée un script shell pour lancer Odoo sur cette base.
-    Si industry=True, le script est rangé dans scripts_dir/inc.
+    scripts_subdir : sous-dossier direct sous scripts_dir (optionnel).
+    VERSION= dans le script reprend le nom exact de la branche (ex. saas~19.2).
     Retourne (ok, chemin_du_script ou message d'erreur).
     """
     import os as _os
-    from config import get_scripts_paths as _get_paths, get_odoo_http_port
+    import shlex
+
+    from config import get_odoo_http_port, get_pyenv_for_branch
+
     _odoo = Path(odoo_path).expanduser().resolve()
     if scripts_dir:
         base_path = Path(_os.path.expanduser(scripts_dir))
     else:
         base_path = _odoo / "Scripts"
-    scripts_path = base_path / "inc" if industry else base_path
+    sub = _safe_scripts_subdir(scripts_subdir or "")
+    scripts_path = base_path / sub if sub else base_path
     scripts_path.mkdir(parents=True, exist_ok=True)
 
     core_path = _community_path(odoo_path)
@@ -1085,13 +1138,20 @@ def create_launch_script(
     if update_mode not in {"reinit", "update"}:
         update_mode = "reinit"
 
+    script_version = (branch or version or "19.0").strip()
+    branch_name = (branch or script_version).strip()
+    pyenv_default = (pyenv_env or "").strip() or get_pyenv_for_branch(branch_name)
+    version_assign = f"VERSION={shlex.quote(script_version)}"
+    branch_assign = f"BRANCH={shlex.quote(branch_name)}"
+    pyenv_default_q = shlex.quote(pyenv_default)
+
     content = f"""#!/bin/bash
 set -euo pipefail
 unset PYENV_VERSION VIRTUAL_ENV
 
 DB={db_name}
-VERSION={version}
-BRANCH={branch}
+{version_assign}
+{branch_assign}
 ADDONS="{addons_path}"
 INSTALL_MODULES="{install_mods}"
 UPDATE_MODULES="{update_mods}"
@@ -1099,7 +1159,7 @@ UPDATE_MODE="{update_mode}"
 
 cd {core_str}
 
-PYENV_ENV="${{PYENV_ENV:-${{PYENV_VERSION:-odoo-${{VERSION}}}}}}"
+PYENV_ENV="${{PYENV_ENV:-{pyenv_default_q}}}"
 export PYENV_VERSION="${{PYENV_ENV}}"
 PYENV_ROOT="${{PYENV_ROOT:-$HOME/.pyenv}}"
 PYTHON="${{PYTHON:-${{PYENV_ROOT}}/versions/${{PYENV_ENV}}/bin/python3}}"

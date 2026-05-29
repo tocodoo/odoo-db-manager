@@ -286,7 +286,10 @@ def save_dismissed_app_version(version: str) -> bool:
 
 
 def get_pyenv_for_branch(branch: str) -> str:
-    """Déduit l'environnement pyenv à partir du nom de branche (ex: saas-18.4 -> odoo-18)."""
-    if branch.startswith("19") or "19" in branch.split("-")[-1]:
+    """Déduit l'environnement pyenv à partir du nom de branche (ex: saas~19.2 -> odoo-19)."""
+    b = branch or ""
+    if "19" in b:
         return "odoo-19"
+    if "18" in b:
+        return "odoo-18"
     return "odoo-18"

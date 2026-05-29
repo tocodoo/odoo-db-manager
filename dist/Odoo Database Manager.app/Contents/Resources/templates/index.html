@@ -534,7 +534,8 @@
     }
 
     .badge-v18,
-    .badge-v19 {
+    .badge-v19,
+    .badge-version {
       background: rgba(0, 122, 255, 0.08);
       color: var(--accent);
       border-color: rgba(0, 122, 255, 0.2);
@@ -546,10 +547,15 @@
       border-color: rgba(128, 128, 128, 0.15);
     }
 
-    .badge-industry {
+    .badge-subdir {
       background: rgba(255, 149, 0, 0.1);
       color: #e68600;
       border-color: rgba(255, 149, 0, 0.25);
+    }
+
+    .scripts-subdir-empty {
+      color: var(--text-muted);
+      font-style: italic;
     }
 
     .db-actions {
@@ -827,12 +833,17 @@
               </select>
             </div>
             <div class="field">
-              <label class="field-inline">
-                <input type="checkbox"
-                       id="dbIndustry"
-                       title="Ranger le script dans /inc">
-                <span>Industry (script dans /inc)</span>
-              </label>
+              <label class="field-label"
+                     for="scriptsSubdirSelect">Sous-dossier</label>
+              <p class="field-hint">Ranger le script dans un sous-dossier du dossier scripts ci-dessus</p>
+              <select id="scriptsSubdirSelect">
+                <option value="">Racine du dossier</option>
+              </select>
+              <p class="field-hint scripts-subdir-empty"
+                 id="scriptsSubdirEmpty"
+                 hidden>
+                Aucun sous-dossier pour l’instant. Créez-en un dans le dossier scripts (Réglages) : il apparaîtra ici.
+              </p>
             </div>
             <div class="field">
               <label class="field-label"
@@ -1283,8 +1294,39 @@
           const paths = d.scripts_paths || [];
           sel.innerHTML = paths.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('') ||
             '<option value="">~/Scripts</option>';
+          await loadScriptsSubdirs();
         }
       } catch (_) { }
+    }
+
+    async function loadScriptsSubdirs() {
+      const rootSel = $('scriptsDirSelect');
+      const subSel = $('scriptsSubdirSelect');
+      const emptyMsg = $('scriptsSubdirEmpty');
+      if (!rootSel || !subSel) return;
+      const dir = rootSel.value.trim();
+      if (!dir) {
+        subSel.innerHTML = '<option value="">Racine du dossier</option>';
+        if (emptyMsg) emptyMsg.hidden = true;
+        return;
+      }
+      try {
+        const r = await fetch(`/api/scripts-subdirs?dir=${encodeURIComponent(dir)}`);
+        const d = await r.json();
+        const subdirs = (d.ok && d.subdirs) ? d.subdirs : [];
+        subSel.innerHTML =
+          '<option value="">Racine du dossier</option>' +
+          subdirs.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        if (emptyMsg) emptyMsg.hidden = subdirs.length > 0;
+      } catch (_) {
+        subSel.innerHTML = '<option value="">Racine du dossier</option>';
+        if (emptyMsg) emptyMsg.hidden = false;
+      }
+    }
+
+    const scriptsDirSelectEl = $('scriptsDirSelect');
+    if (scriptsDirSelectEl) {
+      scriptsDirSelectEl.addEventListener('change', () => loadScriptsSubdirs());
     }
 
     document.querySelectorAll('.btn-browse').forEach(btn => {
@@ -1338,6 +1380,7 @@
         if (d.ok) {
           s.textContent = 'Enregistré.';
           s.className = 'status ok';
+          await loadConfig();
           await loadPyenvEnvs();
           if (typeof loadDatabases === 'function') loadDatabases();
         } else {
@@ -1661,7 +1704,7 @@
         version: $('version').value,
         pyenv_env: $('version').value || '',
         scripts_dir: scriptsDir || undefined,
-        industry: $('dbIndustry').checked
+        scripts_subdir: ($('scriptsSubdirSelect') && $('scriptsSubdirSelect').value) || undefined
       };
 
       try {
@@ -1677,7 +1720,7 @@
           $('modules').value = 'website,website_sale';
           $('updateModules').value = 'website,website_sale';
           $('updateMode').value = 'reinit';
-          $('dbIndustry').checked = false;
+          if ($('scriptsSubdirSelect')) $('scriptsSubdirSelect').value = '';
           renderCustomAddons([]);
           $('dbStatus').textContent = '';
           $('dbStatus').className = 'status';
@@ -1807,11 +1850,13 @@
 
         const renderDbRow = (db, isRunning) => {
           const ver = (d.versions && d.versions[db]) || null;
-          const industry = d.industries && d.industries[db];
+          const subdir = d.script_subdirs && d.script_subdirs[db];
           const verBadge = ver
-            ? `<span class="badge badge-v${ver}">${ver}</span>`
+            ? `<span class="badge badge-version" title="Branche / version script">${escapeHtml(ver)}</span>`
             : `<span class="badge badge-unknown" title="Script introuvable">?</span>`;
-          const industryBadge = industry ? '<span class="badge badge-industry">industry</span>' : '';
+          const subdirBadge = subdir
+            ? `<span class="badge badge-subdir" title="Sous-dossier scripts">${escapeHtml(subdir)}</span>`
+            : '';
           const connectLabel = isRunning ? 'Ouvrir' : 'Connecter';
           const connectBtn = `<button class="btn btn-primary btn-sm btn-connect" data-db="${escapeHtml(db)}" data-running="${isRunning}">${connectLabel}</button>`;
           const actions = isRunning
@@ -1827,7 +1872,7 @@
               <div class="db-info">
                 <span class="db-name">${escapeHtml(db)}</span>
                 <div class="db-meta">
-                  ${verBadge}${industryBadge}
+                  ${verBadge}${subdirBadge}
                   ${isRunning ? '<span class="badge badge-running">En cours</span>' : ''}
                 </div>
               </div>

@@ -46,7 +46,8 @@ from odoo_ops import (
     get_running_odoo_db,
     get_script_config,
     get_script_path_for_db,
-    is_script_industry,
+    get_script_subdirectory,
+    list_scripts_subdirectories,
     list_databases,
     quit_warp,
     restart_odoo_server,
@@ -504,14 +505,29 @@ def api_debug_scripts():
     return jsonify({"search_dirs": dirs, "databases": per_db})
 
 
+@app.route("/api/scripts-subdirs")
+def api_scripts_subdirs():
+    """Sous-dossiers directs du dossier scripts choisi (réglages)."""
+    scripts_dir = (request.args.get("dir") or "").strip()
+    if not scripts_dir:
+        return jsonify({"ok": False, "subdirs": [], "message": "Dossier scripts requis"}), 400
+    subdirs = list_scripts_subdirectories(scripts_dir)
+    return jsonify({"ok": True, "dir": scripts_dir, "subdirs": subdirs})
+
+
 @app.route("/api/databases")
 def api_databases():
-    """Liste les bases + indique laquelle tourne + version et industry par base."""
+    """Liste les bases + indique laquelle tourne + version et sous-dossier script par base."""
     dbs = list_databases()
     running = get_running_odoo_db()
     versions = {db: get_db_version(db) for db in dbs}
-    industries = {db: is_script_industry(db) for db in dbs}
-    return jsonify({"databases": dbs, "running": running, "versions": versions, "industries": industries})
+    script_subdirs = {db: get_script_subdirectory(db) for db in dbs}
+    return jsonify({
+        "databases": dbs,
+        "running": running,
+        "versions": versions,
+        "script_subdirs": script_subdirs,
+    })
 
 
 @app.route("/api/open-in-browser")
@@ -665,7 +681,7 @@ def api_create():
     )
     addons, detected_addons, missing_modules = build_addons_path_for_modules(path, extra, modules)
     scripts_dir = data.get("scripts_dir", "").strip() or None
-    industry = bool(data.get("industry"))
+    scripts_subdir = (data.get("scripts_subdir") or "").strip() or None
 
     ok_switch, msg_switch = switch_branch(path, branch)
     if not ok_switch:
@@ -682,7 +698,7 @@ def api_create():
         version=version,
         branch=branch,
         scripts_dir=scripts_dir,
-        industry=industry,
+        scripts_subdir=scripts_subdir,
         install_modules=modules,
         update_modules=update_modules,
         update_mode=update_mode,
