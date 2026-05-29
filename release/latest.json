@@ -1,7 +1,7 @@
 {
   "version": "1.2",
   "min_version": "1.0.0",
-  "download_url": "https://github.com/tocodoo/odoo-db-manager/blob/main/dist/Odoo-Database-Manager.pkg",
+  "download_url": "https://github.com/tocodoo/odoo-db-manager/main/dist/Odoo-Database-Manager.pkg",
   "release_notes": "Une nouvelle version de l'application est disponible.",
   "published_at": "2026-05-29"
 }
