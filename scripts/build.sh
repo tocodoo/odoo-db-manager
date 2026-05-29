@@ -28,18 +28,13 @@ pip install -q -r requirements.txt
 python setup.py py2app
 
 APP_VERSION="$(python -c "from version import APP_VERSION; print(APP_VERSION)")"
-PKG_ROOT="$(mktemp -d)"
-trap 'rm -rf "$PKG_ROOT"' EXIT
 
-# Structure standard : Payload/Applications/… + install-location /
-mkdir -p "$PKG_ROOT/Applications"
-cp -R "dist/Odoo Database Manager.app" "$PKG_ROOT/Applications/"
-
+# --component : installe le .app directement dans /Applications (comportement attendu par macOS)
 pkgbuild \
-  --root "$PKG_ROOT" \
+  --component "$APP_DIST" \
+  --install-location /Applications \
   --identifier com.odoo.dbmanager \
   --version "$APP_VERSION" \
-  --install-location / \
   --scripts build/pkg-expanded/Scripts \
   "dist/Odoo-Database-Manager.pkg"
 

@@ -14,8 +14,6 @@ app_ok() {
   [[ -f "${1}/Contents/Info.plist" ]]
 }
 
-# macOS peut passer le chemin du .pkg en $1 (ex. ~/Downloads/xxx.pkg), pas le volume.
-# $2 = racine du volume cible (souvent /), $3 = répertoire d'install ou /.
 PKG_PATH=""
 TARGET_ROOT="/"
 if [[ "${1:-}" == *.pkg ]] || [[ "${1:-}" == *.mpkg ]]; then
@@ -27,33 +25,22 @@ else
 fi
 TARGET_ROOT="${TARGET_ROOT%/}"
 [[ -z "$TARGET_ROOT" ]] && TARGET_ROOT="/"
+install_log "Racine cible: ${TARGET_ROOT}"
 
-install_log "Racine cible: ${TARGET_ROOT} (arg2=${2:-?} arg3=${3:-?})"
+if app_ok "$TARGET"; then
+  install_log "OK : ${TARGET} déjà en place."
+  exit 0
+fi
 
-# Chemins possibles (toujours /Applications en premier)
 CANDIDATES=(
   "/Applications/${APP}"
   "${TARGET_ROOT}/Applications/${APP}"
 )
-if [[ -n "${3:-}" && "${3}" != "/" && "${3}" != "${TARGET_ROOT}" ]]; then
-  CAND3="${3%/}"
-  CANDIDATES+=("${CAND3}/${APP}")
-  CANDIDATES+=("${CAND3}/Applications/${APP}")
-fi
 
-# Dédupliquer
-declare -a UNIQUE=()
-for c in "${CANDIDATES[@]}"; do
-  skip=0
-  for u in "${UNIQUE[@]}"; do
-    [[ "$c" == "$u" ]] && skip=1 && break
-  done
-  [[ $skip -eq 0 ]] && UNIQUE+=("$c")
-done
-
-install_log "Recherche du bundle installé…"
+install_log "Recherche du bundle (extraction installateur)…"
 FOUND=""
-for SRC in "${UNIQUE[@]}"; do
+for SRC in "${CANDIDATES[@]}"; do
+  [[ "$SRC" == "//Applications/"* ]] && continue
   install_log "  teste: ${SRC}"
   if app_ok "$SRC"; then
     FOUND="$SRC"
@@ -66,34 +53,36 @@ if [[ -z "$FOUND" ]]; then
   RECEIPT_PLIST="$(pkgutil --only-files com.odoo.dbmanager 2>/dev/null | grep -F "${APP}/Contents/Info.plist" | head -1 || true)"
   if [[ -n "$RECEIPT_PLIST" ]]; then
     RECEIPT_APP="${RECEIPT_PLIST%/Contents/Info.plist}"
-    install_log "Bundle repéré via le receipt: ${RECEIPT_APP}"
+    install_log "Receipt: ${RECEIPT_APP}"
     if app_ok "$RECEIPT_APP"; then
       FOUND="$RECEIPT_APP"
     fi
   fi
 fi
 
+if [[ -z "$FOUND" && -n "$PKG_PATH" ]]; then
+  install_log "L'installateur n'a pas posé le bundle — installation depuis le .pkg…"
+  install_extract_from_pkg "$PKG_PATH" "$APP" "$TARGET"
+  FOUND="$TARGET"
+fi
+
 if [[ -z "$FOUND" ]]; then
   install_log "Contenu de /Applications (diagnostic) :"
-  ls -la /Applications 2>&1 | _install_write || true
-  install_log "Chemins testés sans succès :"
-  printf '  - %s\n' "${UNIQUE[@]}" | _install_write
-  install_fail "${APP} introuvable. Le payload n'a pas été extrait dans /Applications."
+  /bin/ls -la /Applications 2>&1 | _install_write || true
+  install_fail "${APP} introuvable et extraction depuis le .pkg impossible."
 fi
 
 if [[ "$FOUND" != "$TARGET" ]]; then
   install_log "Copie ${FOUND} → ${TARGET}"
-  install_run "suppression ancienne cible" rm -rf "$TARGET"
-  install_run "copie du bundle (ditto)" ditto "$FOUND" "$TARGET"
-else
-  install_log "Bundle déjà à la cible ${TARGET}."
+  install_run "suppression ancienne cible" /bin/rm -rf "$TARGET"
+  install_run "copie du bundle (ditto)" /usr/bin/ditto "$FOUND" "$TARGET"
 fi
 
 if ! app_ok "$TARGET"; then
-  install_fail "Copie terminée mais ${TARGET}/Contents/Info.plist est absent."
+  install_fail "Échec final : ${TARGET}/Contents/Info.plist absent."
 fi
 
-install_run "permissions lecture" chmod -R a+rX "$TARGET"
+install_run "permissions lecture" /bin/chmod -R a+rX "$TARGET"
 
 install_log "Installation réussie : ${TARGET}"
 exit 0
