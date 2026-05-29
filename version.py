@@ -15,8 +15,8 @@ APP_VERSION = "1.1.2"
 # Manifeste hébergé sur tocotools (à ajuster si l'URL change).
 UPDATE_MANIFEST_URL = os.environ.get(
     "ODOO_DB_MANAGER_UPDATE_MANIFEST_URL",
-    "https://tocotools.odoo.com/odoo-db-manager/latest.json",
-)
+    "https://raw.githubusercontent.com/tocodoo/odoo-db-manager/main/release/latest.json",
+    )
 
 _VERSION_RE = re.compile(r"^(\d+)(?:\.(\d+))?(?:\.(\d+))?")
 
