@@ -126,6 +126,3 @@ Artifacts in `dist/`:
 - `Odoo Database Manager.app`
 - `Odoo-Database-Manager.pkg`
 
-## License
-
-MIT (or specify your project license)
