@@ -1,5 +1,5 @@
 {
-  "version": "1.1.2",
+  "version": "1.2",
   "min_version": "1.0.0",
   "download_url": "https://github.com/tocodoo/odoo-db-manager/main/dist/Odoo-Database-Manager.pkg",
   "release_notes": "Manifeste publié sur GitHub (release/latest.json). Mettre à jour version et download_url à chaque release.",
