@@ -22,6 +22,7 @@ OPTIONS = {
         "odoo_ops",
         "menubar",
         "version",
+        "app_web",
     ],
     "plist": {
         "CFBundleName": "Odoo Database Manager",

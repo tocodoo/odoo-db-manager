@@ -113,14 +113,18 @@ python app.py
 ## Build (macOS app)
 
 ```bash
-# 1) Install dependencies
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 
-# 2) Build the app
-python setup.py py2app -A
+# .app + .pkg (pas de DMG)
+./scripts/build.sh
 ```
 
-Artifacts are generated in `dist/` (including the `.pkg` installer).
+Artifacts in `dist/`:
+
+- `Odoo Database Manager.app`
+- `Odoo-Database-Manager.pkg`
 
 ## License
 

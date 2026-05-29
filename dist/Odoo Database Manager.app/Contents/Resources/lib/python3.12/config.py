@@ -13,6 +13,7 @@ _DEFAULTS = {
     "psql_path": "",  # vide = auto-détection
     "terminal_app": "Warp",  # Warp, Terminal, iTerm2
     "odoo_http_port": 8069,
+    "dismissed_app_version": "",
 }
 
 
@@ -274,6 +275,14 @@ def detect_all_paths() -> dict:
         pass
 
     return result
+
+
+def get_dismissed_app_version() -> str:
+    return str(_load_config().get("dismissed_app_version") or "").strip()
+
+
+def save_dismissed_app_version(version: str) -> bool:
+    return _save_config({"dismissed_app_version": (version or "").strip()})
 
 
 def get_pyenv_for_branch(branch: str) -> str:

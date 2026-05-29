@@ -391,6 +391,43 @@
       display: block;
     }
 
+    .app-update-banner {
+      display: none;
+      position: fixed;
+      top: 48px;
+      left: 0;
+      right: 0;
+      z-index: 99;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 20px;
+      background: linear-gradient(90deg, rgba(255, 149, 0, 0.14), rgba(255, 59, 48, 0.08));
+      border-bottom: 1px solid rgba(255, 149, 0, 0.35);
+      color: #9a3412;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .app-update-banner.show {
+      display: flex;
+    }
+
+    .app-update-banner strong {
+      color: #7c2d12;
+    }
+
+    .app-update-banner-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    body.has-update-banner .app {
+      padding-top: 100px;
+    }
+
     /* ——— Log output ——— */
     .log-section {
       display: flex;
@@ -720,6 +757,21 @@
     </nav>
   </header>
 
+  <div id="appUpdateBanner"
+       class="app-update-banner"
+       role="status"
+       aria-live="polite">
+    <div id="appUpdateBannerText"></div>
+    <div class="app-update-banner-actions">
+      <button type="button"
+              class="btn btn-secondary btn-sm"
+              id="btnDismissAppUpdate">Plus tard</button>
+      <button type="button"
+              class="btn btn-primary btn-sm"
+              id="btnDownloadAppUpdate">Télécharger</button>
+    </div>
+  </div>
+
   <div class="app">
     <div id="panel-create"
          class="tab-panel active">
@@ -1031,7 +1083,7 @@
                   id="configStatus"></span>
           </div>
           <p class="field-hint"
-             style="margin-top: 20px; margin-bottom: 0;">Version 1.1.2</p>
+             style="margin-top: 20px; margin-bottom: 0;">Version {{ app_version }}</p>
         </section>
       </div>
     </div>
@@ -1081,6 +1133,7 @@
     const $ = id => document.getElementById(id);
     let odooHttpPort = 8069;
     let scriptModalState = null;
+    let appUpdateState = null;
 
     const tabIds = { create: 'panel-create', databases: 'panel-databases', settings: 'panel-settings' };
     document.querySelectorAll('.tab').forEach(t => {
@@ -1149,8 +1202,60 @@
       }
     }
 
+    async function checkAppUpdate() {
+      const banner = $('appUpdateBanner');
+      const text = $('appUpdateBannerText');
+      if (!banner || !text) return;
+      try {
+        const r = await fetch('/api/app/update-check');
+        const d = await r.json();
+        appUpdateState = d;
+        if (!d.update_available) {
+          banner.classList.remove('show');
+          document.body.classList.remove('has-update-banner');
+          return;
+        }
+        const notes = d.release_notes ? ` — ${d.release_notes}` : '';
+        text.innerHTML = `<strong>Mise à jour disponible</strong> : version <strong>${escapeHtml(d.latest_version || '')}</strong> (vous avez ${escapeHtml(d.current_version || '')})${escapeHtml(notes)}`;
+        banner.classList.add('show');
+        document.body.classList.add('has-update-banner');
+      } catch (_) {
+        banner.classList.remove('show');
+        document.body.classList.remove('has-update-banner');
+      }
+    }
+
+    $('btnDownloadAppUpdate').onclick = async () => {
+      const url = (appUpdateState && appUpdateState.download_url) || '';
+      if (!url) return;
+      try {
+        await fetch('/api/app/open-download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+      } catch (_) {
+        window.open(url, '_blank', 'noopener');
+      }
+    };
+
+    $('btnDismissAppUpdate').onclick = async () => {
+      const version = (appUpdateState && appUpdateState.latest_version) || '';
+      if (!version) return;
+      try {
+        await fetch('/api/app/update-dismiss', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ version })
+        });
+      } catch (_) { /* ignore */ }
+      $('appUpdateBanner').classList.remove('show');
+      document.body.classList.remove('has-update-banner');
+    };
+
     loadCurrent();
     loadConfig();
+    checkAppUpdate();
 
     if (location.hash === '#settings') {
       document.querySelector('.tab[data-tab="settings"]').click();

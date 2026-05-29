@@ -77,6 +77,7 @@ class OdooMenubarApp(rumps.App):
         self.menu.add(None)  # separator
         self.menu.add(rumps.MenuItem("Ouvrir l'app", callback=self._open_app))
         self.menu.add(rumps.MenuItem("Réglages", callback=self._open_settings))
+        self.menu.add(rumps.MenuItem("Vérifier les mises à jour…", callback=self._check_updates))
         self.menu.add(None)
         self.menu.add(rumps.MenuItem("Quitter", callback=self._quit_all))
 
@@ -90,6 +91,32 @@ class OdooMenubarApp(rumps.App):
     def _restart_db(self, db: str) -> None:
         ok, msg = restart_odoo_server(db)
         rumps.notification("Odoo DB Manager", msg, ok)
+
+    def _check_updates(self, _) -> None:
+        from config import get_dismissed_app_version
+        from version import check_for_update, get_app_version
+
+        info = check_for_update(dismissed_version=get_dismissed_app_version())
+        current = get_app_version()
+        if not info.get("ok"):
+            rumps.notification(
+                "Odoo DB Manager",
+                f"Impossible de vérifier (v{current})",
+                info.get("error") or "Erreur réseau",
+            )
+            return
+        if info.get("update_available"):
+            latest = info.get("latest_version") or "?"
+            url = info.get("download_url") or ""
+            rumps.notification(
+                "Odoo DB Manager",
+                f"Mise à jour {latest} disponible",
+                info.get("release_notes") or "Ouvrez l'app pour télécharger.",
+            )
+            if url:
+                webbrowser.open(url)
+            return
+        rumps.notification("Odoo DB Manager", f"À jour (v{current})", "Aucune mise à jour.")
 
     def _open_settings(self, _) -> None:
         """Met l'app au premier plan (l'utilisateur peut cliquer sur Réglages)."""
