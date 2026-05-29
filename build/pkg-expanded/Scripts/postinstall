@@ -1,7 +1,36 @@
 #!/bin/bash
+# Force l'app dans /Applications (évite la relocation vers dist/, Desktop/, etc.)
 set -euo pipefail
 
-echo "[Odoo DB Manager] Step 2/2 - Installation terminée."
-echo "[Odoo DB Manager] L'application est disponible dans /Applications."
+APP="Odoo Database Manager.app"
+TARGET="/Applications/${APP}"
+VOLUME="${1:-/}"
 
+# Chemin standard (Payload/Applications/…, install-location /)
+INSTALLED="${VOLUME}/Applications/${APP}"
+if [ -d "$INSTALLED" ]; then
+  if [ ! -e "$TARGET" ] || [ ! "$INSTALLED" -ef "$TARGET" ]; then
+    rm -rf "$TARGET"
+    ditto "$INSTALLED" "$TARGET"
+  fi
+fi
+
+# Relocation : le receipt peut pointer ailleurs (ex. dossier du projet)
+if [ ! -d "$TARGET" ]; then
+  RECEIPT_PLIST=$(pkgutil --only-files com.odoo.dbmanager 2>/dev/null | grep -F "${APP}/Contents/Info.plist" | head -1 || true)
+  if [ -n "$RECEIPT_PLIST" ]; then
+    RECEIPT_APP="${RECEIPT_PLIST%/Contents/Info.plist}"
+    if [ -d "$RECEIPT_APP" ]; then
+      rm -rf "$TARGET"
+      ditto "$RECEIPT_APP" "$TARGET"
+    fi
+  fi
+fi
+
+if [ ! -d "$TARGET" ]; then
+  echo "[Odoo DB Manager] ERREUR: ${APP} introuvable dans /Applications après installation."
+  exit 1
+fi
+
+echo "[Odoo DB Manager] Installé dans ${TARGET}"
 exit 0
