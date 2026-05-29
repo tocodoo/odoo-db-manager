@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
+APP_PATH="/Applications/Odoo Database Manager.app"
+
+echo "[Odoo DB Manager] Step 1/2 - Vérification de l'installation existante..."
+if [[ -d "$APP_PATH" ]]; then
+  echo "[Odoo DB Manager] App détectée dans /Applications."
+  echo "[Odoo DB Manager] Une mise à jour sera appliquée (pas une première installation)."
+else
+  echo "[Odoo DB Manager] Aucune app existante détectée."
+  echo "[Odoo DB Manager] Première installation en cours."
+fi
+
+exit 0

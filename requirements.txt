@@ -1,0 +1,4 @@
+flask>=3.0.0
+pywebview>=4.0
+py2app>=0.28.0
+rumps>=0.4.0

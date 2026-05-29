@@ -1,0 +1,23 @@
+#!/bin/bash
+set -euo pipefail
+
+APP_DST="/Applications/Odoo Database Manager.app"
+ZIP_SRC="/usr/local/share/odoo-dbmanager/Odoo Database Manager.app.zip"
+
+echo "[Odoo DB Manager] Step 2/2 - Déploiement de l'application..."
+if [[ ! -f "$ZIP_SRC" ]]; then
+  echo "[Odoo DB Manager] ERREUR: archive introuvable: $ZIP_SRC"
+  exit 1
+fi
+
+rm -rf "$APP_DST"
+/usr/bin/ditto -x -k "$ZIP_SRC" "/Applications"
+
+if [[ -d "$APP_DST" ]]; then
+  echo "[Odoo DB Manager] Installation terminée: $APP_DST"
+else
+  echo "[Odoo DB Manager] ERREUR: l'app n'a pas été copiée dans /Applications"
+  exit 1
+fi
+
+exit 0

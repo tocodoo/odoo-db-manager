@@ -1,0 +1,1961 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>Odoo Database Manager</title>
+  <link rel="preconnect"
+        href="https://fonts.googleapis.com">
+  <link rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f2f2f2;
+      --card: #ffffff;
+      --border: #e0e0e0;
+      --border-dark: #d8dce3;
+      --text: #343a40;
+      --text-muted: #6c757d;
+      --text-light: #adb5bd;
+      --radius: 15px;
+      --radius-sm: 6px;
+      --primary: #1a1a2e;
+      --primary-hover: #2d2d44;
+      --success: #34c759;
+      --error: #ff3b30;
+      --warn: #ff9500;
+      --accent: #007aff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ——— Top menu bar ——— */
+    .menu-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px 0 24px;
+      z-index: 100;
+      -webkit-app-region: drag;
+    }
+
+    .menu-bar .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-right: 32px;
+    }
+
+    .menu-bar .app-logo {
+      height: 24px;
+      width: auto;
+    }
+
+    .menu-bar .app-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .menu-bar .tabs {
+      display: flex;
+      gap: 0;
+      margin: 0;
+      border: none;
+      -webkit-app-region: no-drag;
+    }
+
+    .menu-bar .tab {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.15s;
+    }
+
+    .menu-bar .tab:hover {
+      color: var(--text);
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .menu-bar .tab.active {
+      color: var(--primary);
+      background: rgba(26, 26, 46, 0.06);
+    }
+
+    .app {
+      margin: 0 auto;
+      padding: 64px 24px 40px;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* ——— Main content card ——— */
+    .main-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    /* ——— Create panel: 50/50 + full log ——— */
+    .create-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .databases-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .databases-layout .databases-list-card {
+      grid-column: 1 / -1;
+    }
+
+    .section {
+      padding: 24px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 16px 0;
+    }
+
+    .section-title-sm {
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+
+    /* ——— Form fields ——— */
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .field-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin: 0 0 4px 0;
+    }
+
+    .field-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .field-row .field {
+      margin-bottom: 0;
+    }
+
+    input[type="text"],
+    select,
+    textarea {
+      font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+      font-size: 13px;
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--text);
+      transition: border-color 0.2s;
+    }
+
+    input:hover,
+    select:hover,
+    textarea:hover {
+      border-color: var(--border-dark);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--text-muted);
+    }
+
+    select {
+      width: auto;
+      min-width: 100px;
+      cursor: pointer;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .field-inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .field-inline label {
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .field-inline input[type="checkbox"] {
+      width: auto;
+      accent-color: var(--primary);
+    }
+
+    .field-with-browse {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .field-with-browse input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .field-with-browse .btn-browse {
+      flex-shrink: 0;
+    }
+
+    .addons-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .addons-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: #fafbfc;
+    }
+
+    /* ——— Buttons ——— */
+    .btn {
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: var(--card);
+      color: var(--text);
+      border-color: var(--border-dark);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #f8f9fa;
+      border-color: #adb5bd;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .branch-btns {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .branch-btns .btn {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ——— Status ——— */
+    .status {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .status.ok {
+      color: var(--success);
+    }
+
+    .status.warn {
+      color: var(--warn);
+    }
+
+    .git-alert {
+      display: none;
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 122, 255, 0.25);
+      background: rgba(0, 122, 255, 0.1);
+      color: #005ecb;
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+
+    .git-alert.show {
+      display: block;
+    }
+
+    .app-update-banner {
+      display: none;
+      position: fixed;
+      top: 48px;
+      left: 0;
+      right: 0;
+      z-index: 99;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 20px;
+      background: linear-gradient(90deg, rgba(255, 149, 0, 0.14), rgba(255, 59, 48, 0.08));
+      border-bottom: 1px solid rgba(255, 149, 0, 0.35);
+      color: #9a3412;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .app-update-banner.show {
+      display: flex;
+    }
+
+    .app-update-banner strong {
+      color: #7c2d12;
+    }
+
+    .app-update-banner-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    body.has-update-banner .app {
+      padding-top: 100px;
+    }
+
+    /* ——— Log output ——— */
+    .log-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .log-header .section-title {
+      margin: 0;
+    }
+
+    #log {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      background: #fafbfc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      height: 180px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text-muted);
+    }
+
+    #log:empty::before {
+      content: 'La sortie Odoo apparaîtra ici…';
+      color: var(--text-light);
+    }
+
+    /* ——— Database list (card rows) ——— */
+    .db-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .db-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .db-row:last-child {
+      border-bottom: none;
+    }
+
+    .db-row:hover {
+      background: #fafbfc;
+    }
+
+    .db-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .db-name {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .db-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .badge-running {
+      background: rgba(52, 199, 89, 0.1);
+      color: var(--success);
+      border-color: rgba(52, 199, 89, 0.25);
+    }
+
+    .badge-running::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .badge-v18,
+    .badge-v19 {
+      background: rgba(0, 122, 255, 0.08);
+      color: var(--accent);
+      border-color: rgba(0, 122, 255, 0.2);
+    }
+
+    .badge-unknown {
+      background: rgba(128, 128, 128, 0.08);
+      color: var(--text-muted);
+      border-color: rgba(128, 128, 128, 0.15);
+    }
+
+    .badge-industry {
+      background: rgba(255, 149, 0, 0.1);
+      color: #e68600;
+      border-color: rgba(255, 149, 0, 0.25);
+    }
+
+    .db-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .toast-container {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      pointer-events: auto;
+      min-width: 260px;
+      max-width: 420px;
+      padding: 11px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.success {
+      background: #2e9d47;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      padding: 18px;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(760px, 100%);
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .modal-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .modal-body {
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-actions {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    /* ——— Empty state ——— */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* ——— DB sections (En cours / Autres) ——— */
+    .db-block {
+      margin-bottom: 20px;
+    }
+
+    .db-block:last-child {
+      margin-bottom: 0;
+    }
+
+    .db-block-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 10px 0;
+    }
+
+    /* ——— Responsive ——— */
+    @media (max-width: 600px) {
+      .menu-bar {
+        padding: 0 12px 0 16px;
+      }
+
+      .menu-bar .app-brand {
+        margin-right: 16px;
+      }
+
+      .menu-bar .app-logo {
+        height: 20px;
+      }
+
+      .menu-bar .app-title {
+        font-size: 14px;
+      }
+
+      .menu-bar .tab {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+
+      .app {
+        padding: 64px 16px 24px;
+      }
+
+      .section {
+        padding: 20px;
+      }
+
+      .field-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .db-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .db-actions {
+        width: 100%;
+      }
+
+      .create-layout,
+      .databases-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="menu-bar">
+    <div class="app-brand">
+      <img class="app-logo"
+           src="https://upload.wikimedia.org/wikipedia/commons/f/f7/Official_Odoo_logo.svg"
+           alt="Odoo">
+      <span class="app-title">DB Manager</span>
+    </div>
+    <nav class="tabs">
+      <button class="tab active"
+              data-tab="create">Créer une base</button>
+      <button class="tab"
+              data-tab="databases">Mes bases</button>
+      <button class="tab"
+              data-tab="settings">Réglages</button>
+    </nav>
+  </header>
+
+  <div id="appUpdateBanner"
+       class="app-update-banner"
+       role="status"
+       aria-live="polite">
+    <div id="appUpdateBannerText"></div>
+    <div class="app-update-banner-actions">
+      <button type="button"
+              class="btn btn-secondary btn-sm"
+              id="btnDismissAppUpdate">Plus tard</button>
+      <button type="button"
+              class="btn btn-primary btn-sm"
+              id="btnDownloadAppUpdate">Télécharger</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <div id="panel-create"
+         class="tab-panel active">
+      <div class="create-layout">
+        <div class="main-card">
+          <section class="section">
+            <h2 class="section-title section-title-sm">Version et branche</h2>
+            <div class="field">
+              <label class="field-label">Environnement Python</label>
+              <select id="version">
+                <option value="">Auto</option>
+              </select>
+            </div>
+            <div class="field">
+              <button class="btn btn-secondary btn-sm"
+                      id="btnSetGlobalPyenv">Définir comme env global</button>
+              <span class="status"
+                    id="pyenvGlobalStatus"></span>
+            </div>
+            <div class="field">
+              <label class="field-label">Branche</label>
+              <select id="branch"></select>
+              <span class="status"
+                    id="branchStatus"></span>
+            </div>
+            <div class="field branch-btns">
+              <button class="btn btn-secondary"
+                      id="btnCheck">Vérifier</button>
+              <button class="btn btn-secondary"
+                      id="btnBranch">Changer de branche</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="main-card">
+          <section class="section">
+            <h2 class="section-title section-title-sm">Nouvelle base de données</h2>
+            <div class="field">
+              <label class="field-label"
+                     for="dbName">Nom de la base</label>
+              <input type="text"
+                     id="dbName"
+                     placeholder="ma_base">
+              <span class="status"
+                    id="dbStatus"></span>
+            </div>
+            <div class="field">
+              <label class="field-label"
+                     for="scriptsDirSelect">Dossier scripts</label>
+              <p class="field-hint">Où créer le script .sh de lancement</p>
+              <select id="scriptsDirSelect">
+                <option value="">~/Scripts</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-inline">
+                <input type="checkbox"
+                       id="dbIndustry"
+                       title="Ranger le script dans /inc">
+                <span>Industry (script dans /inc)</span>
+              </label>
+            </div>
+            <div class="field">
+              <label class="field-label"
+                     for="modules">Modules</label>
+              <textarea id="modules"
+                        placeholder="website, website_sale">website,website_sale</textarea>
+            </div>
+            <div class="field">
+              <label class="field-label"
+                     for="updateMode">Mode update (script futur)</label>
+              <select id="updateMode">
+                <option value="reinit">--reinit</option>
+                <option value="update">-u</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label"
+                     for="updateModules">Modules update/reinit</label>
+              <p class="field-hint">Modules à utiliser lors des prochains lancements si la DB existe</p>
+              <textarea id="updateModules"
+                        placeholder="website, website_sale">website,website_sale</textarea>
+            </div>
+            <div class="field">
+              <label class="field-label"
+                     for="customAddonInput">Addons paths custom</label>
+              <p class="field-hint">Ajoutez un ou plusieurs dossiers addons (optionnel)</p>
+              <div class="field-with-browse">
+                <input type="text"
+                       id="customAddonInput"
+                       placeholder="/Users/odoo/odoo/psbe-[mycustomer]">
+                <button type="button"
+                        class="btn btn-secondary btn-sm"
+                        id="btnAddCustomAddon">Ajouter</button>
+                <button type="button"
+                        class="btn btn-secondary btn-sm"
+                        id="btnBrowseCustomAddon">Parcourir</button>
+              </div>
+              <div id="customAddonsList"
+                   class="addons-list"></div>
+            </div>
+            <div class="field btn-group">
+              <button class="btn btn-primary"
+                      id="btnCreate">Créer / Mettre à jour</button>
+              <button class="btn btn-secondary"
+                      id="btnLocks">Nettoyer les verrous</button>
+            </div>
+          </section>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="panel-databases"
+         class="tab-panel">
+      <div class="databases-layout">
+        <div class="main-card">
+          <section class="section">
+            <h2 class="section-title section-title-sm">Version et branche</h2>
+            <div class="field">
+              <label class="field-label">Environnement Python</label>
+              <select id="versionDb">
+                <option value="">Auto</option>
+              </select>
+            </div>
+            <div class="field">
+              <button class="btn btn-secondary btn-sm"
+                      id="btnSetGlobalPyenvDb">Définir comme env global</button>
+              <span class="status"
+                    id="pyenvGlobalStatusDb"></span>
+            </div>
+            <div class="field">
+              <label class="field-label">Branche</label>
+              <select id="branchDb"></select>
+              <span class="status"
+                    id="branchStatusDb"></span>
+            </div>
+            <div class="field branch-btns">
+              <button class="btn btn-secondary"
+                      id="btnCheckDb">Vérifier</button>
+              <button class="btn btn-secondary"
+                      id="btnBranchDb">Changer de branche</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="main-card">
+          <section class="section">
+            <h2 class="section-title section-title-sm">Synchronisation Git</h2>
+            <div class="field branch-btns">
+              <button class="btn btn-secondary"
+                      id="btnCheckUpdatesDb">Vérifier si à jour</button>
+              <button class="btn btn-secondary"
+                      id="btnPullDb">Pull core & enterprise</button>
+            </div>
+            <div class="field">
+              <span class="status"
+                    id="gitStatusDb"></span>
+            </div>
+            <div id="gitAlertDb"
+                 class="git-alert"></div>
+          </section>
+        </div>
+
+        <div class="main-card databases-list-card">
+          <section class="section">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+              <h2 class="section-title section-title-sm"
+                  style="margin: 0;">Bases de données</h2>
+              <div class="btn-group">
+                <button class="btn btn-secondary btn-sm"
+                        id="btnDisconnectAll"
+                        title="Arrêter tous les processus Odoo">Vider les processus</button>
+                <button class="btn btn-secondary btn-sm"
+                        id="btnRefreshDb">Actualiser</button>
+              </div>
+            </div>
+            <div class="field"
+                 style="margin-bottom: 16px;">
+              <input type="text"
+                     id="dbSearch"
+                     placeholder="Rechercher une base…">
+            </div>
+            <div id="dbList">
+              <div class="empty-state">Chargement…</div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-settings"
+         class="tab-panel">
+      <div class="main-card"
+           style="max-width: 600px;">
+        <section class="section">
+          <h2 class="section-title section-title-sm">Réglages</h2>
+          <p class="field-hint"
+             style="margin-bottom: 20px;">Configurez les chemins selon votre machine.</p>
+
+          <div class="field">
+            <label class="field-label"
+                   for="odooCommunityPath">Chemin Odoo Community</label>
+            <p class="field-hint">Chemin exact du dossier community (contenant odoo-bin)</p>
+            <div class="field-with-browse">
+              <input type="text"
+                     id="odooCommunityPath"
+                     placeholder="~/odoo/core">
+              <button type="button"
+                      class="btn btn-secondary btn-sm btn-browse"
+                      data-target="odooCommunityPath"
+                      data-type="folder"
+                      data-prompt="Choisir le dossier Odoo Community">Parcourir</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label"
+                   for="odooEnterprisePath">Chemin Odoo Enterprise</label>
+            <p class="field-hint">Chemin exact du dossier enterprise</p>
+            <div class="field-with-browse">
+              <input type="text"
+                     id="odooEnterprisePath"
+                     placeholder="~/odoo/enterprise">
+              <button type="button"
+                      class="btn btn-secondary btn-sm btn-browse"
+                      data-target="odooEnterprisePath"
+                      data-type="folder"
+                      data-prompt="Choisir le dossier Odoo Enterprise">Parcourir</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label"
+                   for="scriptsPath">Dossier des scripts</label>
+            <p class="field-hint">Un ou plusieurs chemins (séparés par une virgule)</p>
+            <div class="field-with-browse">
+              <input type="text"
+                     id="scriptsPath"
+                     placeholder="~/Scripts ou /chemin/vers/scripts">
+              <button type="button"
+                      class="btn btn-secondary btn-sm btn-browse"
+                      data-target="scriptsPath"
+                      data-type="folder"
+                      data-prompt="Choisir le dossier des scripts">Parcourir</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label"
+                   for="pyenvRoot">Racine pyenv</label>
+            <p class="field-hint">Dossier contenant versions/ (odoo-18, odoo-19…)</p>
+            <div class="field-with-browse">
+              <input type="text"
+                     id="pyenvRoot"
+                     placeholder="~/.pyenv">
+              <button type="button"
+                      class="btn btn-secondary btn-sm btn-browse"
+                      data-target="pyenvRoot"
+                      data-type="folder"
+                      data-prompt="Choisir la racine pyenv">Parcourir</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label"
+                   for="psqlPath">Chemin psql</label>
+            <p class="field-hint">Laissez vide pour auto-détection (Homebrew, Postgres.app…)</p>
+            <div class="field-with-browse">
+              <input type="text"
+                     id="psqlPath"
+                     placeholder="">
+              <button type="button"
+                      class="btn btn-secondary btn-sm btn-browse"
+                      data-target="psqlPath"
+                      data-type="file"
+                      data-prompt="Choisir le fichier psql">Parcourir</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label"
+                   for="terminalApp">Terminal</label>
+            <p class="field-hint">Application dans laquelle Odoo et les scripts seront lancés</p>
+            <select id="terminalApp">
+              <option value="Warp">Warp</option>
+              <option value="Terminal">Terminal</option>
+              <option value="iTerm2">iTerm2</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label"
+                   for="odooHttpPort">Port HTTP Odoo</label>
+            <p class="field-hint">Port sur lequel Odoo écoute (défaut 8069)</p>
+            <input type="number"
+                   id="odooHttpPort"
+                   min="1024"
+                   max="65535"
+                   placeholder="8069"
+                   style="width: 100px;">
+          </div>
+
+          <div class="field"
+               style="margin-top: 24px;">
+            <button class="btn btn-primary"
+                    id="btnSaveConfig">Enregistrer</button>
+            <span class="status"
+                  id="configStatus"></span>
+          </div>
+          <p class="field-hint"
+             style="margin-top: 20px; margin-bottom: 0;">Version {{ app_version }}</p>
+        </section>
+      </div>
+    </div>
+  </div>
+  <div id="toastContainer"
+       class="toast-container"></div>
+  <div id="scriptModal"
+       class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 class="modal-title"
+            id="scriptModalTitle">Script DB</h3>
+        <button class="btn btn-secondary btn-sm"
+                id="btnCloseScriptModal">Fermer</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label class="field-label"
+                 for="scriptPathReadonly">Script</label>
+          <input type="text"
+                 id="scriptPathReadonly"
+                 readonly>
+        </div>
+        <div class="field">
+          <label class="field-label"
+                 for="scriptAddonsPath">Addons paths</label>
+          <textarea id="scriptAddonsPath"
+                    placeholder="/path/a,/path/b"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label"
+                 for="scriptUpdateModules">Modules reinit / update</label>
+          <textarea id="scriptUpdateModules"
+                    placeholder="website,website_sale"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary"
+                id="btnCancelScriptModal">Annuler</button>
+        <button class="btn btn-primary"
+                id="btnSaveScriptModal">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let odooHttpPort = 8069;
+    let scriptModalState = null;
+    let appUpdateState = null;
+
+    const tabIds = { create: 'panel-create', databases: 'panel-databases', settings: 'panel-settings' };
+    document.querySelectorAll('.tab').forEach(t => {
+      t.onclick = () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        $(tabIds[t.dataset.tab]).classList.add('active');
+        if (t.dataset.tab === 'databases') {
+          loadScriptsPath();
+          loadDatabases();
+        }
+        if (t.dataset.tab === 'settings' || t.dataset.tab === 'create') loadConfig();
+      };
+    });
+
+    async function loadCurrent() {
+      try {
+        const r = await fetch('/api/current');
+        const d = await r.json();
+        const branches = (d.branches || []).map(b => `<option value="${b}">${b}</option>`).join('');
+        const defBranch = d.branch || '19.0';
+        const defVersion = d.version || '19';
+        ['branch', 'branchDb'].forEach(id => {
+          const sel = $(id);
+          if (sel) {
+            sel.innerHTML = branches;
+            sel.value = defBranch;
+          }
+        });
+        await loadPyenvEnvs(defVersion);
+      } catch (e) {
+        log(e.message, 'err');
+      }
+    }
+
+    async function loadPyenvEnvs(fallbackVersion = '19') {
+      try {
+        const r = await fetch('/api/pyenv/envs');
+        const d = await r.json();
+        const envs = d.envs || [];
+        const globalEnv = d.global_env || '';
+        const fallbackEnv = fallbackVersion ? `odoo-${fallbackVersion}` : '';
+        const opts = ['<option value="">Auto</option>']
+          .concat(envs.map(e => `<option value="${escapeHtml(e)}">${escapeHtml(e)}</option>`))
+          .join('');
+        ['version', 'versionDb'].forEach(id => {
+          const sel = $(id);
+          if (!sel) return;
+          sel.innerHTML = opts;
+          const selected = globalEnv || (envs.includes(fallbackEnv) ? fallbackEnv : '');
+          sel.value = selected;
+        });
+        const st = $('pyenvGlobalStatus');
+        const stDb = $('pyenvGlobalStatusDb');
+        if (st) {
+          st.textContent = globalEnv ? `Global: ${globalEnv}` : 'Global: auto';
+          st.className = 'status';
+        }
+        if (stDb) {
+          stDb.textContent = globalEnv ? `Global: ${globalEnv}` : 'Global: auto';
+          stDb.className = 'status';
+        }
+      } catch (_) {
+        // Fallback silencieux si pyenv non accessible
+      }
+    }
+
+    async function checkAppUpdate() {
+      const banner = $('appUpdateBanner');
+      const text = $('appUpdateBannerText');
+      if (!banner || !text) return;
+      try {
+        const r = await fetch('/api/app/update-check');
+        const d = await r.json();
+        appUpdateState = d;
+        if (!d.update_available) {
+          banner.classList.remove('show');
+          document.body.classList.remove('has-update-banner');
+          return;
+        }
+        const notes = d.release_notes ? ` — ${d.release_notes}` : '';
+        text.innerHTML = `<strong>Mise à jour disponible</strong> : version <strong>${escapeHtml(d.latest_version || '')}</strong> (vous avez ${escapeHtml(d.current_version || '')})${escapeHtml(notes)}`;
+        banner.classList.add('show');
+        document.body.classList.add('has-update-banner');
+      } catch (_) {
+        banner.classList.remove('show');
+        document.body.classList.remove('has-update-banner');
+      }
+    }
+
+    $('btnDownloadAppUpdate').onclick = async () => {
+      const url = (appUpdateState && appUpdateState.download_url) || '';
+      if (!url) return;
+      try {
+        await fetch('/api/app/open-download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+      } catch (_) {
+        window.open(url, '_blank', 'noopener');
+      }
+    };
+
+    $('btnDismissAppUpdate').onclick = async () => {
+      const version = (appUpdateState && appUpdateState.latest_version) || '';
+      if (!version) return;
+      try {
+        await fetch('/api/app/update-dismiss', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ version })
+        });
+      } catch (_) { /* ignore */ }
+      $('appUpdateBanner').classList.remove('show');
+      document.body.classList.remove('has-update-banner');
+    };
+
+    loadCurrent();
+    loadConfig();
+    checkAppUpdate();
+
+    if (location.hash === '#settings') {
+      document.querySelector('.tab[data-tab="settings"]').click();
+    }
+    window.addEventListener('hashchange', () => {
+      if (location.hash === '#settings') document.querySelector('.tab[data-tab="settings"]').click();
+    });
+
+    async function loadConfig() {
+      try {
+        const r = await fetch('/api/config');
+        const d = await r.json();
+        $('odooCommunityPath').value = d.odoo_community_path || '';
+        $('odooEnterprisePath').value = d.odoo_enterprise_path || '';
+        $('scriptsPath').value = (d.scripts_paths || []).join(', ') || '';
+        $('pyenvRoot').value = d.pyenv_root || '~/.pyenv';
+        $('psqlPath').value = d.psql_path || '';
+        $('terminalApp').value = d.terminal_app || 'Warp';
+        const port = d.odoo_http_port ?? 8069;
+        $('odooHttpPort').value = port;
+        odooHttpPort = port;
+        // Populate scripts dir selector (create form)
+        const sel = $('scriptsDirSelect');
+        if (sel) {
+          const paths = d.scripts_paths || [];
+          sel.innerHTML = paths.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('') ||
+            '<option value="">~/Scripts</option>';
+        }
+      } catch (_) { }
+    }
+
+    document.querySelectorAll('.btn-browse').forEach(btn => {
+      btn.onclick = async () => {
+        const target = btn.dataset.target;
+        const type = btn.dataset.type || 'folder';
+        const prompt = btn.dataset.prompt || 'Choisir';
+        const s = $('configStatus');
+        const url = type === 'file' ? '/api/browse-file' : '/api/browse-folder';
+        try {
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+          });
+          const d = await r.json();
+          if (d.ok && d.path) {
+            $(target).value = d.path;
+            s.textContent = '';
+          } else {
+            s.textContent = d.message || 'Annulé';
+            s.className = 'status warn';
+            setTimeout(() => { s.textContent = ''; }, 2000);
+          }
+        } catch (e) {
+          s.textContent = e.message || 'Erreur';
+          s.className = 'status warn';
+        }
+      };
+    });
+
+    $('btnSaveConfig').onclick = async () => {
+      const s = $('configStatus');
+      const rawPaths = ($('scriptsPath').value || '').trim();
+      const paths = rawPaths ? rawPaths.split(/[,\n]+/).map(p => p.trim()).filter(Boolean) : ['~/Scripts'];
+      try {
+        const r = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            odoo_community_path: $('odooCommunityPath').value.trim(),
+            odoo_enterprise_path: $('odooEnterprisePath').value.trim(),
+            scripts_paths: paths,
+            pyenv_root: $('pyenvRoot').value.trim() || '~/.pyenv',
+            psql_path: $('psqlPath').value.trim(),
+            terminal_app: $('terminalApp').value || 'Warp',
+            odoo_http_port: parseInt($('odooHttpPort').value, 10) || 8069,
+          })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          s.textContent = 'Enregistré.';
+          s.className = 'status ok';
+          await loadPyenvEnvs();
+          if (typeof loadDatabases === 'function') loadDatabases();
+        } else {
+          s.textContent = d.message || 'Erreur';
+          s.className = 'status warn';
+        }
+      } catch (e) {
+        s.textContent = e.message;
+        s.className = 'status warn';
+      }
+    };
+
+    async function checkDbStatus() {
+      const db = $('dbName').value.trim();
+      if (!db) { $('dbStatus').textContent = ''; return; }
+      try {
+        const r = await fetch(`/api/db-exists?db=${encodeURIComponent(db)}`);
+        const d = await r.json();
+        const s = $('dbStatus');
+        s.textContent = d.exists ? '(existe)' : '(sera créée)';
+        s.className = 'status ' + (d.exists ? 'warn' : 'ok');
+      } catch (_) { }
+    }
+
+    $('dbName').addEventListener('input', () => setTimeout(checkDbStatus, 300));
+
+    function log(msg, type = '') {
+      const el = $('log');
+      if (!el) return;
+      const line = document.createElement('div');
+      line.textContent = msg;
+      if (type === 'err') line.style.color = 'var(--error)';
+      if (type === 'ok') line.style.color = 'var(--success)';
+      el.appendChild(line);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function clearLog() {
+      const el = $('log');
+      if (el) el.innerHTML = '';
+    }
+
+    function getCustomAddons() {
+      const list = $('customAddonsList');
+      if (!list) return [];
+      return Array.from(list.querySelectorAll('.addons-item')).map(item => item.dataset.path).filter(Boolean);
+    }
+
+    function renderCustomAddons(paths) {
+      const list = $('customAddonsList');
+      if (!list) return;
+      const uniq = Array.from(new Set((paths || []).map(p => (p || '').trim()).filter(Boolean)));
+      list.innerHTML = uniq.map(path => `
+        <div class="addons-item" data-path="${escapeHtml(path)}">
+          <span>${escapeHtml(path)}</span>
+          <button type="button" class="btn btn-secondary btn-sm btn-remove-addon" data-path="${escapeHtml(path)}">Supprimer</button>
+        </div>
+      `).join('');
+      list.querySelectorAll('.btn-remove-addon').forEach(btn => {
+        btn.onclick = () => {
+          const next = getCustomAddons().filter(p => p !== btn.dataset.path);
+          renderCustomAddons(next);
+        };
+      });
+    }
+
+    function addCustomAddonPath(path) {
+      const value = (path || '').trim();
+      if (!value) return;
+      const current = getCustomAddons();
+      if (!current.includes(value)) current.push(value);
+      renderCustomAddons(current);
+      $('customAddonInput').value = '';
+    }
+
+    function getLogText() {
+      const el = $('log');
+      if (!el) return '';
+      return Array.from(el.children).map(d => d.textContent).join('\n') || el.textContent || '';
+    }
+
+    const btnCopyLog = $('btnCopyLog');
+    if (btnCopyLog) btnCopyLog.onclick = async () => {
+      const text = getLogText();
+      if (!text.trim()) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        const btn = $('btnCopyLog');
+        const orig = btn.textContent;
+        btn.textContent = 'Copié !';
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+      } catch (e) {
+        log('Copie impossible : ' + e.message, 'err');
+      }
+    };
+
+    function showToast(message, type = 'success', ttl = 3200) {
+      const container = $('toastContainer');
+      if (!container) return;
+      const node = document.createElement('div');
+      node.className = `toast ${type}`;
+      node.textContent = message;
+      container.appendChild(node);
+      requestAnimationFrame(() => node.classList.add('show'));
+      setTimeout(() => {
+        node.classList.remove('show');
+        setTimeout(() => node.remove(), 180);
+      }, ttl);
+    }
+
+    function closeScriptModal() {
+      const modal = $('scriptModal');
+      if (!modal) return;
+      modal.classList.remove('show');
+      scriptModalState = null;
+    }
+
+    function openScriptModal(data) {
+      scriptModalState = data;
+      $('scriptModalTitle').textContent = `Script DB: ${data.db}`;
+      $('scriptPathReadonly').value = data.script || '';
+      $('scriptAddonsPath').value = data.addons_path || '';
+      $('scriptUpdateModules').value = data.update_modules || '';
+      $('scriptModal').classList.add('show');
+    }
+
+    $('btnCloseScriptModal').onclick = () => closeScriptModal();
+    $('btnCancelScriptModal').onclick = () => closeScriptModal();
+    $('scriptModal').onclick = (e) => {
+      if (e.target.id === 'scriptModal') closeScriptModal();
+    };
+
+    $('btnSaveScriptModal').onclick = async () => {
+      if (!scriptModalState) return;
+      const payload = {
+        db: scriptModalState.db,
+        addons_path: $('scriptAddonsPath').value.trim(),
+        install_modules: scriptModalState.install_modules || '',
+        update_modules: $('scriptUpdateModules').value,
+        update_mode: scriptModalState.update_mode || 'reinit'
+      };
+      try {
+        const r = await fetch('/api/script-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (!d.ok) {
+          alert(d.message || 'Erreur update script');
+          return;
+        }
+        closeScriptModal();
+        showToast(`Script ${payload.db} mis à jour`, 'success');
+      } catch (e) {
+        alert(e.message || 'Erreur');
+      }
+    };
+
+    $('btnAddCustomAddon').onclick = () => addCustomAddonPath($('customAddonInput').value);
+    $('customAddonInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addCustomAddonPath($('customAddonInput').value);
+      }
+    });
+
+    $('btnBrowseCustomAddon').onclick = async () => {
+      try {
+        const r = await fetch('/api/browse-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: 'Choisir un dossier addons custom' })
+        });
+        const d = await r.json();
+        if (d.ok && d.path) addCustomAddonPath(d.path);
+      } catch (e) {
+        log(e.message, 'err');
+      }
+    };
+
+    $('btnCheck').onclick = async () => {
+      const branch = $('branch').value;
+      try {
+        const r = await fetch('/api/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ branch })
+        });
+        const d = await r.json();
+        $('branchStatus').textContent = d.message;
+        $('branchStatus').className = 'status ' + (d.ok ? 'ok' : 'warn');
+        log(d.message);
+      } catch (e) { log(e.message, 'err'); }
+    };
+
+    $('btnBranch').onclick = async () => {
+      const branch = $('branch').value;
+      try {
+        const r = await fetch('/api/branch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ branch })
+        });
+        const d = await r.json();
+        log(d.message, d.ok ? 'ok' : 'err');
+        $('branchStatus').textContent = d.ok ? 'OK' : 'Erreur';
+        $('branchStatus').className = 'status ' + (d.ok ? 'ok' : 'warn');
+      } catch (e) { log(e.message, 'err'); }
+    };
+
+    $('btnCheckDb').onclick = async () => {
+      const branch = $('branchDb').value;
+      try {
+        const r = await fetch('/api/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ branch })
+        });
+        const d = await r.json();
+        $('branchStatusDb').textContent = d.message;
+        $('branchStatusDb').className = 'status ' + (d.ok ? 'ok' : 'warn');
+      } catch (e) {
+        $('branchStatusDb').textContent = e.message || 'Erreur';
+        $('branchStatusDb').className = 'status warn';
+      }
+    };
+
+    $('btnBranchDb').onclick = async () => {
+      const branch = $('branchDb').value;
+      try {
+        const r = await fetch('/api/branch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ branch })
+        });
+        const d = await r.json();
+        $('branchStatusDb').textContent = d.ok ? 'OK' : (d.message || 'Erreur');
+        $('branchStatusDb').className = 'status ' + (d.ok ? 'ok' : 'warn');
+      } catch (e) {
+        $('branchStatusDb').textContent = e.message || 'Erreur';
+        $('branchStatusDb').className = 'status warn';
+      }
+    };
+
+    $('btnCheckUpdatesDb').onclick = async () => {
+      const s = $('gitStatusDb');
+      const a = $('gitAlertDb');
+      s.textContent = 'Vérification...';
+      s.className = 'status';
+      a.classList.remove('show');
+      a.textContent = '';
+      try {
+        const r = await fetch('/api/git/check-updates', { method: 'POST' });
+        const d = await r.json();
+        const core = (d.counts && Number(d.counts.core)) || 0;
+        const enterprise = (d.counts && Number(d.counts.enterprise)) || 0;
+        if (d.ok && core === 0 && enterprise === 0) {
+          s.textContent = 'Tout est à jour.';
+          s.className = 'status ok';
+          return;
+        }
+        s.textContent = '';
+        a.textContent = `Vous avez ${core} commits de retard dans core\nVous avez ${enterprise} commits de retard dans enterprise\n\nAppuyez sur pull pour mettre a jour`;
+        a.classList.add('show');
+      } catch (e) {
+        s.textContent = e.message || 'Erreur';
+        s.className = 'status warn';
+      }
+    };
+
+    $('btnPullDb').onclick = async () => {
+      const s = $('gitStatusDb');
+      const a = $('gitAlertDb');
+      s.textContent = 'Pull en cours...';
+      s.className = 'status';
+      a.classList.remove('show');
+      try {
+        const r = await fetch('/api/git/pull', { method: 'POST' });
+        const d = await r.json();
+        s.textContent = d.message || (d.ok ? 'Pull terminé' : 'Erreur pull');
+        s.className = 'status ' + (d.ok ? 'ok' : 'warn');
+      } catch (e) {
+        s.textContent = e.message || 'Erreur';
+        s.className = 'status warn';
+      }
+    };
+
+    $('btnLocks').onclick = async () => {
+      const db = $('dbName').value.trim();
+      if (!db) { log('Indiquez un nom de base.', 'err'); return; }
+      try {
+        const r = await fetch('/api/locks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ db })
+        });
+        const d = await r.json();
+        log(d.message, d.ok ? 'ok' : 'err');
+        checkDbStatus();
+      } catch (e) { log(e.message, 'err'); }
+    };
+
+    $('btnCreate').onclick = async () => {
+      const db = $('dbName').value.trim();
+      if (!db) { log('Indiquez un nom de base.', 'err'); return; }
+
+      $('btnCreate').disabled = true;
+      clearLog();
+      log('--- Lancement de la création ---');
+
+      const scriptsDirEl = $('scriptsDirSelect');
+      const scriptsDir = scriptsDirEl ? scriptsDirEl.value.trim() : '';
+      const body = {
+        db,
+        modules: $('modules').value,
+        update_modules: $('updateModules').value,
+        update_mode: $('updateMode').value,
+        custom_addons: getCustomAddons(),
+        branch: $('branch').value,
+        version: $('version').value,
+        pyenv_env: $('version').value || '',
+        scripts_dir: scriptsDir || undefined,
+        industry: $('dbIndustry').checked
+      };
+
+      try {
+        const r = await fetch('/api/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        if (d.ok) {
+          showToast(`Base ${db} créée / mise à jour`, 'success');
+          $('dbName').value = '';
+          $('modules').value = 'website,website_sale';
+          $('updateModules').value = 'website,website_sale';
+          $('updateMode').value = 'reinit';
+          $('dbIndustry').checked = false;
+          renderCustomAddons([]);
+          $('dbStatus').textContent = '';
+          $('dbStatus').className = 'status';
+          checkDbStatus();
+          loadDatabases();
+          document.querySelector('.tab[data-tab="databases"]').click();
+          setTimeout(loadDatabases, 2500);
+        } else {
+          log(d.message || 'Erreur', 'err');
+        }
+      } catch (e) { log(e.message, 'err'); }
+      finally { $('btnCreate').disabled = false; }
+    };
+
+    $('btnRefreshDb').onclick = () => loadDatabases();
+
+    $('btnSetGlobalPyenv').onclick = async () => {
+      const envName = $('version').value || '';
+      const st = $('pyenvGlobalStatus');
+      const stDb = $('pyenvGlobalStatusDb');
+      try {
+        const r = await fetch('/api/pyenv/global', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ env_name: envName })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          st.textContent = d.global_env ? `Global: ${d.global_env}` : 'Global: auto';
+          st.className = d.applied === false ? 'status warn' : 'status ok';
+          if (stDb) {
+            stDb.textContent = d.global_env ? `Global: ${d.global_env}` : 'Global: auto';
+            stDb.className = d.applied === false ? 'status warn' : 'status ok';
+          }
+          if (d.message) {
+            st.textContent += ` - ${d.message}`;
+            if (stDb) stDb.textContent += ` - ${d.message}`;
+          }
+          if ($('versionDb')) $('versionDb').value = d.global_env || '';
+        } else {
+          st.textContent = d.message || 'Erreur';
+          st.className = 'status warn';
+          if (stDb) {
+            stDb.textContent = d.message || 'Erreur';
+            stDb.className = 'status warn';
+          }
+        }
+      } catch (e) {
+        st.textContent = e.message || 'Erreur';
+        st.className = 'status warn';
+        if (stDb) {
+          stDb.textContent = e.message || 'Erreur';
+          stDb.className = 'status warn';
+        }
+      }
+    };
+
+    $('btnSetGlobalPyenvDb').onclick = async () => {
+      const envName = $('versionDb').value || '';
+      const st = $('pyenvGlobalStatusDb');
+      const stCreate = $('pyenvGlobalStatus');
+      try {
+        const r = await fetch('/api/pyenv/global', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ env_name: envName })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          st.textContent = d.global_env ? `Global: ${d.global_env}` : 'Global: auto';
+          st.className = d.applied === false ? 'status warn' : 'status ok';
+          if (stCreate) {
+            stCreate.textContent = d.global_env ? `Global: ${d.global_env}` : 'Global: auto';
+            stCreate.className = d.applied === false ? 'status warn' : 'status ok';
+          }
+          if (d.message) {
+            st.textContent += ` - ${d.message}`;
+            if (stCreate) stCreate.textContent += ` - ${d.message}`;
+          }
+          if ($('version')) $('version').value = d.global_env || '';
+        } else {
+          st.textContent = d.message || 'Erreur';
+          st.className = 'status warn';
+        }
+      } catch (e) {
+        st.textContent = e.message || 'Erreur';
+        st.className = 'status warn';
+      }
+    };
+
+    $('dbSearch').oninput = () => {
+      const q = ($('dbSearch').value || '').trim().toLowerCase();
+      const rows = document.querySelectorAll('#dbList .db-row');
+      rows.forEach(row => {
+        const db = (row.dataset.db || '').toLowerCase();
+        row.style.display = db.includes(q) ? '' : 'none';
+      });
+      const blocks = document.querySelectorAll('#dbList .db-block');
+      blocks.forEach(block => {
+        const visible = block.querySelectorAll('.db-row:not([style*="display: none"])').length;
+        block.style.display = visible > 0 ? '' : 'none';
+      });
+    };
+
+    $('btnDisconnectAll').onclick = async () => {
+      try {
+        const r = await fetch('/api/disconnect-all', { method: 'POST' });
+        const d = await r.json();
+        if (d.ok) setTimeout(loadDatabases, 500);
+        alert(d.message);
+      } catch (e) { alert(e.message); }
+    };
+
+    async function loadDatabases() {
+      const el = $('dbList');
+      el.innerHTML = '<div class="empty-state">Chargement…</div>';
+      try {
+        const r = await fetch(`/api/databases`);
+        const d = await r.json();
+        if (d.databases.length === 0) {
+          el.innerHTML = '<div class="empty-state">Aucune base de données</div>';
+          return;
+        }
+        const running = d.running || null;
+        const runningDbs = running ? d.databases.filter(db => db === running) : [];
+        const otherDbs = d.databases.filter(db => db !== running);
+
+        const renderDbRow = (db, isRunning) => {
+          const ver = (d.versions && d.versions[db]) || null;
+          const industry = d.industries && d.industries[db];
+          const verBadge = ver
+            ? `<span class="badge badge-v${ver}">${ver}</span>`
+            : `<span class="badge badge-unknown" title="Script introuvable">?</span>`;
+          const industryBadge = industry ? '<span class="badge badge-industry">industry</span>' : '';
+          const connectLabel = isRunning ? 'Ouvrir' : 'Connecter';
+          const connectBtn = `<button class="btn btn-primary btn-sm btn-connect" data-db="${escapeHtml(db)}" data-running="${isRunning}">${connectLabel}</button>`;
+          const actions = isRunning
+            ? `${connectBtn}
+               <button class="btn btn-secondary btn-sm btn-edit-script" data-db="${escapeHtml(db)}">Script</button>
+               <button class="btn btn-secondary btn-sm btn-restart" data-db="${escapeHtml(db)}">Restart</button>
+               <button class="btn btn-secondary btn-sm btn-disconnect" data-db="${escapeHtml(db)}">Déconnecter</button>`
+            : `${connectBtn}
+               <button class="btn btn-secondary btn-sm btn-edit-script" data-db="${escapeHtml(db)}">Script</button>
+               <button class="btn btn-secondary btn-sm btn-delete" data-db="${escapeHtml(db)}">Supprimer</button>`;
+          return `
+            <div class="db-row" data-db="${escapeHtml(db)}">
+              <div class="db-info">
+                <span class="db-name">${escapeHtml(db)}</span>
+                <div class="db-meta">
+                  ${verBadge}${industryBadge}
+                  ${isRunning ? '<span class="badge badge-running">En cours</span>' : ''}
+                </div>
+              </div>
+              <div class="db-actions">
+                ${actions}
+              </div>
+            </div>
+          `;
+        };
+
+        let html = '';
+        if (runningDbs.length > 0) {
+          html += '<div class="db-block"><div class="db-block-title">En cours</div><div class="db-list">';
+          runningDbs.forEach(db => { html += renderDbRow(db, true); });
+          html += '</div></div>';
+        }
+        html += '<div class="db-block">';
+        if (runningDbs.length > 0) html += '<div class="db-block-title">Autres</div>';
+        html += '<div class="db-list">';
+        otherDbs.forEach(db => { html += renderDbRow(db, false); });
+        html += '</div></div>';
+
+        el.innerHTML = html;
+        el.querySelectorAll('.btn-connect').forEach(btn => {
+          btn.onclick = () => connectDb(btn.dataset.db, btn.dataset.running === 'true');
+        });
+        el.querySelectorAll('.btn-disconnect').forEach(btn => {
+          btn.onclick = () => disconnectDb(btn.dataset.db);
+        });
+        el.querySelectorAll('.btn-restart').forEach(btn => {
+          btn.onclick = () => restartDb(btn.dataset.db);
+        });
+        el.querySelectorAll('.btn-edit-script').forEach(btn => {
+          btn.onclick = () => editScript(btn.dataset.db);
+        });
+        el.querySelectorAll('.btn-delete').forEach(btn => {
+          btn.onclick = () => deleteDb(btn.dataset.db);
+        });
+      } catch (e) {
+        el.innerHTML = `<div class="empty-state" style="color: var(--error);">${escapeHtml(e.message)}</div>`;
+      }
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    async function openInBrowser() {
+      try {
+        await fetch('/api/open-in-browser?url=' + encodeURIComponent('http://localhost:' + odooHttpPort));
+      } catch (_) { }
+    }
+
+    async function connectDb(db, alreadyRunning) {
+      if (alreadyRunning) {
+        openInBrowser();
+        return;
+      }
+      try {
+        const r = await fetch('/api/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            db,
+            branch: $('branchDb').value,
+            version: $('versionDb').value,
+            pyenv_env: $('versionDb').value || ''
+          })
+        });
+        const d = await r.json();
+        if (d.ok) setTimeout(loadDatabases, 800);
+        else alert(d.message);
+      } catch (e) { alert(e.message); }
+    }
+
+    async function disconnectDb(db) {
+      try {
+        const r = await fetch('/api/disconnect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ db })
+        });
+        const d = await r.json();
+        if (d.ok) setTimeout(loadDatabases, 600);
+        else alert(d.message);
+      } catch (e) { alert(e.message); }
+    }
+
+    async function restartDb(db) {
+      try {
+        const r = await fetch('/api/restart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ db })
+        });
+        const d = await r.json();
+        if (d.ok) setTimeout(loadDatabases, 900);
+        else alert(d.message);
+      } catch (e) { alert(e.message); }
+    }
+
+    async function deleteDb(db) {
+      if (!confirm(`Supprimer la base "${db}" ? (DB PostgreSQL + script .sh)`)) return;
+      try {
+        const r = await fetch('/api/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ db })
+        });
+        const d = await r.json();
+        if (d.ok) setTimeout(loadDatabases, 500);
+        alert(d.message);
+      } catch (e) { alert(e.message); }
+    }
+
+    async function editScript(db) {
+      try {
+        const r = await fetch(`/api/script-config?db=${encodeURIComponent(db)}`);
+        const d = await r.json();
+        if (!d.ok) { alert(d.message || 'Script introuvable'); return; }
+        openScriptModal({ db, ...d });
+      } catch (e) {
+        alert(e.message || 'Erreur');
+      }
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,7 @@
+{
+  "version": "1.1.2",
+  "min_version": "1.0.0",
+  "download_url": "https://tocotools.odoo.com/odoo-db-manager",
+  "release_notes": "Première publication du manifeste de mise à jour. Remplacez download_url par le lien direct vers le .pkg lors de chaque release.",
+  "published_at": "2026-05-29"
+}

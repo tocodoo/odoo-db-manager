@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "[Odoo DB Manager] Step 2/2 - Installation terminée."
+echo "[Odoo DB Manager] L'application est disponible dans /Applications."
+
+exit 0
