@@ -45,3 +45,5 @@ pkgbuild \
 
 echo "OK: dist/Odoo Database Manager.app"
 echo "OK: dist/Odoo-Database-Manager.pkg (v${APP_VERSION}) → /Applications/Odoo Database Manager.app"
+echo "En cas d'échec d'install, voir : /var/log/Odoo-Database-Manager-install.log"
+echo "  et ~/Library/Logs/Odoo Database Manager/install.log"

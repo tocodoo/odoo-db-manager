@@ -1,36 +1,68 @@
 #!/bin/bash
-# Force l'app dans /Applications (évite la relocation vers dist/, Desktop/, etc.)
-set -euo pipefail
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=install-common.sh
+source "${SCRIPT_DIR}/install-common.sh"
+
+_init_install_log "postinstall" "$@"
 
 APP="Odoo Database Manager.app"
 TARGET="/Applications/${APP}"
-VOLUME="${1:-/}"
 
-# Chemin standard (Payload/Applications/…, install-location /)
-INSTALLED="${VOLUME}/Applications/${APP}"
-if [ -d "$INSTALLED" ]; then
-  if [ ! -e "$TARGET" ] || [ ! "$INSTALLED" -ef "$TARGET" ]; then
-    rm -rf "$TARGET"
-    ditto "$INSTALLED" "$TARGET"
+app_ok() {
+  [[ -f "${1}/Contents/Info.plist" ]]
+}
+
+if app_ok "$TARGET"; then
+  install_log "OK : ${TARGET} déjà en place."
+  exit 0
+fi
+
+MOUNT="${1:-/}"
+ROOT="${2:-/}"
+MOUNT="${MOUNT%/}"
+ROOT="${ROOT#/}"
+install_log "mount=${MOUNT} install_root=${ROOT}"
+
+CANDIDATES=(
+  "${MOUNT}/Applications/${APP}"
+)
+if [[ -n "$ROOT" && "$ROOT" != "." ]]; then
+  CANDIDATES+=("${MOUNT}/${ROOT}/Applications/${APP}")
+  CANDIDATES+=("${MOUNT}/${ROOT}/${APP}")
+fi
+
+install_log "Recherche du bundle installé…"
+FOUND=""
+for SRC in "${CANDIDATES[@]}"; do
+  install_log "  teste: ${SRC}"
+  if app_ok "$SRC"; then
+    FOUND="$SRC"
+    install_log "  trouvé: ${SRC}"
+    break
   fi
+done
+
+if [[ -z "$FOUND" ]]; then
+  install_log "Chemins testés sans succès :"
+  printf '  - %s\n' "${CANDIDATES[@]}" | _install_write
+  install_fail "${APP} introuvable après extraction du paquet. Vérifiez les chemins ci-dessus dans le journal."
 fi
 
-# Relocation : le receipt peut pointer ailleurs (ex. dossier du projet)
-if [ ! -d "$TARGET" ]; then
-  RECEIPT_PLIST=$(pkgutil --only-files com.odoo.dbmanager 2>/dev/null | grep -F "${APP}/Contents/Info.plist" | head -1 || true)
-  if [ -n "$RECEIPT_PLIST" ]; then
-    RECEIPT_APP="${RECEIPT_PLIST%/Contents/Info.plist}"
-    if [ -d "$RECEIPT_APP" ]; then
-      rm -rf "$TARGET"
-      ditto "$RECEIPT_APP" "$TARGET"
-    fi
-  fi
+if [[ "$FOUND" != "$TARGET" ]]; then
+  install_log "Copie ${FOUND} → ${TARGET}"
+  install_run "suppression ancienne cible" rm -rf "$TARGET"
+  install_run "copie du bundle (ditto)" ditto "$FOUND" "$TARGET"
+else
+  install_log "Bundle déjà à la cible ${TARGET}."
 fi
 
-if [ ! -d "$TARGET" ]; then
-  echo "[Odoo DB Manager] ERREUR: ${APP} introuvable dans /Applications après installation."
-  exit 1
+if ! app_ok "$TARGET"; then
+  install_fail "Copie terminée mais ${TARGET}/Contents/Info.plist est absent."
 fi
 
-echo "[Odoo DB Manager] Installé dans ${TARGET}"
+install_run "permissions lecture" chmod -R a+rX "$TARGET"
+
+install_log "Installation réussie : ${TARGET}"
 exit 0
