@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <delete model="website.menu" search="[('url','in', ['/', '/']), ('website_id', '=', 1)]"/>
+    <record id="menu_example" model="website.menu">
+        <field name="name">Example</field>
+        <field name="url">/example</field>
+        <field name="parent_id" search="[ ('url', '=', '#'), ('website_id', '=', 1)]"/>
+        <field name="website_id">1</field>
+        <field name="sequence" type="int">20</field>
+    </record>
+</odoo>

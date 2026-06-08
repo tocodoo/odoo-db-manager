@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="page_home" model="website.page">
+        <field name="name">Home</field>
+        <field name="is_published" eval="True"/>
+        <field name="key">website_scaffold.page_home</field>
+        <field name="url">/</field>
+        <field name="type">qweb</field>
+        <field name="website_id" eval="1"/>
+        <field name="arch" type="xml">
+            <t name="Home" t-name="website_scaffold.page_home">
+                <t t-call="website.layout">
+                    <t t-set="additional_title" t-valuef="Home"/>
+                    <t t-set="pageName" t-valuef="x_wd_page_home"/>
+                    <div id="wrap" class="oe_structure">
+                        <section class="s_wd_snippet o_cc o_cc1 pt48 pb48" data-snippet="s_wd_snippet" data-name="Custom Snippet">
+                            <div class="container s_allow_columns">
+                                <h1 class="text-center display-1">Welcome</h1>
+                                <p class="text-center lead fst-italic">Hello my dear Odooer!</p>
+                                <div class="text-center">
+                                    <button type="button" class="btn btn-primary mt-3">Say hello</button>
+                                </div>
+                                <br/>
+                                <img src="/web/image/website_scaffold.img_s_wd_snippet_default" class="img img-fluid mx-auto d-block text-center" alt="Default Image" loading="lazy"/>
+                            </div>
+                        </section>
+                    </div>
+                </t>
+            </t>
+        </field>
+    </record>
+</odoo>

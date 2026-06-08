@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="s_wd_snippet" name="Scaffold - Welcome">
+        <section class="s_wd_snippet o_cc o_cc1 pt48 pb48" data-snippet="s_wd_snippet" data-name="Scaffold Welcome">
+            <div class="container s_allow_columns">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <h1 class="text-center display-1">Welcome</h1>
+                        <p class="text-center lead fst-italic">Hello my dear Odooer!</p>
+                        <div class="text-center">
+                            <button type="button" class="btn btn-primary mt-3">Say hello</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </template>
+</odoo>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Add custom snippets -->
+    <template id="snippets" inherit_id="website.snippets" name="Scaffold - Snippets">
+        <xpath expr="//*[@id='default_snippets']" position="before">
+            <t id="x_wd_snippets">
+                <div id="x_snippets_category_static" class="o_panel">
+                    <div class="o_panel_header">Scaffold</div>
+                    <div class="o_panel_body">
+                        <t t-snippet="website_scaffold.s_wd_snippet" t-thumbnail="/website_scaffold/static/src/img/wbuilder/snippet_thumbnail.svg">
+                            <keywords>Custom, Snippet</keywords>
+                        </t>
+                    </div>
+                </div>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- Website builder: Global options -->
+    <template id="snippet_options" inherit_id="website.snippet_options" name="Scaffold - Snippets Options">
+        <!-- Insert your options here within an Xpath -->
+    </template>
+</odoo>

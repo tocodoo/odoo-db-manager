@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates>
+    <t t-name="website_scaffold.s_wd_snippet">
+        <!-- Your markup here -->
+        <div>Hello World!</div>
+    </t>
+</templates>

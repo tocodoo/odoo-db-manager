@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="s_wd_snippet" name="Custom Snippet">
+        <section class="s_wd_snippet o_cc o_cc1 pt48 pb48">
+            <div class="container s_allow_columns">
+                <!-- Your content here -->
+                <h1 class="text-center display-1">Welcome</h1>
+                <p class="text-center">Hello my dear Odooer!</p>
+                <br />
+                <img src="/web/image/website_scaffold.img_s_wd_snippet_default" class="img img-fluid mx-auto d-block text-center" alt="Default Image" />
+            </div>
+        </section>
+    </template>
+
+    <!-- Options related to this snippet, specifically -->
+    <template id="s_wd_snippet_options" inherit_id="website.snippet_options">
+        <xpath expr="." position="inside">
+            <div data-js="YourSnippet" data-selector=".s_wd_snippet">
+                <we-select string="Theme">
+                    <we-button data-select-class="x_wd_theme x_wd_theme_primary bg-primary">Primary</we-button>
+                    <we-button data-select-class="x_wd_theme x_wd_theme_secondary bg-secondary">Secondary</we-button>
+                    <we-button data-select-class="x_wd_theme x_wd_theme_success bg-success">Success</we-button>
+                    <we-button data-select-class="x_wd_theme x_wd_theme_danger bg-danger">Danger</we-button>
+                </we-select>
+            </div>
+        </xpath>
+        <!-- Example: Remove image background for this snippet. -->
+        <xpath expr="//t[@t-set='both_bg_color_image_exclude']" position="after">
+            <t t-set="both_bg_color_image_exclude" t-value="both_bg_color_image_exclude + ', .s_wd_snippet'" />
+        </xpath>
+    </template>
+</odoo>

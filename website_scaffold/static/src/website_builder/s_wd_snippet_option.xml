@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="website_scaffold.SWdSnippetOption">
+        <BuilderRow label.translate="Title size">
+            <BuilderSelect applyTo="'.s_wd_snippet h1'">
+                <BuilderSelectItem classAction="'display-1'">Large</BuilderSelectItem>
+                <BuilderSelectItem classAction="'display-4'">Medium</BuilderSelectItem>
+                <BuilderSelectItem classAction="'h1'">Small</BuilderSelectItem>
+            </BuilderSelect>
+        </BuilderRow>
+        <BuilderRow label.translate="Subtitle style">
+            <BuilderSelect applyTo="'.s_wd_snippet .lead, .s_wd_snippet p.lead'">
+                <BuilderSelectItem classAction="'lead fst-italic'">Italic lead</BuilderSelectItem>
+                <BuilderSelectItem classAction="'lead'">Lead</BuilderSelectItem>
+                <BuilderSelectItem classAction="''">Normal</BuilderSelectItem>
+            </BuilderSelect>
+        </BuilderRow>
+    </t>
+</templates>

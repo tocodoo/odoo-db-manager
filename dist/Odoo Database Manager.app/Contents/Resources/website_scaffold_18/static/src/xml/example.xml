@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates>
+    <!-- If you need to call global QWeb JS templates through a global JS file (/static/src/js), this is how/where you can declare it.  -->
+    <t t-name="website_scaffold.x_wd_example">
+        <!-- Your markup here -->
+    </t>
+</templates>

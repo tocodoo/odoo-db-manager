@@ -28,6 +28,12 @@ from config import (
     save_pyenv_global_env,
     save_scripts_paths,
 )
+from scaffold_generator import (
+    SUPPORTED_ODOO_VERSIONS,
+    generate_scaffold,
+    get_defaults,
+    get_template_dir,
+)
 from odoo_ops import (
     build_addons_path,
     build_addons_path_for_modules,
@@ -386,6 +392,35 @@ def api_browse_file():
         return jsonify({"ok": False, "message": "Aucun fichier sélectionné"})
     except subprocess.TimeoutExpired:
         return jsonify({"ok": False, "message": "Délai dépassé"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 500
+
+
+@app.route("/api/scaffold/defaults")
+def api_scaffold_defaults():
+    """Options par défaut pour le générateur de module website."""
+    try:
+        defaults = get_defaults()
+        defaults["template_exists"] = all(
+            get_template_dir(v).is_dir() for v in SUPPORTED_ODOO_VERSIONS
+        )
+        defaults["templates_available"] = {
+            v: get_template_dir(v).is_dir() for v in SUPPORTED_ODOO_VERSIONS
+        }
+        return jsonify(defaults)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/scaffold/generate", methods=["POST"])
+def api_scaffold_generate():
+    """Génère un module website_* depuis le template website_scaffold."""
+    data = request.json or {}
+    try:
+        result = generate_scaffold(data)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"ok": False, "message": str(e)}), 400
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 500
 

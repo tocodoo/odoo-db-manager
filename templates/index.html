@@ -741,6 +741,137 @@
       .databases-layout {
         grid-template-columns: 1fr;
       }
+
+      .scaffold-color-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ——— Scaffold wizard ——— */
+    .scaffold-wizard { max-width: 920px; }
+
+    .scaffold-steps-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+
+    .scaffold-step-btn {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .scaffold-step-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .scaffold-step-btn.done {
+      border-color: rgba(52, 199, 89, 0.4);
+      color: var(--success);
+    }
+
+    .scaffold-step-panel { display: none; }
+    .scaffold-step-panel.active { display: block; }
+
+    .scaffold-accordion {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .scaffold-accordion summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #fafbfc;
+      border-bottom: 1px solid transparent;
+    }
+
+    .scaffold-accordion[open] summary { border-bottom-color: var(--border); }
+    .scaffold-accordion summary::-webkit-details-marker { display: none; }
+    .scaffold-accordion-body { padding: 16px; }
+
+    .scaffold-color-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .scaffold-color-field label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+    }
+
+    .scaffold-color-field input[type="color"] {
+      width: 42px;
+      height: 28px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      background: none;
+    }
+
+    .scaffold-pages-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .scaffold-page-row {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      background: #fafbfc;
+    }
+
+    .scaffold-page-row .field { margin-bottom: 10px; }
+    .scaffold-page-row .field:last-child { margin-bottom: 0; }
+
+    .scaffold-page-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .scaffold-page-head strong { font-size: 13px; }
+
+    .scaffold-preview-module {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      background: rgba(0, 122, 255, 0.08);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      margin-top: 8px;
+    }
+
+    .scaffold-nav-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
     }
   </style>
 </head>
@@ -758,6 +889,8 @@
               data-tab="create">Créer une base</button>
       <button class="tab"
               data-tab="databases">Mes bases</button>
+      <button class="tab"
+              data-tab="scaffold">Scaffold</button>
       <button class="tab"
               data-tab="settings">Réglages</button>
     </nav>
@@ -974,6 +1107,312 @@
       </div>
     </div>
 
+    <div id="panel-scaffold"
+         class="tab-panel">
+      <div class="scaffold-wizard">
+        <div class="main-card">
+          <section class="section">
+            <h2 class="section-title section-title-sm">Générateur de module website</h2>
+            <p class="field-hint"
+               style="margin-bottom: 16px;">
+              Créez un module <code>website_*</code> personnalisé à partir du scaffold Odoo 19.
+            </p>
+
+            <nav class="scaffold-steps-nav"
+                 id="scaffoldStepsNav">
+              <button type="button"
+                      class="scaffold-step-btn active"
+                      data-step="0">1. Module</button>
+              <button type="button"
+                      class="scaffold-step-btn"
+                      data-step="1">2. Pages</button>
+              <button type="button"
+                      class="scaffold-step-btn"
+                      data-step="2">3. Site</button>
+              <button type="button"
+                      class="scaffold-step-btn"
+                      data-step="3">4. Thème</button>
+              <button type="button"
+                      class="scaffold-step-btn"
+                      data-step="4">5. Générer</button>
+            </nav>
+
+            <!-- Step 1: Module -->
+            <div class="scaffold-step-panel active"
+                 data-step="0">
+              <div class="field">
+                <label class="field-label"
+                       for="scaffoldOdooVersion">Version Odoo</label>
+                <select id="scaffoldOdooVersion">
+                  <option value="19">Odoo 19 — html_builder / Interaction</option>
+                  <option value="18">Odoo 18 — publicWidget / we-button</option>
+                </select>
+                <p class="field-hint"
+                   id="scaffoldVersionHint">Template : website_scaffold (Odoo 19)</p>
+              </div>
+              <div class="field">
+                <label class="field-label"
+                       for="scaffoldModuleSlug">Nom du module</label>
+                <p class="field-hint">Sans le préfixe <code>website_</code> — ex. <code>acme</code> → <code>website_acme</code></p>
+                <input type="text"
+                       id="scaffoldModuleSlug"
+                       placeholder="acme"
+                       pattern="[a-z0-9_]+">
+                <div class="scaffold-preview-module"
+                     id="scaffoldModulePreview">website_…</div>
+              </div>
+              <div class="field">
+                <label class="field-label"
+                       for="scaffoldModuleTitle">Titre du module (manifest)</label>
+                <input type="text"
+                       id="scaffoldModuleTitle"
+                       placeholder="ACME Website">
+              </div>
+              <div class="field">
+                <label class="field-label"
+                       for="scaffoldAuthor">Auteur</label>
+                <input type="text"
+                       id="scaffoldAuthor"
+                       placeholder="Odoo PSBE">
+              </div>
+              <div class="field">
+                <label class="field-label"
+                       for="scaffoldThemeLabel">Nom du thème (header/footer/palette)</label>
+                <p class="field-hint">Utilisé dans primary_variables et les options builder</p>
+                <input type="text"
+                       id="scaffoldThemeLabel"
+                       placeholder="Acme">
+              </div>
+            </div>
+
+            <!-- Step 2: Pages -->
+            <div class="scaffold-step-panel"
+                 data-step="1">
+              <p class="field-hint"
+                 style="margin-bottom: 12px;">
+                Chaque page est créée vide (<code>oe_structure oe_empty</code>), comme la home du scaffold.
+              </p>
+              <div id="scaffoldPagesList"
+                   class="scaffold-pages-list"></div>
+              <button type="button"
+                      class="btn btn-secondary btn-sm"
+                      id="btnScaffoldAddPage"
+                      style="margin-top: 12px;">+ Ajouter une page</button>
+            </div>
+
+            <!-- Step 3: Site branding -->
+            <div class="scaffold-step-panel"
+                 data-step="2">
+              <div class="field">
+                <label class="field-label"
+                       for="scaffoldWebsiteName">Nom du site</label>
+                <input type="text"
+                       id="scaffoldWebsiteName"
+                       placeholder="ACME Corp">
+              </div>
+              <div class="field">
+                <label class="field-label"
+                       for="scaffoldMetaTitle">Meta title par défaut</label>
+                <p class="field-hint">Titre SEO affiché sur les pages (additional_title)</p>
+                <input type="text"
+                       id="scaffoldMetaTitle"
+                       placeholder="ACME — Official website">
+              </div>
+              <div class="field">
+                <label class="field-label"
+                       for="scaffoldFaviconPath">Favicon</label>
+                <p class="field-hint">PNG recommandé — copié dans static/description/favicon.png</p>
+                <div class="field-with-browse">
+                  <input type="text"
+                         id="scaffoldFaviconPath"
+                         placeholder="Optionnel">
+                  <button type="button"
+                          class="btn btn-secondary btn-sm"
+                          id="btnScaffoldBrowseFavicon">Parcourir</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 4: Theme -->
+            <div class="scaffold-step-panel"
+                 data-step="3">
+              <details class="scaffold-accordion"
+                       open>
+                <summary>Couleurs principales (o-color-1 → 5)</summary>
+                <div class="scaffold-accordion-body">
+                  <div class="scaffold-color-grid"
+                       id="scaffoldMainColors"></div>
+                </div>
+              </details>
+              <details class="scaffold-accordion">
+                <summary>Couleurs sémantiques (success, danger…)</summary>
+                <div class="scaffold-accordion-body">
+                  <div class="scaffold-color-grid"
+                       id="scaffoldThemeColors"></div>
+                </div>
+              </details>
+              <details class="scaffold-accordion">
+                <summary>Gris (palette gray)</summary>
+                <div class="scaffold-accordion-body">
+                  <div class="scaffold-color-grid"
+                       id="scaffoldGrayColors"></div>
+                </div>
+              </details>
+              <details class="scaffold-accordion"
+                       open>
+                <summary>Typographie</summary>
+                <div class="scaffold-accordion-body">
+                  <div class="field">
+                    <label class="field-label"
+                           for="scaffoldFont">Police de base</label>
+                    <select id="scaffoldFont"></select>
+                  </div>
+                  <div class="field">
+                    <label class="field-label"
+                           for="scaffoldHeadingsFont">Titres</label>
+                    <select id="scaffoldHeadingsFont"></select>
+                  </div>
+                  <div class="field">
+                    <label class="field-label"
+                           for="scaffoldNavbarFont">Navbar</label>
+                    <select id="scaffoldNavbarFont"></select>
+                  </div>
+                  <div class="field">
+                    <label class="field-label"
+                           for="scaffoldButtonsFont">Boutons</label>
+                    <select id="scaffoldButtonsFont"></select>
+                  </div>
+                </div>
+              </details>
+              <details class="scaffold-accordion">
+                <summary>Layout, boutons & header</summary>
+                <div class="scaffold-accordion-body">
+                  <div class="field-row">
+                    <div class="field">
+                      <label class="field-label"
+                             for="scaffoldLayout">Layout</label>
+                      <select id="scaffoldLayout">
+                        <option value="full">Full</option>
+                        <option value="boxed">Boxed</option>
+                        <option value="framed">Framed</option>
+                        <option value="postcard">Postcard</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label class="field-label"
+                             for="scaffoldLinkUnderline">Soulignement liens</label>
+                      <select id="scaffoldLinkUnderline">
+                        <option value="hover">Hover</option>
+                        <option value="never">Jamais</option>
+                        <option value="always">Toujours</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label class="field-label"
+                             for="scaffoldHeaderLinksStyle">Style liens header</label>
+                      <select id="scaffoldHeaderLinksStyle">
+                        <option value="default">Default</option>
+                        <option value="fill">Fill</option>
+                        <option value="outline">Outline</option>
+                        <option value="pills">Pills</option>
+                        <option value="block">Block</option>
+                        <option value="border-bottom">Border bottom</option>
+                        <option value="underline">Underline</option>
+                        <option value="bold">Bold</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label class="field-label"
+                             for="scaffoldHeaderFontSize">Taille header</label>
+                      <input type="text"
+                             id="scaffoldHeaderFontSize"
+                             placeholder="1rem">
+                    </div>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label class="field-label"
+                             for="scaffoldLogoHeight">Hauteur logo</label>
+                      <input type="text"
+                             id="scaffoldLogoHeight"
+                             placeholder="1.5rem">
+                    </div>
+                    <div class="field">
+                      <label class="field-label"
+                             for="scaffoldBtnRadiusLg">Radius bouton LG</label>
+                      <input type="text"
+                             id="scaffoldBtnRadiusLg"
+                             placeholder="2rem">
+                    </div>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label class="field-label"
+                             for="scaffoldMenuColor">Menu (o_cc n°)</label>
+                      <input type="number"
+                             id="scaffoldMenuColor"
+                             min="1"
+                             max="5"
+                             value="2">
+                    </div>
+                    <div class="field">
+                      <label class="field-label"
+                             for="scaffoldFooterColor">Footer (o_cc n°)</label>
+                      <input type="number"
+                             id="scaffoldFooterColor"
+                             min="1"
+                             max="5"
+                             value="5">
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            <!-- Step 5: Output -->
+            <div class="scaffold-step-panel"
+                 data-step="4">
+              <div class="field">
+                <label class="field-label"
+                       for="scaffoldOutputPath">Dossier de destination</label>
+                <p class="field-hint">Le module sera créé dans ce dossier (ex. votre addons_path client)</p>
+                <div class="field-with-browse">
+                  <input type="text"
+                         id="scaffoldOutputPath"
+                         placeholder="/Users/odoo/odoo/psbe-acme">
+                  <button type="button"
+                          class="btn btn-secondary btn-sm"
+                          id="btnScaffoldBrowseOutput">Parcourir</button>
+                </div>
+              </div>
+              <div class="scaffold-preview-module"
+                   id="scaffoldFinalPreview"></div>
+              <div class="field"
+                   style="margin-top: 16px;">
+                <button type="button"
+                        class="btn btn-primary"
+                        id="btnScaffoldGenerate">Créer le module</button>
+                <span class="status"
+                      id="scaffoldStatus"></span>
+              </div>
+            </div>
+
+            <div class="scaffold-nav-actions">
+              <button type="button"
+                      class="btn btn-secondary"
+                      id="btnScaffoldPrev"
+                      disabled>Précédent</button>
+              <button type="button"
+                      class="btn btn-primary"
+                      id="btnScaffoldNext">Suivant</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
     <div id="panel-settings"
          class="tab-panel">
       <div class="main-card"
@@ -1146,7 +1585,12 @@
     let scriptModalState = null;
     let appUpdateState = null;
 
-    const tabIds = { create: 'panel-create', databases: 'panel-databases', settings: 'panel-settings' };
+    const tabIds = {
+      create: 'panel-create',
+      databases: 'panel-databases',
+      scaffold: 'panel-scaffold',
+      settings: 'panel-settings',
+    };
     document.querySelectorAll('.tab').forEach(t => {
       t.onclick = () => {
         document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
@@ -1158,6 +1602,7 @@
           loadDatabases();
         }
         if (t.dataset.tab === 'settings' || t.dataset.tab === 'create') loadConfig();
+        if (t.dataset.tab === 'scaffold') initScaffoldWizard();
       };
     });
 
@@ -2000,6 +2445,381 @@
         alert(e.message || 'Erreur');
       }
     }
+
+    /* ——— Scaffold wizard ——— */
+    let scaffoldDefaults = null;
+    let scaffoldStep = 0;
+    let scaffoldPages = [];
+    let scaffoldPageId = 0;
+    let scaffoldInitialized = false;
+
+    function slugifyScaffold(raw) {
+      return (raw || '').toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').replace(/_+/g, '_');
+    }
+
+    function scaffoldModuleName() {
+      const slug = slugifyScaffold($('scaffoldModuleSlug').value);
+      return slug ? `website_${slug}` : 'website_…';
+    }
+
+    function updateScaffoldVersionHint() {
+      const ver = $('scaffoldOdooVersion')?.value || '19';
+      const hint = $('scaffoldVersionHint');
+      if (!hint) return;
+      const folder = ver === '18' ? 'website_scaffold_18' : 'website_scaffold';
+      const desc = scaffoldDefaults?.odoo_versions?.find(v => v.value === ver)?.description || '';
+      hint.textContent = `Template : ${folder} (Odoo ${ver})${desc ? ' — ' + desc : ''}`;
+    }
+
+    function updateScaffoldModulePreview() {
+      updateScaffoldVersionHint();
+      const el = $('scaffoldModulePreview');
+      if (el) el.textContent = scaffoldModuleName();
+      const final = $('scaffoldFinalPreview');
+      if (final) {
+        const out = ($('scaffoldOutputPath').value || '').trim();
+        const ver = $('scaffoldOdooVersion')?.value || '19';
+        final.textContent = out
+          ? `${out}/${scaffoldModuleName()}  (Odoo ${ver})`
+          : `${scaffoldModuleName()}  (Odoo ${ver})`;
+      }
+      const slug = slugifyScaffold($('scaffoldModuleSlug').value);
+      const label = $('scaffoldThemeLabel');
+      if (label && !label.dataset.touched && slug) {
+        label.value = slug.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      }
+    }
+
+    function renderScaffoldColorGrid(containerId, colors, prefix) {
+      const el = $(containerId);
+      if (!el) return;
+      el.innerHTML = Object.entries(colors).map(([key, val]) => `
+        <div class="scaffold-color-field">
+          <label><span>${escapeHtml(key)}</span>
+            <input type="color" id="${prefix}_${key}" value="${escapeHtml(val)}" data-color-key="${escapeHtml(key)}">
+          </label>
+          <input type="text" class="scaffold-color-text" data-for="${prefix}_${key}" value="${escapeHtml(val)}">
+        </div>
+      `).join('');
+      el.querySelectorAll('input[type="color"]').forEach(picker => {
+        picker.oninput = () => {
+          const text = el.querySelector(`input[data-for="${picker.id}"]`);
+          if (text) text.value = picker.value;
+        };
+      });
+      el.querySelectorAll('.scaffold-color-text').forEach(text => {
+        text.oninput = () => {
+          const picker = $(text.dataset.for);
+          if (picker && /^#[0-9A-Fa-f]{3,8}$/.test(text.value.trim())) picker.value = text.value.trim();
+        };
+      });
+    }
+
+    function readScaffoldColors(prefix, defaults) {
+      const out = {};
+      Object.keys(defaults).forEach(key => {
+        const picker = $(`${prefix}_${key}`);
+        out[key] = (picker && picker.value) || defaults[key];
+      });
+      return out;
+    }
+
+    function fillScaffoldFontSelects(fonts, defaults) {
+      ['scaffoldFont', 'scaffoldHeadingsFont', 'scaffoldNavbarFont', 'scaffoldButtonsFont'].forEach((id, i) => {
+        const sel = $(id);
+        if (!sel) return;
+        const keys = ['font', 'headings_font', 'navbar_font', 'buttons_font'];
+        sel.innerHTML = fonts.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+        sel.value = defaults[keys[i]] || fonts[0] || 'Inter';
+      });
+    }
+
+    function renderScaffoldPages() {
+      const list = $('scaffoldPagesList');
+      if (!list) return;
+      list.innerHTML = scaffoldPages.map((p, idx) => `
+        <div class="scaffold-page-row" data-page-id="${p.id}">
+          <div class="scaffold-page-head">
+            <strong>Page ${idx + 1}${p.url === '/' ? ' (accueil)' : ''}</strong>
+            ${scaffoldPages.length > 1 ? `<button type="button" class="btn btn-secondary btn-sm scaffold-remove-page" data-id="${p.id}">Supprimer</button>` : ''}
+          </div>
+          <div class="field-row">
+            <div class="field"><label class="field-label">Nom</label>
+              <input type="text" class="scaffold-page-name" data-id="${p.id}" value="${escapeHtml(p.name)}"></div>
+            <div class="field"><label class="field-label">URL</label>
+              <input type="text" class="scaffold-page-url" data-id="${p.id}" value="${escapeHtml(p.url)}" placeholder="/about"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label class="field-label">Slug (fichier)</label>
+              <input type="text" class="scaffold-page-slug" data-id="${p.id}" value="${escapeHtml(p.slug)}"></div>
+            <div class="field"><label class="field-label">Meta title</label>
+              <input type="text" class="scaffold-page-meta" data-id="${p.id}" value="${escapeHtml(p.meta_title)}"></div>
+          </div>
+          <div class="field-row">
+            <div class="field field-inline">
+              <input type="checkbox" class="scaffold-page-menu" data-id="${p.id}" ${p.in_menu ? 'checked' : ''} id="menu_${p.id}">
+              <label for="menu_${p.id}">Ajouter au menu</label>
+            </div>
+            <div class="field"><label class="field-label">Libellé menu</label>
+              <input type="text" class="scaffold-page-menu-name" data-id="${p.id}" value="${escapeHtml(p.menu_name)}"></div>
+            <div class="field"><label class="field-label">Séquence</label>
+              <input type="number" class="scaffold-page-seq" data-id="${p.id}" value="${p.sequence}" min="1"></div>
+          </div>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('input').forEach(inp => {
+        inp.onchange = inp.oninput = () => syncScaffoldPageFromDom(inp.dataset.id);
+      });
+      list.querySelectorAll('.scaffold-remove-page').forEach(btn => {
+        btn.onclick = () => {
+          scaffoldPages = scaffoldPages.filter(p => String(p.id) !== btn.dataset.id);
+          renderScaffoldPages();
+        };
+      });
+    }
+
+    function syncScaffoldPageFromDom(id) {
+      const p = scaffoldPages.find(x => String(x.id) === String(id));
+      if (!p) return;
+      const row = document.querySelector(`.scaffold-page-row[data-page-id="${id}"]`);
+      if (!row) return;
+      p.name = row.querySelector('.scaffold-page-name').value.trim() || p.name;
+      p.url = row.querySelector('.scaffold-page-url').value.trim() || p.url;
+      p.slug = slugifyScaffold(row.querySelector('.scaffold-page-slug').value) || p.slug;
+      p.meta_title = row.querySelector('.scaffold-page-meta').value.trim() || p.name;
+      p.in_menu = row.querySelector('.scaffold-page-menu').checked;
+      p.menu_name = row.querySelector('.scaffold-page-menu-name').value.trim() || p.name;
+      p.sequence = parseInt(row.querySelector('.scaffold-page-seq').value, 10) || p.sequence;
+    }
+
+    function setScaffoldStep(step) {
+      scaffoldStep = Math.max(0, Math.min(4, step));
+      document.querySelectorAll('.scaffold-step-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === scaffoldStep);
+        btn.classList.toggle('done', i < scaffoldStep);
+      });
+      document.querySelectorAll('.scaffold-step-panel').forEach(panel => {
+        panel.classList.toggle('active', parseInt(panel.dataset.step, 10) === scaffoldStep);
+      });
+      $('btnScaffoldPrev').disabled = scaffoldStep === 0;
+      $('btnScaffoldNext').textContent = scaffoldStep === 4 ? 'Terminé' : 'Suivant';
+      if (scaffoldStep === 4) updateScaffoldModulePreview();
+    }
+
+    function applyScaffoldFormDefaults() {
+      if (!scaffoldDefaults) return;
+      $('scaffoldOdooVersion').value = scaffoldDefaults.odoo_version || '19';
+      $('scaffoldModuleSlug').value = '';
+      $('scaffoldModuleTitle').value = '';
+      $('scaffoldAuthor').value = scaffoldDefaults.author || 'Odoo PSBE';
+      const themeLabel = $('scaffoldThemeLabel');
+      if (themeLabel) {
+        themeLabel.value = '';
+        delete themeLabel.dataset.touched;
+      }
+      $('scaffoldWebsiteName').value = '';
+      $('scaffoldMetaTitle').value = '';
+      $('scaffoldFaviconPath').value = '';
+      $('scaffoldOutputPath').value = '';
+      const status = $('scaffoldStatus');
+      if (status) {
+        status.textContent = '';
+        status.className = 'status';
+      }
+      updateScaffoldVersionHint();
+      renderScaffoldColorGrid('scaffoldMainColors', scaffoldDefaults.colors, 'scaffold_c');
+      renderScaffoldColorGrid('scaffoldThemeColors', scaffoldDefaults.theme_colors, 'scaffold_t');
+      renderScaffoldColorGrid('scaffoldGrayColors', scaffoldDefaults.gray_colors, 'scaffold_g');
+      fillScaffoldFontSelects(scaffoldDefaults.fonts || [], scaffoldDefaults);
+      $('scaffoldLayout').value = scaffoldDefaults.layout || 'full';
+      $('scaffoldLinkUnderline').value = scaffoldDefaults.link_underline || 'hover';
+      if ($('scaffoldHeaderLinksStyle')) $('scaffoldHeaderLinksStyle').value = 'default';
+      $('scaffoldHeaderFontSize').value = scaffoldDefaults.header_font_size || '1rem';
+      $('scaffoldLogoHeight').value = scaffoldDefaults.logo_height || '1.5rem';
+      $('scaffoldBtnRadiusLg').value = scaffoldDefaults.btn_border_radius_lg || '2rem';
+      $('scaffoldMenuColor').value = scaffoldDefaults.menu || 2;
+      $('scaffoldFooterColor').value = scaffoldDefaults.footer || 5;
+      scaffoldPageId = 0;
+      scaffoldPages = [{
+        id: ++scaffoldPageId,
+        name: 'Home',
+        url: '/',
+        slug: 'home',
+        in_menu: true,
+        menu_name: 'Home',
+        sequence: 10,
+        meta_title: 'Home',
+      }];
+      renderScaffoldPages();
+      document.querySelectorAll('#panel-scaffold details.scaffold-accordion').forEach((d, i) => {
+        if (i === 0 || i === 3) d.setAttribute('open', '');
+        else d.removeAttribute('open');
+      });
+      $('btnScaffoldGenerate').disabled = false;
+      updateScaffoldModulePreview();
+    }
+
+    function resetScaffoldWizard() {
+      applyScaffoldFormDefaults();
+      setScaffoldStep(0);
+    }
+
+    async function initScaffoldWizard() {
+      updateScaffoldModulePreview();
+      if (scaffoldInitialized) return;
+      try {
+        const r = await fetch('/api/scaffold/defaults');
+        scaffoldDefaults = await r.json();
+        const templatesOk = scaffoldDefaults.templates_available || {};
+        if (!templatesOk['19'] || !templatesOk['18']) {
+          $('scaffoldStatus').textContent = 'Templates scaffold manquants (19 et/ou 18).';
+          $('scaffoldStatus').className = 'status warn';
+        }
+        applyScaffoldFormDefaults();
+        scaffoldInitialized = true;
+      } catch (e) {
+        $('scaffoldStatus').textContent = e.message;
+        $('scaffoldStatus').className = 'status warn';
+      }
+    }
+
+    $('scaffoldModuleSlug').addEventListener('input', updateScaffoldModulePreview);
+    $('scaffoldOutputPath').addEventListener('input', updateScaffoldModulePreview);
+    $('scaffoldOdooVersion').addEventListener('change', updateScaffoldModulePreview);
+    $('scaffoldThemeLabel').addEventListener('input', () => {
+      $('scaffoldThemeLabel').dataset.touched = '1';
+    });
+
+    $('btnScaffoldAddPage').onclick = () => {
+      const n = scaffoldPages.length + 1;
+      scaffoldPages.push({
+        id: ++scaffoldPageId,
+        name: `Page ${n}`,
+        url: `/page-${n}`,
+        slug: `page_${n}`,
+        in_menu: true,
+        menu_name: `Page ${n}`,
+        sequence: 10 + n * 10,
+        meta_title: `Page ${n}`,
+      });
+      renderScaffoldPages();
+    };
+
+    document.querySelectorAll('#scaffoldStepsNav .scaffold-step-btn').forEach(btn => {
+      btn.onclick = () => setScaffoldStep(parseInt(btn.dataset.step, 10));
+    });
+
+    $('btnScaffoldPrev').onclick = () => setScaffoldStep(scaffoldStep - 1);
+    $('btnScaffoldNext').onclick = () => {
+      if (scaffoldStep < 4) setScaffoldStep(scaffoldStep + 1);
+      else resetScaffoldWizard();
+    };
+
+    $('btnScaffoldBrowseOutput').onclick = async () => {
+      try {
+        const r = await fetch('/api/browse-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: 'Choisir le dossier addons de destination' }),
+        });
+        const d = await r.json();
+        if (d.ok && d.path) {
+          $('scaffoldOutputPath').value = d.path;
+          updateScaffoldModulePreview();
+        }
+      } catch (e) { alert(e.message); }
+    };
+
+    $('btnScaffoldBrowseFavicon').onclick = async () => {
+      try {
+        const r = await fetch('/api/browse-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: 'Choisir un favicon (PNG)' }),
+        });
+        const d = await r.json();
+        if (d.ok && d.path) $('scaffoldFaviconPath').value = d.path;
+      } catch (e) { alert(e.message); }
+    };
+
+    $('btnScaffoldGenerate').onclick = async () => {
+      const status = $('scaffoldStatus');
+      const slug = slugifyScaffold($('scaffoldModuleSlug').value);
+      if (!slug) {
+        status.textContent = 'Nom de module requis.';
+        status.className = 'status warn';
+        setScaffoldStep(0);
+        return;
+      }
+      const output = ($('scaffoldOutputPath').value || '').trim();
+      if (!output) {
+        status.textContent = 'Choisissez un dossier de destination.';
+        status.className = 'status warn';
+        return;
+      }
+      scaffoldPages.forEach(p => syncScaffoldPageFromDom(p.id));
+      const payload = {
+        odoo_version: $('scaffoldOdooVersion').value || '19',
+        module_slug: slug,
+        module_title: ($('scaffoldModuleTitle').value || '').trim() || $('scaffoldThemeLabel').value,
+        author: ($('scaffoldAuthor').value || '').trim() || 'Odoo PSBE',
+        theme_label: ($('scaffoldThemeLabel').value || '').trim(),
+        website_name: ($('scaffoldWebsiteName').value || '').trim() || $('scaffoldThemeLabel').value,
+        meta_title: ($('scaffoldMetaTitle').value || '').trim(),
+        favicon_path: ($('scaffoldFaviconPath').value || '').trim(),
+        output_path: output,
+        pages: scaffoldPages.map(p => ({
+          name: p.name,
+          url: p.url,
+          slug: p.slug,
+          in_menu: p.in_menu,
+          menu_name: p.menu_name,
+          sequence: p.sequence,
+          meta_title: p.meta_title,
+        })),
+        theme: {
+          colors: readScaffoldColors('scaffold_c', scaffoldDefaults?.colors || {}),
+          theme_colors: readScaffoldColors('scaffold_t', scaffoldDefaults?.theme_colors || {}),
+          gray_colors: readScaffoldColors('scaffold_g', scaffoldDefaults?.gray_colors || {}),
+          font: $('scaffoldFont').value,
+          headings_font: $('scaffoldHeadingsFont').value,
+          navbar_font: $('scaffoldNavbarFont').value,
+          buttons_font: $('scaffoldButtonsFont').value,
+          layout: $('scaffoldLayout').value,
+          link_underline: $('scaffoldLinkUnderline').value,
+          header_links_style: $('scaffoldHeaderLinksStyle').value,
+          header_font_size: $('scaffoldHeaderFontSize').value,
+          logo_height: $('scaffoldLogoHeight').value,
+          btn_border_radius_lg: $('scaffoldBtnRadiusLg').value,
+          menu: parseInt($('scaffoldMenuColor').value, 10),
+          footer: parseInt($('scaffoldFooterColor').value, 10),
+        },
+      };
+      status.textContent = 'Génération…';
+      status.className = 'status';
+      $('btnScaffoldGenerate').disabled = true;
+      try {
+        const r = await fetch('/api/scaffold/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const d = await r.json();
+        if (d.ok) {
+          status.textContent = `Créé : ${d.path}`;
+          status.className = 'status ok';
+        } else {
+          status.textContent = d.message || 'Erreur';
+          status.className = 'status warn';
+        }
+      } catch (e) {
+        status.textContent = e.message;
+        status.className = 'status warn';
+      } finally {
+        $('btnScaffoldGenerate').disabled = false;
+      }
+    };
   </script>
 </body>
 

@@ -1,0 +1,24 @@
+// Extend properly BS utilities 
+// Add font-weight utilities supported in newer BS versions
+// Call this files in _assets_bootstrap just before
+
+$font-weight-medium:                        500; // Built-in in 5.2
+$font-weight-semibold:                      600; // Built-in in 5.2
+
+$utilities: map-merge(
+    $utilities,
+    (
+        "font-weight": map-merge(
+            map-get($utilities, "font-weight"), 
+            (
+                values: map-merge(
+                    map-get(map-get($utilities, "font-weight"), "values"),
+                    (
+                        medium: $font-weight-medium,
+                        semibold: $font-weight-semibold
+                    )
+                )
+            )
+        )
+    )
+);

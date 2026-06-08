@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- [ CUSTOM HEADER ]-->
+    <!-- =================================== -->
+
+    <!-- [ TEMPLATE: HEADER OPT ]-->
+    <template id="template_header_opt" inherit_id="website.snippet_options" name=" Scaffold Header Template - Option">
+        <xpath expr="//we-select[@data-variable='header-template']" position="inside">
+            <we-button
+                title="Scaffold"
+                data-name="header_scaffold_opt"
+                data-trigger="regular_header_visibility_opt"
+                data-customize-website-views="website_scaffold.header"
+                data-customize-website-variable="'Scaffold'"
+                data-img="/website_scaffold/static/src/img/wbuilder/template_wbuilder_opt.svg"
+            />
+        </xpath>
+    </template>
+    <!-- [ /TEMPLATE: HEADER OPT ]-->
+
+    <!-- [ RECORD: HEADER ]-->
+    <record id="header" model="ir.ui.view">
+        <field name="name">Scaffold Header</field>
+        <field name="type">qweb</field>
+        <field name="key">website_scaffold.header</field>
+        <field name="inherit_id" ref="website.layout"/>
+        <field name="mode">extension</field>
+        <field name="arch" type="xml">
+            <xpath expr="//header//nav" position="replace">
+                <!-- Your custom markup here -->
+                <!-- The example below used template_header_default's markup -->
+                <t t-call="website.navbar">
+                    <t t-set="_navbar_classes" t-valuef="x_wd_header d-none d-lg-block shadow-sm"/>
+        
+                    <div id="o_main_nav" class="container">
+                        <!-- Brand -->
+                        <t t-call="website.placeholder_header_brand">
+                            <t t-set="_link_class" t-valuef="me-4"/>
+                        </t>
+                        <!-- Navbar -->
+                        <t t-call="website.navbar_nav">
+                            <t t-set="_nav_class" t-valuef="me-auto"/>
+        
+                            <!-- Menu -->
+                            <t t-foreach="website.menu_id.child_id" t-as="submenu">
+                                <t t-call="website.submenu">
+                                    <t t-set="item_class" t-valuef="nav-item"/>
+                                    <t t-set="link_class" t-valuef="nav-link"/>
+                                </t>
+                            </t>
+                        </t>
+                        <!-- Extra elements -->
+                        <ul class="navbar-nav align-items-center gap-2 flex-shrink-0 justify-content-end ps-3">
+                            <!-- Search Bar -->
+                            <t t-call="website.placeholder_header_search_box">
+                                <t t-set="_layout" t-valuef="modal"/>
+                                <t t-set="_input_classes" t-valuef="border border-end-0 p-3"/>
+                                <t t-set="_submit_classes" t-valuef="border border-start-0 px-4 bg-o-color-4"/>
+                                <t t-set="_button_classes" t-valuef="o_navlink_background text-reset"/>
+                            </t>
+                            <!-- Text element -->
+                            <t t-call="website.placeholder_header_text_element"/>
+                            <!-- Social -->
+                            <t t-call="website.placeholder_header_social_links"/>
+                            <!-- Language Selector -->
+                            <t t-call="website.placeholder_header_language_selector">
+                                <t t-set="_btn_class" t-valuef="btn-outline-secondary border-0"/>
+                                <t t-set="_txt_class" t-valuef="small"/>
+                                <t t-set="_dropdown_menu_class" t-valuef="dropdown-menu-end"/>
+                            </t>
+                            <!-- Sign In -->
+                            <t t-call="portal.placeholder_user_sign_in">
+                                <t t-set="_link_class" t-valuef="btn btn-outline-secondary"/>
+                            </t>
+                            <!-- User Dropdown -->
+                            <t t-call="portal.user_dropdown">
+                                <t t-set="_user_name" t-value="True"/>
+                                <t t-set="_item_class" t-valuef="dropdown"/>
+                                <t t-set="_link_class" t-valuef="btn-outline-secondary border-0 fw-bold"/>
+                                <t t-set="_user_name_class" t-valuef="small"/>
+                                <t t-set="_dropdown_menu_class" t-valuef="dropdown-menu-end"/>
+                            </t>
+                            <!-- Call To Action -->
+                            <t t-call="website.placeholder_header_call_to_action"/>
+                        </ul>
+                    </div>
+                </t>
+                <t t-call="website.template_header_mobile"/>
+            </xpath>
+        </field>
+    </record>
+    <!-- [ /RECORD: HEADER ]-->
+
+    <!-- [ CUSTOM FOOTER ]-->
+    <!-- =================================== -->
+
+    <!-- [ TEMPLATE: FOOTER OPT ]-->
+    <template id="template_footer_opt" inherit_id="website.snippet_options" name="Scaffold Footer Template - Option">
+        <xpath expr="//we-select[@data-variable='footer-template']" position="inside">
+            <we-button
+                title="Scaffold"
+                data-name="footer_scaffold_opt"
+                data-customize-website-views="website_scaffold.footer"
+                data-customize-website-variable="'Scaffold'"
+                data-img="/website_scaffold/static/src/img/wbuilder/template_wbuilder_opt.svg"
+            />
+        </xpath>
+    </template>
+    <!-- [ /TEMPLATE: FOOTER OPT ]-->
+
+    <!-- [ RECORD: FOOTER ]-->
+    <record id="footer" model="ir.ui.view">
+        <field name="name">Scaffold Footer</field>
+        <field name="type">qweb</field>
+        <field name="key">website_scaffold.footer</field>
+        <field name="inherit_id" ref="website.layout"/>
+        <field name="mode">extension</field>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@id='footer']" position="replace">
+                <!-- Your custom markup here -->
+                <!-- The example below used footer_custom's markup -->
+                <div id="footer" class="x_wd_footer oe_structure oe_structure_solo" t-ignore="true" t-if="not no_footer">
+                    <section class="s_text_block pt40 pb16" data-snippet="s_text_block" data-name="Text">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-lg-2 pt24 pb24">
+                                    <h5 class="mb-3">Useful Links</h5>
+                                    <ul class="list-unstyled">
+                                        <li><a href="/">Home</a></li>
+                                        <li><a href="#">About us</a></li>
+                                        <li><a href="#">Products</a></li>
+                                        <li><a href="#">Services</a></li>
+                                        <li><a href="#">Legal</a></li>
+                                        <t t-set="configurator_footer_links" t-value="[]"/>
+                                        <li t-foreach="configurator_footer_links" t-as="link">
+                                            <a t-att-href="link['href']" t-esc="link['text']"/>
+                                        </li>
+                                        <li><a href="/contactus">Contact us</a></li>
+                                    </ul>
+                                </div>
+                                <div class="col-lg-5 pt24 pb24">
+                                    <h5 class="mb-3">About us</h5>
+                                    <p>We are a team of passionate people whose goal is to improve everyone's life through disruptive products. We build great products to solve your business problems.
+                                    <br/><br/>Our products are designed for small to medium size companies willing to optimize their performance.</p>
+                                </div>
+                                <div id="connect" class="col-lg-4 offset-lg-1 pt24 pb24">
+                                    <h5 class="mb-3">Connect with us</h5>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fa fa-comment fa-fw me-2"/><span><a href="/contactus">Contact us</a></span></li>
+                                        <li><i class="fa fa-envelope fa-fw me-2"/><span><a href="mailto:info@yourcompany.example.com">info@yourcompany.example.com</a></span></li>
+                                        <li><i class="fa fa-phone fa-fw me-2"/><span class="o_force_ltr"><a href="tel:+1(650)555-0111">+1 (650) 555-0111</a></span></li>
+                                    </ul>
+                                    <div class="s_social_media text-start o_not_editable" data-snippet="s_social_media" data-name="Social Media" contenteditable="false">
+                                        <h5 class="s_social_media_title d-none" contenteditable="true">Follow us</h5>
+                                        <a href="/website/social/facebook" class="s_social_media_facebook" target="_blank">
+                                            <i class="fa fa-facebook rounded-circle shadow-sm o_editable_media"/>
+                                        </a>
+                                        <a href="/website/social/twitter" class="s_social_media_twitter" target="_blank">
+                                            <i class="fa fa-twitter rounded-circle shadow-sm o_editable_media"/>
+                                        </a>
+                                        <a href="/website/social/linkedin" class="s_social_media_linkedin" target="_blank">
+                                            <i class="fa fa-linkedin rounded-circle shadow-sm o_editable_media"/>
+                                        </a>
+                                        <a href="/" class="text-800">
+                                            <i class="fa fa-home rounded-circle shadow-sm o_editable_media"/>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </xpath>
+        </field>
+    </record>
+    <!-- [ /RECORD: FOOTER ]-->
+</odoo>

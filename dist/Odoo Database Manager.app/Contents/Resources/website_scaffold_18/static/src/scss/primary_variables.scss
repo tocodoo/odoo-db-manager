@@ -1,0 +1,91 @@
+// ------------------------------------------------------------------------------ //
+// PRESETS
+// ------------------------------------------------------------------------------ //
+$o-website-values-palettes: (
+    (
+        // Colors
+        'color-palettes-name':              'Scaffold',
+
+        // Fonts
+        'font':                             'Inter',
+        'headings-font':                    'Caveat',
+        'navbar-font':                      'Inter',
+        'buttons-font':                     'Inter',
+
+        // Header
+        'header-template':                  'Scaffold',
+        'header-font-size':                 1rem,
+        'logo-height':                      1.5rem,
+        'fixed-logo-height':                1rem,
+
+        // Footer
+        'footer-template':                  'Scaffold',
+    ),
+);
+
+// ------------------------------------------------------------------------------ //
+// FONTS
+// ------------------------------------------------------------------------------ //
+$o-theme-font-configs: (
+    'Caveat': (
+        'family':   ('Caveat', cursive),
+        'url':      'Caveat:400,500,700',
+        'properties' : (
+            'base': (
+                'font-size-base': 1rem,
+            ),
+        ),
+    ),
+    'Inter': (
+        'family':   ('Inter', sans-serif),
+        'url':      'Inter:400,400i,500,500i,700,700i',
+        'properties': (
+            'base': (
+                'font-size-base': 1rem
+            ),
+        ),
+    ),
+);
+
+// ------------------------------------------------------------------------------ //
+// COLORS
+// ------------------------------------------------------------------------------ //
+$o-color-palettes: map-merge($o-color-palettes,
+    (
+        'Scaffold': (
+            'o-color-1': #714B67, // Primary
+            'o-color-2': #017E84, // Secondary
+            'o-color-3': #F3F4F6, // Light
+            'o-color-4': #FFFFFF, // Whitish
+            'o-color-5': #111827, // Blackish
+
+            'menu':        2,
+            'footer':      5,
+        ),
+    ),
+);
+
+$o-user-gray-color-palette: (
+    'white': #FFFFFF,
+    '100':   #E6E7E8,
+    '200':   #D1D2D4,
+    '300':   #BCBDBF,
+    '400':   #A8A9AC,
+    '500':   #949598,
+    '600':   #818285,
+    '700':   #6D6E71,
+    '800':   #58585A,
+    '900':   #3A3A3B,
+    'black': #292929,
+);
+
+$o-user-theme-color-palette: (
+    'success': #00C35A,
+    'danger':  #D72F3D,
+    'warning': #FFB82A, 
+    'info':    #2F72D7,
+    'light':   #FFF2E9,
+    'dark':    #505050,
+);
+
+$o-selected-color-palettes-names: append($o-selected-color-palettes-names, 'Scaffold');

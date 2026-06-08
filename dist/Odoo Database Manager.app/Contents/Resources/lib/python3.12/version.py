@@ -10,7 +10,7 @@ import urllib.request
 from typing import Any, Optional
 
 # Source unique — aligner setup.py et latest.json à chaque release.
-APP_VERSION = "1.2"
+APP_VERSION = "1.3"
 
 # Manifeste hébergé sur tocotools (à ajuster si l'URL change).
 UPDATE_MANIFEST_URL = os.environ.get(

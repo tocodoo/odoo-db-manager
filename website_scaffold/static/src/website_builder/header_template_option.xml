@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="website_scaffold.HeaderTemplateOption" t-inherit="website.HeaderTemplateOption" t-inherit-mode="extension">
+        <xpath expr="//BuilderRow[@label.translate='Template']//BuilderSelect" position="inside">
+            <BuilderSelectItem
+                title.translate="Scaffold"
+                actionParam="[
+                        {
+                            action: 'websiteConfig',
+                            actionParam: {
+                                views: ['website_scaffold.header'],
+                                vars: {'header-links-style': 'default', 'header-template': 'Scaffold'},
+                                checkVars: false,
+                            },
+                        },
+                    ]">
+                <Img
+                    src="'/website_scaffold/static/src/img/wbuilder/template_wbuilder_opt.svg'"
+                    alt="''"
+                    attrs="{ style: 'width: calc(100% - 0.5rem);' }" />
+            </BuilderSelectItem>
+        </xpath>
+    </t>
+</templates>

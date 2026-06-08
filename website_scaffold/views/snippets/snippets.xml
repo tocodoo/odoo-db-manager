@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <template id="snippets" inherit_id="website.snippets" name="Scaffold - Snippets">
+        <xpath expr="//snippets[@id='snippet_groups']/*[1]" position="before">
+            <t
+                snippet-group="scaffold"
+                t-snippet="website.s_snippet_group"
+                string="Scaffold"
+                t-thumbnail="/website_scaffold/static/src/img/wbuilder/snippet_thumbnail.svg" />
+        </xpath>
+        <xpath expr="//snippets[@id='snippet_structure']/*[1]" position="before">
+            <t
+                t-snippet="website_scaffold.s_wd_snippet"
+                string="Scaffold Welcome"
+                group="scaffold"
+                t-thumbnail="/website_scaffold/static/src/img/wbuilder/snippet_thumbnail.svg">
+                <keywords>
+                    scaffold, welcome, custom, example
+                </keywords>
+            </t>
+        </xpath>
+        <xpath expr="//snippets[@id='snippet_content']/*[1]" position="before">
+            <t
+                snippet-group="scaffold"
+                t-snippet="website_scaffold.s_wd_snippet"
+                string="Scaffold Welcome"
+                t-thumbnail="/website_scaffold/static/src/img/wbuilder/snippet_thumbnail.svg" />
+        </xpath>
+    </template>
+</odoo>

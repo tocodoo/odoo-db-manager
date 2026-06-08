@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- Example QWeb JS template for the public frontend bundle. -->
+    <t t-name="website_scaffold.ExamplePopover">
+        <div class="popover fade">Example</div>
+    </t>
+</templates>
