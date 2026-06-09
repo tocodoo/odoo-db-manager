@@ -3,133 +3,181 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
-  <title>Odoo Database Manager</title>
-  <link rel="preconnect"
-        href="https://fonts.googleapis.com">
-  <link rel="preconnect"
-        href="https://fonts.gstatic.com"
-        crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Odoo DB Manager</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+            mono: ['"SF Mono"', 'Menlo', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            primary: { 50:'#e8f4ff', 100:'#cce5ff', 200:'#99cbff', 300:'#66b0ff', 400:'#3396ff', 500:'#007AFF', 600:'#0066cc', 700:'#0051a2', 800:'#003d7a', 900:'#002952', 950:'#001a33' },
+          },
+        },
+      },
+    }
+  </script>
+  <!-- Preline UI JS -->
+  <script src="https://cdn.jsdelivr.net/npm/preline/dist/preline.min.js" defer></script>
   <style>
-    :root {
-      --bg: #f2f2f2;
-      --card: #ffffff;
-      --border: #e0e0e0;
-      --border-dark: #d8dce3;
-      --text: #343a40;
-      --text-muted: #6c757d;
-      --text-light: #adb5bd;
-      --radius: 15px;
-      --radius-sm: 6px;
-      --primary: #1a1a2e;
-      --primary-hover: #2d2d44;
-      --success: #34c759;
-      --error: #ff3b30;
-      --warn: #ff9500;
-      --accent: #007aff;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
+    /* ─── Reset & base ─── */
+    *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
       min-height: 100vh;
       font-size: 14px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ——— Top menu bar ——— */
-    .menu-bar {
+    /* ─── CSS variables (Apple palette) ─── */
+    :root {
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --border: rgba(0,0,0,0.1);
+      --border-dark: rgba(0,0,0,0.18);
+      --text: #1d1d1f;
+      --text-muted: #6e6e73;
+      --text-light: #86868b;
+      --radius: 10px;
+      --radius-sm: 7px;
+      --primary: #007AFF;
+      --primary-hover: #0066cc;
+      --success: #34c759;
+      --error: #ff3b30;
+      --warn: #ff9f0a;
+      --accent: #007AFF;
+    }
+
+    /* ─── Sidebar (macOS frosted glass) ─── */
+    #sidebar {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 48px;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
+      top: 0; left: 0;
+      width: 220px;
+      height: 100vh;
+      background: rgba(246,246,246,0.88);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-right: 1px solid rgba(0,0,0,0.1);
       display: flex;
-      align-items: center;
-      padding: 0 20px 0 24px;
-      z-index: 100;
+      flex-direction: column;
+      z-index: 50;
       -webkit-app-region: drag;
     }
 
-    .menu-bar .app-brand {
+    .sidebar-brand {
+      height: 52px;
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-right: 32px;
+      padding: 0 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      flex-shrink: 0;
     }
 
-    .menu-bar .app-logo {
-      height: 24px;
-      width: auto;
-    }
-
-    .menu-bar .app-title {
-      font-size: 15px;
+    .sidebar-brand-title {
+      font-size: 13px;
       font-weight: 600;
-      letter-spacing: -0.02em;
-      color: var(--text);
+      color: #1d1d1f;
+      letter-spacing: -0.01em;
     }
 
-    .menu-bar .tabs {
+    .sidebar-nav {
+      flex: 1;
+      padding: 8px;
+      overflow-y: auto;
       display: flex;
-      gap: 0;
-      margin: 0;
-      border: none;
+      flex-direction: column;
       -webkit-app-region: no-drag;
     }
 
-    .menu-bar .tab {
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 500;
-      background: transparent;
-      border: none;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      color: var(--text-muted);
-      transition: all 0.15s;
+    .sidebar-footer-area {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      -webkit-app-region: no-drag;
     }
 
-    .menu-bar .tab:hover {
-      color: var(--text);
-      background: rgba(0, 0, 0, 0.04);
-    }
-
-    .menu-bar .tab.active {
-      color: var(--primary);
-      background: rgba(26, 26, 46, 0.06);
-    }
-
-    .app {
-      margin: 0 auto;
-      padding: 64px 24px 40px;
-    }
-
-    .tab-panel {
-      display: none;
-    }
-
-    .tab-panel.active {
+    /* ── Tab nav buttons (macOS sidebar style) ── */
+    .tab {
       display: block;
+      width: 100%;
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 400;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: #1d1d1f;
+      cursor: pointer;
+      transition: background 0.15s cubic-bezier(0.4,0,0.2,1), color 0.15s cubic-bezier(0.4,0,0.2,1);
+      text-align: left;
+      font-family: inherit;
+      margin-bottom: 1px;
+      -webkit-app-region: no-drag;
     }
+
+    .tab:hover { background: rgba(0,0,0,0.05); }
+    .tab.active {
+      background: rgba(0,122,255,0.12);
+      color: #007AFF;
+      font-weight: 500;
+    }
+
+    /* ── Sub-navigation (CSS-driven via adjacent sibling) ── */
+    .sidebar-sub-nav {
+      display: none;
+      padding: 2px 0 6px 14px;
+    }
+
+    .tab.active + .sidebar-sub-nav { display: block; }
+
+    .sidebar-sub-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 3px 8px;
+      font-size: 11.5px;
+      color: #6e6e73;
+      border-radius: 4px;
+      line-height: 1.3;
+    }
+
+    .sidebar-sub-item::before {
+      content: '';
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: #86868b;
+      flex-shrink: 0;
+    }
+
+    /* ─── Main content ─── */
+    .app {
+      margin-left: 220px;
+      padding: 28px 28px 48px;
+      min-height: 100vh;
+    }
+
+    /* ─── Tab panels ─── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
 
     /* ——— Main content card ——— */
     .main-card {
       background: var(--card);
       border-radius: var(--radius);
-      overflow: hidden;
+      border: 1px solid var(--border);
     }
 
     /* ——— Create panel: 50/50 + full log ——— */
@@ -209,28 +257,22 @@
     input[type="text"],
     select,
     textarea {
-      font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+      font-family: "SF Mono", Menlo, ui-monospace, monospace;
       font-size: 13px;
       width: 100%;
-      background: var(--card);
-      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.04);
+      border: 1px solid rgba(0,0,0,0.12);
       border-radius: var(--radius-sm);
-      padding: 10px 14px;
+      padding: 8px 12px;
       color: var(--text);
-      transition: border-color 0.2s;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
 
-    input:hover,
-    select:hover,
-    textarea:hover {
-      border-color: var(--border-dark);
-    }
-
-    input:focus,
-    select:focus,
-    textarea:focus {
+    input:hover, select:hover, textarea:hover { border-color: rgba(0,0,0,0.22); }
+    input:focus, select:focus, textarea:focus {
       outline: none;
-      border-color: var(--text-muted);
+      border-color: #007AFF;
+      box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
     }
 
     select {
@@ -289,76 +331,33 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      border: 1px solid var(--border);
+      border: 1px solid rgba(0,0,0,0.08);
       border-radius: var(--radius-sm);
       padding: 7px 10px;
-      font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+      font-family: "SF Mono", Menlo, ui-monospace, monospace;
       font-size: 12px;
       color: var(--text-muted);
-      background: #fafbfc;
+      background: rgba(0,0,0,0.02);
     }
 
-    /* ——— Buttons ——— */
+    /* ── Buttons (JS-rendered: renderDbRow) ── */
     .btn {
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 500;
-      padding: 10px 18px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: all 0.2s;
-      border: 1px solid transparent;
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      padding: 6px 12px; border-radius: 6px;
+      border: none; cursor: pointer;
+      transition: background 0.15s cubic-bezier(0.4,0,0.2,1), opacity 0.15s;
+      white-space: nowrap;
     }
-
-    .btn-primary {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
-
-    .btn-primary:hover:not(:disabled) {
-      background: var(--primary-hover);
-      border-color: var(--primary-hover);
-    }
-
-    .btn-secondary {
-      background: var(--card);
-      color: var(--text);
-      border-color: var(--border-dark);
-    }
-
-    .btn-secondary:hover:not(:disabled) {
-      background: #f8f9fa;
-      border-color: #adb5bd;
-    }
-
-    .btn-sm {
-      padding: 6px 12px;
-      font-size: 12px;
-    }
-
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .btn-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .branch-btns {
-      display: flex;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .branch-btns .btn {
-      flex: 1;
-      min-width: 0;
-    }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: #007AFF; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #0066cc; }
+    .btn-secondary { background: rgba(0,0,0,0.06); color: #1d1d1f; }
+    .btn-secondary:hover:not(:disabled) { background: rgba(0,0,0,0.1); }
+    .btn-sm { padding: 4px 10px; font-size: 11.5px; }
+    .btn-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .branch-btns { display: flex; gap: 8px; margin-top: 12px; }
+    .branch-btns .btn { flex: 1; min-width: 0; justify-content: center; }
 
     /* ——— Status ——— */
     .status {
@@ -379,54 +378,35 @@
       margin-top: 12px;
       padding: 12px 14px;
       border-radius: 8px;
-      border: 1px solid rgba(0, 122, 255, 0.25);
-      background: rgba(0, 122, 255, 0.1);
-      color: #005ecb;
+      border: 1px solid rgba(0,122,255,0.2);
+      background: rgba(0,122,255,0.07);
+      color: #0051a2;
       font-size: 13px;
       line-height: 1.5;
       white-space: pre-line;
     }
-
-    .git-alert.show {
-      display: block;
-    }
+    .git-alert.show { display: block; }
 
     .app-update-banner {
       display: none;
       position: fixed;
-      top: 48px;
-      left: 0;
-      right: 0;
+      top: 0; left: 220px; right: 0;
       z-index: 99;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
       padding: 10px 20px;
-      background: linear-gradient(90deg, rgba(255, 149, 0, 0.14), rgba(255, 59, 48, 0.08));
-      border-bottom: 1px solid rgba(255, 149, 0, 0.35);
-      color: #9a3412;
+      background: rgba(255,249,235,0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255,159,10,0.25);
+      color: #78350f;
       font-size: 13px;
       line-height: 1.4;
     }
-
-    .app-update-banner.show {
-      display: flex;
-    }
-
-    .app-update-banner strong {
-      color: #7c2d12;
-    }
-
-    .app-update-banner-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    body.has-update-banner .app {
-      padding-top: 100px;
-    }
+    .app-update-banner.show { display: flex; }
+    .app-update-banner strong { color: #92400e; }
+    .app-update-banner-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    body.has-update-banner .app { padding-top: 76px; }
 
     /* ——— Log output ——— */
     .log-section {
@@ -446,123 +426,58 @@
     }
 
     #log {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: "SF Mono", Menlo, ui-monospace, monospace;
       font-size: 12px;
       line-height: 1.6;
-      background: #fafbfc;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 14px 16px;
-      height: 180px;
+      background: rgba(0,0,0,0.03);
+      border-radius: 8px;
+      padding: 10px 12px;
+      height: 164px;
       overflow-y: auto;
       white-space: pre-wrap;
       word-break: break-all;
-      color: var(--text-muted);
+      color: #6e6e73;
     }
+    #log:empty::before { content: 'La sortie Odoo apparaîtra ici…'; color: #86868b; }
 
-    #log:empty::before {
-      content: 'La sortie Odoo apparaîtra ici…';
-      color: var(--text-light);
-    }
-
-    /* ——— Database list (card rows) ——— */
-    .db-list {
-      display: flex;
-      flex-direction: column;
-    }
+    /* ——— Database list (JS-rendered rows) ——— */
+    .db-list { display: flex; flex-direction: column; }
 
     .db-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 14px 0;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.15s;
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 12px;
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      transition: background 0.15s cubic-bezier(0.4,0,0.2,1);
+      border-radius: 7px;
     }
+    .db-row:last-child { border-bottom: none; }
+    .db-row:hover { background: rgba(0,0,0,0.04); }
 
-    .db-row:last-child {
-      border-bottom: none;
-    }
+    .db-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .db-name { font-size: 13px; font-weight: 600; color: #1d1d1f; }
+    .db-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
-    .db-row:hover {
-      background: #fafbfc;
-    }
-
-    .db-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .db-name {
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .db-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
+    /* ── Badges (JS-rendered) ── */
     .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11px;
-      font-weight: 500;
-      padding: 3px 8px;
-      border-radius: 4px;
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 500;
+      padding: 2px 8px; border-radius: 999px;
     }
-
-    .badge-running {
-      background: rgba(52, 199, 89, 0.1);
-      color: var(--success);
-      border-color: rgba(52, 199, 89, 0.25);
-    }
-
+    .badge-running { background: rgba(52,199,89,0.15); color: #1a7f3c; }
     .badge-running::before {
       content: '';
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--success);
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #34c759;
       animation: pulse 1.5s ease-in-out infinite;
     }
+    .badge-v18, .badge-v19, .badge-version { background: rgba(0,122,255,0.12); color: #0051a2; }
+    .badge-unknown { background: rgba(0,0,0,0.06); color: #6e6e73; }
+    .badge-subdir { background: rgba(255,159,10,0.15); color: #b45309; }
+    .scripts-subdir-empty { color: var(--warn); font-style: italic; }
 
-    .badge-v18,
-    .badge-v19,
-    .badge-version {
-      background: rgba(0, 122, 255, 0.08);
-      color: var(--accent);
-      border-color: rgba(0, 122, 255, 0.2);
-    }
-
-    .badge-unknown {
-      background: rgba(128, 128, 128, 0.08);
-      color: var(--text-muted);
-      border-color: rgba(128, 128, 128, 0.15);
-    }
-
-    .badge-subdir {
-      background: rgba(255, 149, 0, 0.1);
-      color: #e68600;
-      border-color: rgba(255, 149, 0, 0.25);
-    }
-
-    .scripts-subdir-empty {
-      color: var(--text-muted);
-      font-style: italic;
-    }
-
-    .db-actions {
-      display: flex;
-      gap: 8px;
-      flex-shrink: 0;
-    }
+    /* ── DB list rows (JS-rendered) ── */
+    .db-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
     .toast-container {
       position: fixed;
@@ -577,78 +492,54 @@
 
     .toast {
       pointer-events: auto;
-      min-width: 260px;
-      max-width: 420px;
+      min-width: 260px; max-width: 420px;
       padding: 11px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
+      border-radius: 10px;
+      font-size: 13px; font-weight: 500;
       color: #fff;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
       opacity: 0;
-      transform: translateY(8px);
-      transition: opacity 0.15s ease, transform 0.15s ease;
+      transform: translateY(8px) scale(0.98);
+      transition: opacity 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
     }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .toast.success {
-      background: #2e9d47;
-    }
+    .toast.show { opacity: 1; transform: translateY(0) scale(1); }
+    .toast.success { background: #34c759; }
 
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.35);
+      background: rgba(0,0,0,0.4);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 300;
       padding: 18px;
     }
-
-    .modal-backdrop.show {
-      display: flex;
-    }
+    .modal-backdrop.show { display: flex; }
 
     .modal-card {
       width: min(760px, 100%);
-      background: var(--card);
+      background: #fff;
       border-radius: 12px;
-      border: 1px solid var(--border);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+      border: none;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25), 0 0 0 0.5px rgba(0,0,0,0.1);
       overflow: hidden;
     }
 
     .modal-head {
       padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
     }
 
-    .modal-title {
-      margin: 0;
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .modal-body {
-      padding: 18px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
+    .modal-title { margin: 0; font-size: 15px; font-weight: 600; color: #1d1d1f; }
+    .modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
     .modal-actions {
       padding: 14px 20px;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid rgba(0,0,0,0.08);
       display: flex;
       justify-content: flex-end;
       gap: 8px;
@@ -666,30 +557,17 @@
       }
     }
 
-    /* ——— Empty state ——— */
-    .empty-state {
-      text-align: center;
-      padding: 48px 24px;
-      color: var(--text-muted);
-      font-size: 14px;
-    }
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 40px 20px; color: #6e6e73; font-size: 13px; }
 
-    /* ——— DB sections (En cours / Autres) ——— */
-    .db-block {
-      margin-bottom: 20px;
-    }
-
-    .db-block:last-child {
-      margin-bottom: 0;
-    }
-
+    /* ── DB sections (JS-rendered) ── */
+    .db-block { margin-bottom: 16px; }
+    .db-block:last-child { margin-bottom: 0; }
     .db-block-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin: 0 0 10px 0;
+      font-size: 10.5px; font-weight: 600;
+      color: #86868b;
+      text-transform: uppercase; letter-spacing: .07em;
+      margin: 0 0 6px 4px;
     }
 
     /* ——— Responsive ——— */
@@ -748,61 +626,87 @@
     }
 
     /* ——— Scaffold wizard ——— */
-    .scaffold-wizard { max-width: 920px; }
-
-    .scaffold-steps-nav {
+    .scaffold-stepper {
       display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 20px;
+      align-items: center;
+      margin-bottom: 24px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+
+    .scaffold-step-connector {
+      flex: 1;
+      height: 1px;
+      background: rgba(0,0,0,0.1);
+      margin: 0 8px;
+      position: relative;
+      top: -10px;
     }
 
     .scaffold-step-btn {
-      font-size: 12px;
-      font-weight: 500;
-      padding: 7px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: none;
       cursor: pointer;
-      transition: all 0.15s;
+      padding: 0;
+      min-width: 64px;
     }
 
-    .scaffold-step-btn.active {
-      background: var(--primary);
-      border-color: var(--primary);
+    .scaffold-step-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0,0,0,0.15);
+      background: #fff;
+      color: #86868b;
+      font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .scaffold-step-label {
+      font-size: 11px; font-weight: 400;
+      color: #86868b;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+
+    .scaffold-step-btn.active .scaffold-step-num {
+      background: #007AFF;
+      border-color: #007AFF;
       color: #fff;
+      box-shadow: 0 0 0 3px rgba(0,122,255,0.2);
     }
-
-    .scaffold-step-btn.done {
-      border-color: rgba(52, 199, 89, 0.4);
-      color: var(--success);
+    .scaffold-step-btn.active .scaffold-step-label { color: #1d1d1f; font-weight: 500; }
+    .scaffold-step-btn.done .scaffold-step-num {
+      background: rgba(52,199,89,0.15);
+      border-color: #34c759;
+      color: #1a7f3c;
     }
+    .scaffold-step-btn.done .scaffold-step-label { color: #1a7f3c; }
 
     .scaffold-step-panel { display: none; }
     .scaffold-step-panel.active { display: block; }
 
-    .scaffold-accordion {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      margin-bottom: 10px;
-      overflow: hidden;
-    }
-
-    .scaffold-accordion summary {
+    /* Theme step accordion summaries */
+    .scaffold-theme-summary {
       list-style: none;
       cursor: pointer;
-      padding: 12px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      background: #fafbfc;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       border-bottom: 1px solid transparent;
+      user-select: none;
     }
 
-    .scaffold-accordion[open] summary { border-bottom-color: var(--border); }
-    .scaffold-accordion summary::-webkit-details-marker { display: none; }
-    .scaffold-accordion-body { padding: 16px; }
+    details[open] > .scaffold-theme-summary { border-bottom-color: rgba(0,0,0,0.06); }
+
+    .scaffold-theme-summary::-webkit-details-marker { display: none; }
 
     .scaffold-color-grid {
       display: grid;
@@ -821,26 +725,27 @@
     }
 
     .scaffold-color-field input[type="color"] {
-      width: 42px;
-      height: 28px;
+      width: 42px; height: 28px;
       padding: 0;
-      border: 1px solid var(--border);
+      border: 1px solid rgba(0,0,0,0.12);
       border-radius: 4px;
       cursor: pointer;
       background: none;
     }
 
-    .scaffold-pages-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    .scaffold-color-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: "SF Mono", Menlo, ui-monospace, monospace;
     }
 
+    .scaffold-pages-list { display: flex; flex-direction: column; gap: 10px; }
+
     .scaffold-page-row {
-      border: 1px solid var(--border);
+      border: 1px solid rgba(0,0,0,0.08);
       border-radius: var(--radius-sm);
       padding: 12px 14px;
-      background: #fafbfc;
+      background: rgba(0,0,0,0.02);
     }
 
     .scaffold-page-row .field { margin-bottom: 10px; }
@@ -856,14 +761,17 @@
     .scaffold-page-head strong { font-size: 13px; }
 
     .scaffold-preview-module {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: "SF Mono", Menlo, ui-monospace, monospace;
       font-size: 12px;
-      color: var(--accent);
-      background: rgba(0, 122, 255, 0.08);
+      color: #007AFF;
+      background: rgba(0,122,255,0.07);
+      border: 1px solid rgba(0,122,255,0.2);
       padding: 8px 12px;
       border-radius: var(--radius-sm);
       margin-top: 8px;
     }
+
+    .scaffold-preview-module:empty { display: none; }
 
     .scaffold-nav-actions {
       display: flex;
@@ -871,30 +779,172 @@
       gap: 10px;
       margin-top: 20px;
       padding-top: 16px;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid rgba(0,0,0,0.08);
     }
+
+    /* ═══════════════════════════════════════ */
+    /* FORM INPUTS (Apple style)               */
+    /* ═══════════════════════════════════════ */
+    .hs-input {
+      font-family: inherit;
+      font-size: 13px;
+      width: 100%;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.04);
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 7px;
+      color: #1d1d1f;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+    .hs-input:hover { border-color: rgba(0,0,0,0.22); }
+    .hs-input:focus { border-color: #007AFF; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+    .hs-input::placeholder { color: #86868b; }
+    .hs-input.mono { font-family: "SF Mono", Menlo, ui-monospace, monospace; font-size: 12.5px; }
+    .hs-input[readonly] { background: rgba(0,0,0,0.02); color: #6e6e73; cursor: default; }
+
+    .hs-select {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 8px 32px 8px 12px;
+      background: rgba(0,0,0,0.04) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") right 8px center / 16px no-repeat;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 7px;
+      color: #1d1d1f;
+      -webkit-appearance: none;
+      appearance: none;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .hs-select:hover { border-color: rgba(0,0,0,0.22); }
+    .hs-select:focus { border-color: #007AFF; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+    .hs-select.full { width: 100%; }
+
+    .hs-textarea {
+      font-family: "SF Mono", Menlo, ui-monospace, monospace;
+      font-size: 12.5px;
+      width: 100%;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.04);
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 7px;
+      color: #1d1d1f;
+      resize: vertical;
+      min-height: 72px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .hs-textarea:hover { border-color: rgba(0,0,0,0.22); }
+    .hs-textarea:focus { border-color: #007AFF; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+    .hs-textarea::placeholder { color: #86868b; }
+
+    /* ─── Buttons (Apple style) ─── */
+    .hs-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      padding: 7px 16px; border-radius: 6px;
+      border: none; cursor: pointer;
+      transition: background 0.15s cubic-bezier(0.4,0,0.2,1), opacity 0.15s;
+      white-space: nowrap;
+    }
+    .hs-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .hs-btn-primary { background: #007AFF; color: #fff; }
+    .hs-btn-primary:hover:not(:disabled) { background: #0066cc; }
+    .hs-btn-secondary { background: rgba(0,0,0,0.06); color: #1d1d1f; }
+    .hs-btn-secondary:hover:not(:disabled) { background: rgba(0,0,0,0.1); }
+    .hs-btn-ghost { background: transparent; color: #6e6e73; }
+    .hs-btn-ghost:hover:not(:disabled) { background: rgba(0,0,0,0.05); color: #1d1d1f; }
+    .hs-btn-sm { padding: 4px 11px; font-size: 12px; }
+    .hs-btn-danger { background: rgba(255,59,48,0.1); color: #ff3b30; }
+    .hs-btn-danger:hover:not(:disabled) { background: rgba(255,59,48,0.18); }
+
+    /* ─── Card panels ─── */
+    .hs-card { background: #fff; border-radius: 10px; }
+    .hs-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .hs-card-title {
+      font-size: 11px; font-weight: 600;
+      color: #6e6e73;
+      text-transform: uppercase; letter-spacing: .06em;
+      margin: 0;
+    }
+    .hs-card-body { padding: 16px; }
+
+    /* ─── Field label ─── */
+    .hs-label { display: block; font-size: 13px; font-weight: 500; color: #1d1d1f; margin-bottom: 5px; }
+    .hs-hint { font-size: 11.5px; color: #6e6e73; margin: 0 0 5px; }
+    .hs-field { margin-bottom: 14px; }
+    .hs-field:last-child { margin-bottom: 0; }
+    .hs-status { font-size: 11.5px; color: #6e6e73; margin-top: 4px; display: block; }
+    .hs-status.ok { color: var(--success); }
+    .hs-status.warn { color: var(--warn); }
+
+    /* ─── Page header ─── */
+    .page-header { margin-bottom: 22px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; color: #1d1d1f; margin: 0 0 2px; letter-spacing: -0.02em; }
+    .page-header p { font-size: 13px; color: #6e6e73; margin: 0; }
+
+    /* ─── Badge (static) ─── */
+    .hs-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 999px;
+    }
+    .hs-badge-blue  { background: rgba(0,122,255,0.12); color: #0051a2; }
+    .hs-badge-green { background: rgba(52,199,89,0.15); color: #1a7f3c; }
+    .hs-badge-amber { background: rgba(255,159,10,0.15); color: #b45309; }
+    .hs-badge-gray  { background: rgba(0,0,0,0.06); color: #6e6e73; }
   </style>
 </head>
 
 <body>
-  <header class="menu-bar">
-    <div class="app-brand">
-      <img class="app-logo"
-           src="https://upload.wikimedia.org/wikipedia/commons/f/f7/Official_Odoo_logo.svg"
-           alt="Odoo">
-      <span class="app-title">DB Manager</span>
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside id="sidebar">
+    <div class="sidebar-brand">
+      <img style="height:20px;width:auto;" src="https://upload.wikimedia.org/wikipedia/commons/f/f7/Official_Odoo_logo.svg" alt="Odoo">
+      <span class="sidebar-brand-title">DB Manager</span>
     </div>
-    <nav class="tabs">
-      <button class="tab active"
-              data-tab="create">Créer une base</button>
-      <button class="tab"
-              data-tab="databases">Mes bases</button>
-      <button class="tab"
-              data-tab="scaffold">Scaffold</button>
-      <button class="tab"
-              data-tab="settings">Réglages</button>
+
+    <nav class="sidebar-nav">
+      <!-- Créer une base -->
+      <button class="tab active" data-tab="create">Créer une base</button>
+      <div class="sidebar-sub-nav">
+        <div class="sidebar-sub-item">Version &amp; Branche</div>
+        <div class="sidebar-sub-item">Nouvelle base de données</div>
+      </div>
+
+      <!-- Mes bases -->
+      <button class="tab" data-tab="databases">Mes bases</button>
+      <div class="sidebar-sub-nav">
+        <div class="sidebar-sub-item">Version &amp; Branche</div>
+        <div class="sidebar-sub-item">Synchronisation Git</div>
+        <div class="sidebar-sub-item">Liste des bases</div>
+      </div>
+
+      <!-- Scaffold -->
+      <button class="tab" data-tab="scaffold">Scaffold</button>
+      <div class="sidebar-sub-nav">
+        <div class="sidebar-sub-item">Module</div>
+        <div class="sidebar-sub-item">Pages</div>
+        <div class="sidebar-sub-item">Site</div>
+        <div class="sidebar-sub-item">Thème</div>
+        <div class="sidebar-sub-item">Générer</div>
+      </div>
+
+      <!-- Réglages -->
+      <button class="tab" data-tab="settings">Réglages</button>
+      <div class="sidebar-sub-nav">
+        <div class="sidebar-sub-item">Configuration</div>
+      </div>
     </nav>
-  </header>
+
+    <div class="sidebar-footer-area">
+      <span style="font-size:11px;color:oklch(73% 0.018 230);">Odoo DB Manager</span>
+    </div>
+  </aside>
 
   <div id="appUpdateBanner"
        class="app-update-banner"
@@ -902,417 +952,479 @@
        aria-live="polite">
     <div id="appUpdateBannerText"></div>
     <div class="app-update-banner-actions">
-      <button type="button"
-              class="btn btn-secondary btn-sm"
-              id="btnDismissAppUpdate">Plus tard</button>
-      <button type="button"
-              class="btn btn-primary btn-sm"
-              id="btnDownloadAppUpdate">Télécharger</button>
+      <button type="button" id="btnDismissAppUpdate"
+              style="padding:5px 12px;font-size:12px;font-weight:500;border-radius:6px;border:1px solid #fcd34d;background:#fff;color:#92400e;cursor:pointer;">Plus tard</button>
+      <button type="button" id="btnDownloadAppUpdate"
+              style="padding:5px 12px;font-size:12px;font-weight:500;border-radius:6px;border:none;background:#92400e;color:#fff;cursor:pointer;">Télécharger</button>
     </div>
   </div>
 
   <div class="app">
-    <div id="panel-create"
-         class="tab-panel active">
-      <div class="create-layout">
-        <div class="main-card">
-          <section class="section">
-            <h2 class="section-title section-title-sm">Version et branche</h2>
-            <div class="field">
-              <label class="field-label">Environnement Python</label>
-              <select id="version">
+    <div id="panel-create" class="tab-panel active">
+      <div class="page-header">
+        <h1>Créer une base</h1>
+        <p>Initialise ou met à jour une base de données Odoo locale</p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1.5fr;grid-template-rows:auto auto;gap:16px;align-items:start;">
+
+        <!-- ── Colonne gauche, ligne 1 : Version & Branche ── -->
+        <div class="hs-card">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title">Version &amp; Branche</h2>
+          </div>
+          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:14px;">
+
+            <div class="hs-field">
+              <label class="hs-label">Environnement Python</label>
+              <select id="version" class="hs-select full">
                 <option value="">Auto</option>
               </select>
             </div>
-            <div class="field">
-              <button class="btn btn-secondary btn-sm"
-                      id="btnSetGlobalPyenv">Définir comme env global</button>
-              <span class="status"
-                    id="pyenvGlobalStatus"></span>
+
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnSetGlobalPyenv">
+                Définir comme env global
+              </button>
+              <span class="hs-status" id="pyenvGlobalStatus"></span>
             </div>
-            <div class="field">
-              <label class="field-label">Branche</label>
-              <select id="branch"></select>
-              <span class="status"
-                    id="branchStatus"></span>
+
+            <div class="hs-field">
+              <label class="hs-label">Branche</label>
+              <select id="branch" class="hs-select full"></select>
+              <span class="hs-status" id="branchStatus"></span>
             </div>
-            <div class="field branch-btns">
-              <button class="btn btn-secondary"
-                      id="btnCheck">Vérifier</button>
-              <button class="btn btn-secondary"
-                      id="btnBranch">Changer de branche</button>
+
+            <div style="display:flex;gap:8px;">
+              <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnCheck">
+                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                Vérifier
+              </button>
+              <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnBranch">
+                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+                Changer
+              </button>
             </div>
-          </section>
+
+          </div>
         </div>
 
-        <div class="main-card">
-          <section class="section">
-            <h2 class="section-title section-title-sm">Nouvelle base de données</h2>
-            <div class="field">
-              <label class="field-label"
-                     for="dbName">Nom de la base</label>
-              <input type="text"
-                     id="dbName"
-                     placeholder="ma_base">
-              <span class="status"
-                    id="dbStatus"></span>
-            </div>
-            <div class="field">
-              <label class="field-label"
-                     for="scriptsDirSelect">Dossier scripts</label>
-              <p class="field-hint">Où créer le script .sh de lancement</p>
-              <select id="scriptsDirSelect">
-                <option value="">~/Scripts</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="field-label"
-                     for="scriptsSubdirSelect">Sous-dossier</label>
-              <p class="field-hint">Ranger le script dans un sous-dossier du dossier scripts ci-dessus</p>
-              <select id="scriptsSubdirSelect">
-                <option value="">Racine du dossier</option>
-              </select>
-              <p class="field-hint scripts-subdir-empty"
-                 id="scriptsSubdirEmpty"
-                 hidden>
-                Aucun sous-dossier pour l’instant. Créez-en un dans le dossier scripts (Réglages) : il apparaîtra ici.
-              </p>
-            </div>
-            <div class="field">
-              <label class="field-label"
-                     for="modules">Modules</label>
-              <textarea id="modules"
-                        placeholder="website, website_sale">website,website_sale</textarea>
-            </div>
-            <div class="field">
-              <label class="field-label"
-                     for="updateMode">Mode update (script futur)</label>
-              <select id="updateMode">
-                <option value="reinit">--reinit</option>
-                <option value="update">-u</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="field-label"
-                     for="updateModules">Modules update/reinit</label>
-              <p class="field-hint">Modules à utiliser lors des prochains lancements si la DB existe</p>
-              <textarea id="updateModules"
-                        placeholder="website, website_sale">website,website_sale</textarea>
-            </div>
-            <div class="field">
-              <label class="field-label"
-                     for="customAddonInput">Addons paths custom</label>
-              <p class="field-hint">Ajoutez un ou plusieurs dossiers addons (optionnel)</p>
-              <div class="field-with-browse">
-                <input type="text"
-                       id="customAddonInput"
-                       placeholder="/Users/odoo/odoo/psbe-[mycustomer]">
-                <button type="button"
-                        class="btn btn-secondary btn-sm"
-                        id="btnAddCustomAddon">Ajouter</button>
-                <button type="button"
-                        class="btn btn-secondary btn-sm"
-                        id="btnBrowseCustomAddon">Parcourir</button>
-              </div>
-              <div id="customAddonsList"
-                   class="addons-list"></div>
-            </div>
-            <div class="field btn-group">
-              <button class="btn btn-primary"
-                      id="btnCreate">Créer / Mettre à jour</button>
-              <button class="btn btn-secondary"
-                      id="btnLocks">Nettoyer les verrous</button>
-            </div>
-          </section>
-        </div>
+        <!-- ── Colonne droite (span 2 lignes) : Nouvelle base ── -->
+        <div class="hs-card">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title">Nouvelle base de données</h2>
+          </div>
+          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:14px;">
 
-      </div>
-    </div>
+            <div class="hs-field">
+              <label class="hs-label" for="dbName">Nom de la base</label>
+              <input type="text" id="dbName" class="hs-input mono" placeholder="ma_base">
+              <span class="hs-status" id="dbStatus"></span>
+            </div>
 
-    <div id="panel-databases"
-         class="tab-panel">
-      <div class="databases-layout">
-        <div class="main-card">
-          <section class="section">
-            <h2 class="section-title section-title-sm">Version et branche</h2>
-            <div class="field">
-              <label class="field-label">Environnement Python</label>
-              <select id="versionDb">
-                <option value="">Auto</option>
-              </select>
-            </div>
-            <div class="field">
-              <button class="btn btn-secondary btn-sm"
-                      id="btnSetGlobalPyenvDb">Définir comme env global</button>
-              <span class="status"
-                    id="pyenvGlobalStatusDb"></span>
-            </div>
-            <div class="field">
-              <label class="field-label">Branche</label>
-              <select id="branchDb"></select>
-              <span class="status"
-                    id="branchStatusDb"></span>
-            </div>
-            <div class="field branch-btns">
-              <button class="btn btn-secondary"
-                      id="btnCheckDb">Vérifier</button>
-              <button class="btn btn-secondary"
-                      id="btnBranchDb">Changer de branche</button>
-            </div>
-          </section>
-        </div>
-
-        <div class="main-card">
-          <section class="section">
-            <h2 class="section-title section-title-sm">Synchronisation Git</h2>
-            <div class="field branch-btns">
-              <button class="btn btn-secondary"
-                      id="btnCheckUpdatesDb">Vérifier si à jour</button>
-              <button class="btn btn-secondary"
-                      id="btnPullDb">Pull core & enterprise</button>
-            </div>
-            <div class="field">
-              <span class="status"
-                    id="gitStatusDb"></span>
-            </div>
-            <div id="gitAlertDb"
-                 class="git-alert"></div>
-          </section>
-        </div>
-
-        <div class="main-card databases-list-card">
-          <section class="section">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-              <h2 class="section-title section-title-sm"
-                  style="margin: 0;">Bases de données</h2>
-              <div class="btn-group">
-                <button class="btn btn-secondary btn-sm"
-                        id="btnDisconnectAll"
-                        title="Arrêter tous les processus Odoo">Vider les processus</button>
-                <button class="btn btn-secondary btn-sm"
-                        id="btnRefreshDb">Actualiser</button>
-              </div>
-            </div>
-            <div class="field"
-                 style="margin-bottom: 16px;">
-              <input type="text"
-                     id="dbSearch"
-                     placeholder="Rechercher une base…">
-            </div>
-            <div id="dbList">
-              <div class="empty-state">Chargement…</div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
-
-    <div id="panel-scaffold"
-         class="tab-panel">
-      <div class="scaffold-wizard">
-        <div class="main-card">
-          <section class="section">
-            <h2 class="section-title section-title-sm">Générateur de module website</h2>
-            <p class="field-hint"
-               style="margin-bottom: 16px;">
-              Créez un module <code>website_*</code> personnalisé à partir du scaffold Odoo 19.
-            </p>
-
-            <nav class="scaffold-steps-nav"
-                 id="scaffoldStepsNav">
-              <button type="button"
-                      class="scaffold-step-btn active"
-                      data-step="0">1. Module</button>
-              <button type="button"
-                      class="scaffold-step-btn"
-                      data-step="1">2. Pages</button>
-              <button type="button"
-                      class="scaffold-step-btn"
-                      data-step="2">3. Site</button>
-              <button type="button"
-                      class="scaffold-step-btn"
-                      data-step="3">4. Thème</button>
-              <button type="button"
-                      class="scaffold-step-btn"
-                      data-step="4">5. Générer</button>
-            </nav>
-
-            <!-- Step 1: Module -->
-            <div class="scaffold-step-panel active"
-                 data-step="0">
-              <div class="field">
-                <label class="field-label"
-                       for="scaffoldOdooVersion">Version Odoo</label>
-                <select id="scaffoldOdooVersion">
-                  <option value="19">Odoo 19 — html_builder / Interaction</option>
-                  <option value="18">Odoo 18 — publicWidget / we-button</option>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="hs-field">
+                <label class="hs-label" for="scriptsDirSelect">Dossier scripts</label>
+                <p class="hs-hint">Où créer le script .sh</p>
+                <select id="scriptsDirSelect" class="hs-select full">
+                  <option value="">~/Scripts</option>
                 </select>
-                <p class="field-hint"
-                   id="scaffoldVersionHint">Template : website_scaffold (Odoo 19)</p>
               </div>
-              <div class="field">
-                <label class="field-label"
-                       for="scaffoldModuleSlug">Nom du module</label>
-                <p class="field-hint">Sans le préfixe <code>website_</code> — ex. <code>acme</code> → <code>website_acme</code></p>
-                <input type="text"
-                       id="scaffoldModuleSlug"
-                       placeholder="acme"
-                       pattern="[a-z0-9_]+">
-                <div class="scaffold-preview-module"
-                     id="scaffoldModulePreview">website_…</div>
-              </div>
-              <div class="field">
-                <label class="field-label"
-                       for="scaffoldModuleTitle">Titre du module (manifest)</label>
-                <input type="text"
-                       id="scaffoldModuleTitle"
-                       placeholder="ACME Website">
-              </div>
-              <div class="field">
-                <label class="field-label"
-                       for="scaffoldAuthor">Auteur</label>
-                <input type="text"
-                       id="scaffoldAuthor"
-                       placeholder="Odoo PSBE">
-              </div>
-              <div class="field">
-                <label class="field-label"
-                       for="scaffoldThemeLabel">Nom du thème (header/footer/palette)</label>
-                <p class="field-hint">Utilisé dans primary_variables et les options builder</p>
-                <input type="text"
-                       id="scaffoldThemeLabel"
-                       placeholder="Acme">
+              <div class="hs-field">
+                <label class="hs-label" for="scriptsSubdirSelect">Sous-dossier</label>
+                <p class="hs-hint">Ranger dans un sous-dossier</p>
+                <select id="scriptsSubdirSelect" class="hs-select full">
+                  <option value="">Racine du dossier</option>
+                </select>
+                <p class="hs-hint" id="scriptsSubdirEmpty" hidden style="font-style:italic;color:var(--warn);">
+                  Aucun sous-dossier — créez-en un dans Réglages.
+                </p>
               </div>
             </div>
 
-            <!-- Step 2: Pages -->
-            <div class="scaffold-step-panel"
-                 data-step="1">
-              <p class="field-hint"
-                 style="margin-bottom: 12px;">
-                Chaque page est créée vide (<code>oe_structure oe_empty</code>), comme la home du scaffold.
-              </p>
-              <div id="scaffoldPagesList"
-                   class="scaffold-pages-list"></div>
-              <button type="button"
-                      class="btn btn-secondary btn-sm"
-                      id="btnScaffoldAddPage"
-                      style="margin-top: 12px;">+ Ajouter une page</button>
+            <div class="hs-field">
+              <label class="hs-label" for="modules">Modules à installer</label>
+              <textarea id="modules" class="hs-textarea" placeholder="website, website_sale">website,website_sale</textarea>
             </div>
 
-            <!-- Step 3: Site branding -->
-            <div class="scaffold-step-panel"
-                 data-step="2">
-              <div class="field">
-                <label class="field-label"
-                       for="scaffoldWebsiteName">Nom du site</label>
-                <input type="text"
-                       id="scaffoldWebsiteName"
-                       placeholder="ACME Corp">
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;">
+              <div class="hs-field">
+                <label class="hs-label" for="updateMode">Mode update</label>
+                  <p class="hs-hint">-u ou --reinit</p>
+                <select id="updateMode" class="hs-select">
+                  <option value="reinit">--reinit</option>
+                  <option value="update">-u</option>
+                </select>
               </div>
-              <div class="field">
-                <label class="field-label"
-                       for="scaffoldMetaTitle">Meta title par défaut</label>
-                <p class="field-hint">Titre SEO affiché sur les pages (additional_title)</p>
-                <input type="text"
-                       id="scaffoldMetaTitle"
-                       placeholder="ACME — Official website">
-              </div>
-              <div class="field">
-                <label class="field-label"
-                       for="scaffoldFaviconPath">Favicon</label>
-                <p class="field-hint">PNG recommandé — copié dans static/description/favicon.png</p>
-                <div class="field-with-browse">
-                  <input type="text"
-                         id="scaffoldFaviconPath"
-                         placeholder="Optionnel">
-                  <button type="button"
-                          class="btn btn-secondary btn-sm"
-                          id="btnScaffoldBrowseFavicon">Parcourir</button>
-                </div>
+              <div class="hs-field">
+                <label class="hs-label" for="updateModules">Modules update/reinit</label>
+                <p class="hs-hint">Si la DB existe déjà</p>
+                <textarea id="updateModules" class="hs-textarea" placeholder="website, website_sale" style="min-height:56px;">website,website_sale</textarea>
               </div>
             </div>
 
-            <!-- Step 4: Theme -->
-            <div class="scaffold-step-panel"
-                 data-step="3">
-              <details class="scaffold-accordion"
-                       open>
-                <summary>Couleurs principales (o-color-1 → 5)</summary>
-                <div class="scaffold-accordion-body">
-                  <div class="scaffold-color-grid"
-                       id="scaffoldMainColors"></div>
+            <div class="hs-field">
+              <label class="hs-label" for="customAddonInput">Addons paths custom</label>
+              <p class="hs-hint">Dossiers addons supplémentaires (optionnel)</p>
+              <div style="display:flex;gap:6px;">
+                <input type="text" id="customAddonInput" class="hs-input mono" style="flex:1;min-width:0;" placeholder="/Users/odoo/odoo/psbe-client">
+                <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnAddCustomAddon">Ajouter</button>
+                <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnBrowseCustomAddon">
+                  <svg style="width:13px;height:13px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"/></svg>
+                  Parcourir
+                </button>
+              </div>
+              <div id="customAddonsList" class="addons-list" style="margin-top:8px;"></div>
+            </div>
+
+            <div style="display:flex;gap:8px;padding-top:4px;border-top:1px solid oklch(95.5% 0.004 230);">
+              <button class="hs-btn hs-btn-primary" id="btnCreate">
+                <svg style="width:15px;height:15px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"/></svg>
+                Créer / Mettre à jour
+              </button>
+              <button class="hs-btn hs-btn-secondary" id="btnLocks">
+                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+                Nettoyer les verrous
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Log hidden — JS still writes to it -->
+        <div id="log" style="display:none;"></div>
+
+      </div>
+    </div>
+
+    <div id="panel-databases" class="tab-panel">
+      <div class="page-header">
+        <h1>Mes bases</h1>
+        <p>Gérez et connectez vos bases de données Odoo locales</p>
+      </div>
+
+      <!-- Ligne du haut : Version & Branche  |  Sync Git -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+        <!-- Version & Branche -->
+        <div class="hs-card">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title">Version &amp; Branche</h2>
+          </div>
+          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:14px;">
+
+            <div class="hs-field">
+              <label class="hs-label">Environnement Python</label>
+              <select id="versionDb" class="hs-select full">
+                <option value="">Auto</option>
+              </select>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnSetGlobalPyenvDb">
+                Définir comme env global
+              </button>
+              <span class="hs-status" id="pyenvGlobalStatusDb"></span>
+            </div>
+
+            <div class="hs-field">
+              <label class="hs-label">Branche</label>
+              <select id="branchDb" class="hs-select full"></select>
+              <span class="hs-status" id="branchStatusDb"></span>
+            </div>
+
+            <div style="display:flex;gap:8px;">
+              <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnCheckDb">
+                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                Vérifier
+              </button>
+              <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnBranchDb">
+                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+                Changer
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Synchronisation Git -->
+        <div class="hs-card">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title">Synchronisation Git</h2>
+          </div>
+          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:14px;">
+
+            <div style="display:flex;gap:8px;">
+              <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnCheckUpdatesDb">
+                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                Vérifier si à jour
+              </button>
+              <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnPullDb">
+                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                Pull core &amp; enterprise
+              </button>
+            </div>
+
+            <span class="hs-status" id="gitStatusDb"></span>
+
+            <div id="gitAlertDb" class="git-alert"></div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Ligne du bas : Liste des bases (pleine largeur) -->
+      <div class="hs-card">
+        <div class="hs-card-header">
+          <h2 class="hs-card-title">Bases de données</h2>
+          <div style="display:flex;gap:6px;">
+            <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnDisconnectAll" title="Arrêter tous les processus Odoo">
+              <svg style="width:13px;height:13px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 7.5A2.25 2.25 0 0 1 7.5 5.25h9a2.25 2.25 0 0 1 2.25 2.25v9a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9Z"/></svg>
+              Vider les processus
+            </button>
+            <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnRefreshDb">
+              <svg style="width:13px;height:13px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+              Actualiser
+            </button>
+          </div>
+        </div>
+
+        <!-- Barre de recherche -->
+        <div style="padding:12px 18px;border-bottom:1px solid oklch(95.5% 0.004 230);">
+          <div style="position:relative;">
+            <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:oklch(62.5% 0.020 230);pointer-events:none;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z"/></svg>
+            <input type="text" id="dbSearch"
+                   class="hs-input"
+                   style="padding-left:34px;"
+                   placeholder="Rechercher une base…">
+          </div>
+        </div>
+
+        <!-- Liste -->
+        <div style="padding:8px 14px 12px;" id="dbList">
+          <div class="empty-state">Chargement…</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="panel-scaffold" class="tab-panel">
+      <div class="page-header">
+        <h1>Scaffold</h1>
+        <p>Génère un module <code style="font-family:'JetBrains Mono',monospace;background:oklch(95.5% 0.004 230);padding:1px 6px;border-radius:4px;font-size:12px;">website_*</code> personnalisé à partir du scaffold Odoo</p>
+      </div>
+
+      <!-- Stepper nav -->
+      <div class="scaffold-stepper" id="scaffoldStepsNav">
+        <button type="button" class="scaffold-step-btn active" data-step="0">
+          <span class="scaffold-step-num">1</span>
+          <span class="scaffold-step-label">Module</span>
+        </button>
+        <div class="scaffold-step-connector"></div>
+        <button type="button" class="scaffold-step-btn" data-step="1">
+          <span class="scaffold-step-num">2</span>
+          <span class="scaffold-step-label">Pages</span>
+        </button>
+        <div class="scaffold-step-connector"></div>
+        <button type="button" class="scaffold-step-btn" data-step="2">
+          <span class="scaffold-step-num">3</span>
+          <span class="scaffold-step-label">Site</span>
+        </button>
+        <div class="scaffold-step-connector"></div>
+        <button type="button" class="scaffold-step-btn" data-step="3">
+          <span class="scaffold-step-num">4</span>
+          <span class="scaffold-step-label">Thème</span>
+        </button>
+        <div class="scaffold-step-connector"></div>
+        <button type="button" class="scaffold-step-btn" data-step="4">
+          <span class="scaffold-step-num">5</span>
+          <span class="scaffold-step-label">Générer</span>
+        </button>
+      </div>
+
+      <!-- Step 1: Module -->
+      <div class="scaffold-step-panel active" data-step="0">
+        <div class="hs-card">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title">Informations du module</h2>
+          </div>
+          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:14px;max-width:560px;">
+            <div class="hs-field">
+              <label class="hs-label" for="scaffoldOdooVersion">Version Odoo</label>
+              <select id="scaffoldOdooVersion" class="hs-select full">
+                <option value="19">Odoo 19 — html_builder / Interaction</option>
+                <option value="18">Odoo 18 — publicWidget / we-button</option>
+              </select>
+              <span class="hs-status" id="scaffoldVersionHint">Template : website_scaffold (Odoo 19)</span>
+            </div>
+            <div class="hs-field">
+              <label class="hs-label" for="scaffoldModuleSlug">Nom du module</label>
+              <p class="hs-hint">Sans le préfixe <code style="font-family:inherit;background:oklch(95.5% 0.004 230);padding:1px 5px;border-radius:4px;">website_</code> — ex. <code style="font-family:inherit;background:oklch(95.5% 0.004 230);padding:1px 5px;border-radius:4px;">acme</code> → <code style="font-family:inherit;background:oklch(95.5% 0.004 230);padding:1px 5px;border-radius:4px;">website_acme</code></p>
+              <input type="text" id="scaffoldModuleSlug" class="hs-input mono" placeholder="acme" pattern="[a-z0-9_]+">
+              <div class="scaffold-preview-module" id="scaffoldModulePreview">website_…</div>
+            </div>
+            <div class="hs-field">
+              <label class="hs-label" for="scaffoldModuleTitle">Titre du module (manifest)</label>
+              <input type="text" id="scaffoldModuleTitle" class="hs-input" placeholder="ACME Website">
+            </div>
+            <div class="hs-field">
+              <label class="hs-label" for="scaffoldAuthor">Auteur</label>
+              <input type="text" id="scaffoldAuthor" class="hs-input" placeholder="Odoo PSBE">
+            </div>
+            <div class="hs-field">
+              <label class="hs-label" for="scaffoldThemeLabel">Nom du thème (header/footer/palette)</label>
+              <p class="hs-hint">Utilisé dans primary_variables et les options builder</p>
+              <input type="text" id="scaffoldThemeLabel" class="hs-input" placeholder="Acme">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Pages -->
+      <div class="scaffold-step-panel" data-step="1">
+        <div class="hs-card">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title">Pages du module</h2>
+            <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnScaffoldAddPage">
+              <svg style="width:13px;height:13px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+              Ajouter une page
+            </button>
+          </div>
+          <div class="hs-card-body">
+            <p class="hs-hint" style="margin-bottom:14px;">Chaque page est créée vide (<code style="font-family:'JetBrains Mono',monospace;background:oklch(95.5% 0.004 230);padding:1px 5px;border-radius:4px;">oe_structure oe_empty</code>), comme la home du scaffold.</p>
+            <div id="scaffoldPagesList" class="scaffold-pages-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Site branding -->
+      <div class="scaffold-step-panel" data-step="2">
+        <div class="hs-card">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title">Branding du site</h2>
+          </div>
+          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:14px;max-width:560px;">
+            <div class="hs-field">
+              <label class="hs-label" for="scaffoldWebsiteName">Nom du site</label>
+              <input type="text" id="scaffoldWebsiteName" class="hs-input" placeholder="ACME Corp">
+            </div>
+            <div class="hs-field">
+              <label class="hs-label" for="scaffoldMetaTitle">Meta title par défaut</label>
+              <p class="hs-hint">Titre SEO affiché sur les pages (additional_title)</p>
+              <input type="text" id="scaffoldMetaTitle" class="hs-input" placeholder="ACME — Official website">
+            </div>
+            <div class="hs-field">
+              <label class="hs-label" for="scaffoldFaviconPath">Favicon</label>
+              <p class="hs-hint">PNG recommandé — copié dans static/description/favicon.png</p>
+              <div class="field-with-browse">
+                <input type="text" id="scaffoldFaviconPath" class="hs-input" placeholder="Optionnel">
+                <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnScaffoldBrowseFavicon">Parcourir</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Theme -->
+      <div class="scaffold-step-panel" data-step="3">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
+
+          <!-- Couleurs -->
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="hs-card">
+              <details open>
+                <summary class="scaffold-theme-summary">
+                  <h2 class="hs-card-title">Couleurs principales (o-color-1 → 5)</h2>
+                  <svg style="width:14px;height:14px;flex-shrink:0;color:oklch(62.5% 0.020 230);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </summary>
+                <div class="hs-card-body">
+                  <div class="scaffold-color-grid" id="scaffoldMainColors"></div>
                 </div>
               </details>
-              <details class="scaffold-accordion">
-                <summary>Couleurs sémantiques (success, danger…)</summary>
-                <div class="scaffold-accordion-body">
-                  <div class="scaffold-color-grid"
-                       id="scaffoldThemeColors"></div>
+            </div>
+            <div class="hs-card">
+              <details>
+                <summary class="scaffold-theme-summary">
+                  <h2 class="hs-card-title">Couleurs sémantiques (success, danger…)</h2>
+                  <svg style="width:14px;height:14px;flex-shrink:0;color:oklch(62.5% 0.020 230);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </summary>
+                <div class="hs-card-body">
+                  <div class="scaffold-color-grid" id="scaffoldThemeColors"></div>
                 </div>
               </details>
-              <details class="scaffold-accordion">
-                <summary>Gris (palette gray)</summary>
-                <div class="scaffold-accordion-body">
-                  <div class="scaffold-color-grid"
-                       id="scaffoldGrayColors"></div>
+            </div>
+            <div class="hs-card">
+              <details>
+                <summary class="scaffold-theme-summary">
+                  <h2 class="hs-card-title">Gris (palette gray)</h2>
+                  <svg style="width:14px;height:14px;flex-shrink:0;color:oklch(62.5% 0.020 230);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </summary>
+                <div class="hs-card-body">
+                  <div class="scaffold-color-grid" id="scaffoldGrayColors"></div>
                 </div>
               </details>
-              <details class="scaffold-accordion"
-                       open>
-                <summary>Typographie</summary>
-                <div class="scaffold-accordion-body">
-                  <div class="field">
-                    <label class="field-label"
-                           for="scaffoldFont">Police de base</label>
-                    <select id="scaffoldFont"></select>
+            </div>
+          </div>
+
+          <!-- Typographie + Layout -->
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="hs-card">
+              <details open>
+                <summary class="scaffold-theme-summary">
+                  <h2 class="hs-card-title">Typographie</h2>
+                  <svg style="width:14px;height:14px;flex-shrink:0;color:oklch(62.5% 0.020 230);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </summary>
+                <div class="hs-card-body" style="display:flex;flex-direction:column;gap:12px;">
+                  <div class="hs-field">
+                    <label class="hs-label" for="scaffoldFont">Police de base</label>
+                    <select id="scaffoldFont" class="hs-select full"></select>
                   </div>
-                  <div class="field">
-                    <label class="field-label"
-                           for="scaffoldHeadingsFont">Titres</label>
-                    <select id="scaffoldHeadingsFont"></select>
+                  <div class="hs-field">
+                    <label class="hs-label" for="scaffoldHeadingsFont">Titres</label>
+                    <select id="scaffoldHeadingsFont" class="hs-select full"></select>
                   </div>
-                  <div class="field">
-                    <label class="field-label"
-                           for="scaffoldNavbarFont">Navbar</label>
-                    <select id="scaffoldNavbarFont"></select>
+                  <div class="hs-field">
+                    <label class="hs-label" for="scaffoldNavbarFont">Navbar</label>
+                    <select id="scaffoldNavbarFont" class="hs-select full"></select>
                   </div>
-                  <div class="field">
-                    <label class="field-label"
-                           for="scaffoldButtonsFont">Boutons</label>
-                    <select id="scaffoldButtonsFont"></select>
+                  <div class="hs-field">
+                    <label class="hs-label" for="scaffoldButtonsFont">Boutons</label>
+                    <select id="scaffoldButtonsFont" class="hs-select full"></select>
                   </div>
                 </div>
               </details>
-              <details class="scaffold-accordion">
-                <summary>Layout, boutons & header</summary>
-                <div class="scaffold-accordion-body">
-                  <div class="field-row">
-                    <div class="field">
-                      <label class="field-label"
-                             for="scaffoldLayout">Layout</label>
-                      <select id="scaffoldLayout">
+            </div>
+            <div class="hs-card">
+              <details>
+                <summary class="scaffold-theme-summary">
+                  <h2 class="hs-card-title">Layout, boutons &amp; header</h2>
+                  <svg style="width:14px;height:14px;flex-shrink:0;color:oklch(62.5% 0.020 230);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </summary>
+                <div class="hs-card-body" style="display:flex;flex-direction:column;gap:12px;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldLayout">Layout</label>
+                      <select id="scaffoldLayout" class="hs-select full">
                         <option value="full">Full</option>
                         <option value="boxed">Boxed</option>
                         <option value="framed">Framed</option>
                         <option value="postcard">Postcard</option>
                       </select>
                     </div>
-                    <div class="field">
-                      <label class="field-label"
-                             for="scaffoldLinkUnderline">Soulignement liens</label>
-                      <select id="scaffoldLinkUnderline">
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldLinkUnderline">Soulignement liens</label>
+                      <select id="scaffoldLinkUnderline" class="hs-select full">
                         <option value="hover">Hover</option>
                         <option value="never">Jamais</option>
                         <option value="always">Toujours</option>
                       </select>
                     </div>
                   </div>
-                  <div class="field-row">
-                    <div class="field">
-                      <label class="field-label"
-                             for="scaffoldHeaderLinksStyle">Style liens header</label>
-                      <select id="scaffoldHeaderLinksStyle">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldHeaderLinksStyle">Style liens header</label>
+                      <select id="scaffoldHeaderLinksStyle" class="hs-select full">
                         <option value="default">Default</option>
                         <option value="fill">Fill</option>
                         <option value="outline">Outline</option>
@@ -1323,258 +1435,189 @@
                         <option value="bold">Bold</option>
                       </select>
                     </div>
-                    <div class="field">
-                      <label class="field-label"
-                             for="scaffoldHeaderFontSize">Taille header</label>
-                      <input type="text"
-                             id="scaffoldHeaderFontSize"
-                             placeholder="1rem">
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldHeaderFontSize">Taille header</label>
+                      <input type="text" id="scaffoldHeaderFontSize" class="hs-input" placeholder="1rem">
                     </div>
                   </div>
-                  <div class="field-row">
-                    <div class="field">
-                      <label class="field-label"
-                             for="scaffoldLogoHeight">Hauteur logo</label>
-                      <input type="text"
-                             id="scaffoldLogoHeight"
-                             placeholder="1.5rem">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldLogoHeight">Hauteur logo</label>
+                      <input type="text" id="scaffoldLogoHeight" class="hs-input" placeholder="1.5rem">
                     </div>
-                    <div class="field">
-                      <label class="field-label"
-                             for="scaffoldBtnRadiusLg">Radius bouton LG</label>
-                      <input type="text"
-                             id="scaffoldBtnRadiusLg"
-                             placeholder="2rem">
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldBtnRadiusLg">Radius bouton LG</label>
+                      <input type="text" id="scaffoldBtnRadiusLg" class="hs-input" placeholder="2rem">
                     </div>
                   </div>
-                  <div class="field-row">
-                    <div class="field">
-                      <label class="field-label"
-                             for="scaffoldMenuColor">Menu (o_cc n°)</label>
-                      <input type="number"
-                             id="scaffoldMenuColor"
-                             min="1"
-                             max="5"
-                             value="2">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldMenuColor">Menu (o_cc n°)</label>
+                      <input type="number" id="scaffoldMenuColor" class="hs-input" min="1" max="5" value="2">
                     </div>
-                    <div class="field">
-                      <label class="field-label"
-                             for="scaffoldFooterColor">Footer (o_cc n°)</label>
-                      <input type="number"
-                             id="scaffoldFooterColor"
-                             min="1"
-                             max="5"
-                             value="5">
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldFooterColor">Footer (o_cc n°)</label>
+                      <input type="number" id="scaffoldFooterColor" class="hs-input" min="1" max="5" value="5">
                     </div>
                   </div>
                 </div>
               </details>
             </div>
-
-            <!-- Step 5: Output -->
-            <div class="scaffold-step-panel"
-                 data-step="4">
-              <div class="field">
-                <label class="field-label"
-                       for="scaffoldOutputPath">Dossier de destination</label>
-                <p class="field-hint">Le module sera créé dans ce dossier (ex. votre addons_path client)</p>
-                <div class="field-with-browse">
-                  <input type="text"
-                         id="scaffoldOutputPath"
-                         placeholder="/Users/odoo/odoo/psbe-acme">
-                  <button type="button"
-                          class="btn btn-secondary btn-sm"
-                          id="btnScaffoldBrowseOutput">Parcourir</button>
-                </div>
-              </div>
-              <div class="scaffold-preview-module"
-                   id="scaffoldFinalPreview"></div>
-              <div class="field"
-                   style="margin-top: 16px;">
-                <button type="button"
-                        class="btn btn-primary"
-                        id="btnScaffoldGenerate">Créer le module</button>
-                <span class="status"
-                      id="scaffoldStatus"></span>
-              </div>
-            </div>
-
-            <div class="scaffold-nav-actions">
-              <button type="button"
-                      class="btn btn-secondary"
-                      id="btnScaffoldPrev"
-                      disabled>Précédent</button>
-              <button type="button"
-                      class="btn btn-primary"
-                      id="btnScaffoldNext">Suivant</button>
-            </div>
-          </section>
+          </div>
         </div>
+      </div>
+
+      <!-- Step 5: Output -->
+      <div class="scaffold-step-panel" data-step="4">
+        <div class="hs-card">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title">Générer le module</h2>
+          </div>
+          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:16px;max-width:560px;">
+            <div class="hs-field">
+              <label class="hs-label" for="scaffoldOutputPath">Dossier de destination</label>
+              <p class="hs-hint">Le module sera créé dans ce dossier (ex. votre addons_path client)</p>
+              <div class="field-with-browse">
+                <input type="text" id="scaffoldOutputPath" class="hs-input mono" placeholder="/Users/odoo/odoo/psbe-acme">
+                <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnScaffoldBrowseOutput">Parcourir</button>
+              </div>
+            </div>
+            <div class="scaffold-preview-module" id="scaffoldFinalPreview"></div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <button type="button" class="hs-btn hs-btn-primary" id="btnScaffoldGenerate">
+                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/></svg>
+                Créer le module
+              </button>
+              <span class="status" id="scaffoldStatus"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav buttons -->
+      <div class="scaffold-nav-actions">
+        <button type="button" class="hs-btn hs-btn-secondary" id="btnScaffoldPrev" disabled>
+          <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+          Précédent
+        </button>
+        <button type="button" class="hs-btn hs-btn-primary" id="btnScaffoldNext">
+          Suivant
+          <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+        </button>
       </div>
     </div>
 
-    <div id="panel-settings"
-         class="tab-panel">
-      <div class="main-card"
-           style="max-width: 600px;">
-        <section class="section">
-          <h2 class="section-title section-title-sm">Réglages</h2>
-          <p class="field-hint"
-             style="margin-bottom: 20px;">Configurez les chemins selon votre machine.</p>
+    <div id="panel-settings" class="tab-panel">
+      <div class="page-header">
+        <h1>Réglages</h1>
+        <p>Configurez les chemins selon votre machine.</p>
+      </div>
 
-          <div class="field">
-            <label class="field-label"
-                   for="odooCommunityPath">Chemin Odoo Community</label>
-            <p class="field-hint">Chemin exact du dossier community (contenant odoo-bin)</p>
+      <div class="hs-card" style="max-width:600px;">
+        <div class="hs-card-header">
+          <h2 class="hs-card-title">Configuration</h2>
+          <span class="hs-hint" style="margin:0;">Version {{ app_version }}</span>
+        </div>
+        <div class="hs-card-body" style="display:flex;flex-direction:column;gap:16px;">
+
+          <div class="hs-field">
+            <label class="hs-label" for="odooCommunityPath">Chemin Odoo Community</label>
+            <p class="hs-hint">Chemin exact du dossier community (contenant odoo-bin)</p>
             <div class="field-with-browse">
-              <input type="text"
-                     id="odooCommunityPath"
-                     placeholder="~/odoo/core">
-              <button type="button"
-                      class="btn btn-secondary btn-sm btn-browse"
-                      data-target="odooCommunityPath"
-                      data-type="folder"
-                      data-prompt="Choisir le dossier Odoo Community">Parcourir</button>
+              <input type="text" id="odooCommunityPath" class="hs-input mono" placeholder="~/odoo/core">
+              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" data-target="odooCommunityPath" data-type="folder" data-prompt="Choisir le dossier Odoo Community">Parcourir</button>
             </div>
           </div>
 
-          <div class="field">
-            <label class="field-label"
-                   for="odooEnterprisePath">Chemin Odoo Enterprise</label>
-            <p class="field-hint">Chemin exact du dossier enterprise</p>
+          <div class="hs-field">
+            <label class="hs-label" for="odooEnterprisePath">Chemin Odoo Enterprise</label>
+            <p class="hs-hint">Chemin exact du dossier enterprise</p>
             <div class="field-with-browse">
-              <input type="text"
-                     id="odooEnterprisePath"
-                     placeholder="~/odoo/enterprise">
-              <button type="button"
-                      class="btn btn-secondary btn-sm btn-browse"
-                      data-target="odooEnterprisePath"
-                      data-type="folder"
-                      data-prompt="Choisir le dossier Odoo Enterprise">Parcourir</button>
+              <input type="text" id="odooEnterprisePath" class="hs-input mono" placeholder="~/odoo/enterprise">
+              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" data-target="odooEnterprisePath" data-type="folder" data-prompt="Choisir le dossier Odoo Enterprise">Parcourir</button>
             </div>
           </div>
 
-          <div class="field">
-            <label class="field-label"
-                   for="scriptsPath">Dossier des scripts</label>
-            <p class="field-hint">Un ou plusieurs chemins (séparés par une virgule)</p>
+          <div class="hs-field">
+            <label class="hs-label" for="scriptsPath">Dossier des scripts</label>
+            <p class="hs-hint">Un ou plusieurs chemins (séparés par une virgule)</p>
             <div class="field-with-browse">
-              <input type="text"
-                     id="scriptsPath"
-                     placeholder="~/Scripts ou /chemin/vers/scripts">
-              <button type="button"
-                      class="btn btn-secondary btn-sm btn-browse"
-                      data-target="scriptsPath"
-                      data-type="folder"
-                      data-prompt="Choisir le dossier des scripts">Parcourir</button>
+              <input type="text" id="scriptsPath" class="hs-input mono" placeholder="~/Scripts ou /chemin/vers/scripts">
+              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" data-target="scriptsPath" data-type="folder" data-prompt="Choisir le dossier des scripts">Parcourir</button>
             </div>
           </div>
 
-          <div class="field">
-            <label class="field-label"
-                   for="pyenvRoot">Racine pyenv</label>
-            <p class="field-hint">Dossier contenant versions/ (odoo-18, odoo-19…)</p>
+          <div class="hs-field">
+            <label class="hs-label" for="pyenvRoot">Racine pyenv</label>
+            <p class="hs-hint">Dossier contenant versions/ (odoo-18, odoo-19…)</p>
             <div class="field-with-browse">
-              <input type="text"
-                     id="pyenvRoot"
-                     placeholder="~/.pyenv">
-              <button type="button"
-                      class="btn btn-secondary btn-sm btn-browse"
-                      data-target="pyenvRoot"
-                      data-type="folder"
-                      data-prompt="Choisir la racine pyenv">Parcourir</button>
+              <input type="text" id="pyenvRoot" class="hs-input mono" placeholder="~/.pyenv">
+              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" data-target="pyenvRoot" data-type="folder" data-prompt="Choisir la racine pyenv">Parcourir</button>
             </div>
           </div>
 
-          <div class="field">
-            <label class="field-label"
-                   for="psqlPath">Chemin psql</label>
-            <p class="field-hint">Laissez vide pour auto-détection (Homebrew, Postgres.app…)</p>
+          <div class="hs-field">
+            <label class="hs-label" for="psqlPath">Chemin psql</label>
+            <p class="hs-hint">Laissez vide pour auto-détection (Homebrew, Postgres.app…)</p>
             <div class="field-with-browse">
-              <input type="text"
-                     id="psqlPath"
-                     placeholder="">
-              <button type="button"
-                      class="btn btn-secondary btn-sm btn-browse"
-                      data-target="psqlPath"
-                      data-type="file"
-                      data-prompt="Choisir le fichier psql">Parcourir</button>
+              <input type="text" id="psqlPath" class="hs-input mono" placeholder="">
+              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" data-target="psqlPath" data-type="file" data-prompt="Choisir le fichier psql">Parcourir</button>
             </div>
           </div>
 
-          <div class="field">
-            <label class="field-label"
-                   for="terminalApp">Terminal</label>
-            <p class="field-hint">Application dans laquelle Odoo et les scripts seront lancés</p>
-            <select id="terminalApp">
-              <option value="Warp">Warp</option>
-              <option value="Terminal">Terminal</option>
-              <option value="iTerm2">iTerm2</option>
-            </select>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+            <div class="hs-field">
+              <label class="hs-label" for="terminalApp">Terminal</label>
+              <p class="hs-hint">Application pour lancer Odoo et les scripts</p>
+              <select id="terminalApp" class="hs-select full">
+                <option value="Warp">Warp</option>
+                <option value="Terminal">Terminal</option>
+                <option value="iTerm2">iTerm2</option>
+              </select>
+            </div>
+            <div class="hs-field">
+              <label class="hs-label" for="odooHttpPort">Port HTTP Odoo</label>
+              <p class="hs-hint">Port sur lequel Odoo écoute (défaut 8069)</p>
+              <input type="number" id="odooHttpPort" class="hs-input" min="1024" max="65535" placeholder="8069">
+            </div>
           </div>
 
-          <div class="field">
-            <label class="field-label"
-                   for="odooHttpPort">Port HTTP Odoo</label>
-            <p class="field-hint">Port sur lequel Odoo écoute (défaut 8069)</p>
-            <input type="number"
-                   id="odooHttpPort"
-                   min="1024"
-                   max="65535"
-                   placeholder="8069"
-                   style="width: 100px;">
+          <div style="display:flex;align-items:center;gap:12px;padding-top:4px;">
+            <button class="hs-btn hs-btn-primary" id="btnSaveConfig">Enregistrer</button>
+            <span class="status" id="configStatus"></span>
           </div>
 
-          <div class="field"
-               style="margin-top: 24px;">
-            <button class="btn btn-primary"
-                    id="btnSaveConfig">Enregistrer</button>
-            <span class="status"
-                  id="configStatus"></span>
-          </div>
-          <p class="field-hint"
-             style="margin-top: 20px; margin-bottom: 0;">Version {{ app_version }}</p>
-        </section>
+        </div>
       </div>
     </div>
   </div>
   <div id="toastContainer"
        class="toast-container"></div>
-  <div id="scriptModal"
-       class="modal-backdrop">
+  <div id="scriptModal" class="modal-backdrop">
     <div class="modal-card">
       <div class="modal-head">
-        <h3 class="modal-title"
-            id="scriptModalTitle">Script DB</h3>
-        <button class="btn btn-secondary btn-sm"
-                id="btnCloseScriptModal">Fermer</button>
+        <h3 class="modal-title" id="scriptModalTitle">Script DB</h3>
+        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnCloseScriptModal" style="padding:4px 8px;">
+          <svg style="width:16px;height:16px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
       </div>
       <div class="modal-body">
-        <div class="field">
-          <label class="field-label"
-                 for="scriptPathReadonly">Script</label>
-          <input type="text"
-                 id="scriptPathReadonly"
-                 readonly>
+        <div class="hs-field">
+          <label class="hs-label" for="scriptPathReadonly">Script</label>
+          <input type="text" id="scriptPathReadonly" class="hs-input mono" readonly>
         </div>
-        <div class="field">
-          <label class="field-label"
-                 for="scriptAddonsPath">Addons paths</label>
-          <textarea id="scriptAddonsPath"
-                    placeholder="/path/a,/path/b"></textarea>
+        <div class="hs-field">
+          <label class="hs-label" for="scriptAddonsPath">Addons paths</label>
+          <textarea id="scriptAddonsPath" class="hs-textarea" placeholder="/path/a,/path/b"></textarea>
         </div>
-        <div class="field">
-          <label class="field-label"
-                 for="scriptUpdateModules">Modules reinit / update</label>
-          <textarea id="scriptUpdateModules"
-                    placeholder="website,website_sale"></textarea>
+        <div class="hs-field">
+          <label class="hs-label" for="scriptUpdateModules">Modules reinit / update</label>
+          <textarea id="scriptUpdateModules" class="hs-textarea" placeholder="website,website_sale"></textarea>
         </div>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-secondary"
-                id="btnCancelScriptModal">Annuler</button>
-        <button class="btn btn-primary"
-                id="btnSaveScriptModal">Enregistrer</button>
+        <button class="hs-btn hs-btn-secondary" id="btnCancelScriptModal">Annuler</button>
+        <button class="hs-btn hs-btn-primary" id="btnSaveScriptModal">Enregistrer</button>
       </div>
     </div>
   </div>
@@ -2821,6 +2864,7 @@
       }
     };
   </script>
+
 </body>
 
 </html>
