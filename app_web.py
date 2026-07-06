@@ -196,6 +196,63 @@ def api_pyenv_envs():
     return jsonify({"envs": envs, "global_env": get_pyenv_global_env()})
 
 
+def _pyenv_init_block(pyenv_root: str) -> str:
+    return (
+        "# Pyenv init (ajouté par Odoo DB Manager)\n"
+        f'export PYENV_ROOT="{pyenv_root}"\n'
+        '[ -d "$PYENV_ROOT/bin" ] && export PATH="$PYENV_ROOT/bin:$PATH"\n'
+        "if command -v pyenv >/dev/null 2>&1; then\n"
+        '  eval "$(pyenv init -)"\n'
+        '  eval "$(pyenv virtualenv-init -)" 2>/dev/null\n'
+        "fi\n"
+    )
+
+
+@app.route("/api/pyenv/fix-shell-init", methods=["POST"])
+def api_pyenv_fix_shell_init():
+    """Ajoute le bloc d'init pyenv (PATH + eval pyenv init) aux profils shell
+    s'il est absent, sans quoi PYENV_VERSION/global env n'a aucun effet."""
+    pyenv_root = str(Path(get_pyenv_root()).expanduser())
+    managed_marker = "# Managed by Odoo DB Manager"
+    profiles = [
+        Path.home() / ".zshrc",
+        Path.home() / ".zprofile",
+        Path.home() / ".bashrc",
+        Path.home() / ".bash_profile",
+        Path.home() / ".profile",
+    ]
+    updated: list[str] = []
+    already_ok: list[str] = []
+    errors: list[str] = []
+    for profile in profiles:
+        try:
+            if not profile.exists():
+                continue
+            txt = profile.read_text(encoding="utf-8")
+            if "pyenv init" in txt:
+                already_ok.append(profile.name)
+                continue
+            block = _pyenv_init_block(pyenv_root)
+            if managed_marker in txt:
+                idx = txt.index(managed_marker)
+                new_txt = txt[:idx].rstrip() + "\n\n" + block + "\n" + txt[idx:]
+            else:
+                new_txt = txt.rstrip() + "\n\n" + block
+            profile.write_text(new_txt, encoding="utf-8")
+            updated.append(profile.name)
+        except Exception as e:
+            errors.append(f"{profile.name}: {e}")
+    if errors:
+        return jsonify({"ok": False, "message": "; ".join(errors)}), 500
+    if updated:
+        message = "Init pyenv ajouté à : " + ", ".join(updated) + ". Ouvrez un nouveau terminal pour appliquer."
+    elif already_ok:
+        message = "Init pyenv déjà présent (" + ", ".join(already_ok) + ")."
+    else:
+        message = "Aucun profil shell trouvé à modifier."
+    return jsonify({"ok": True, "updated": updated, "already_ok": already_ok, "message": message})
+
+
 @app.route("/api/pyenv/global", methods=["POST"])
 def api_pyenv_global_set():
     data = request.json or {}
