@@ -30,7 +30,7 @@
 		</data>
 		<key>Resources/lib/python3.12/app_web.py</key>
 		<data>
-		auPdoUCRur0RPLLsMCKILaOnJFI=
+		sDvIV10B9OlvXoDqIWxE6GwtIFk=
 		</data>
 		<key>Resources/lib/python3.12/config.py</key>
 		<data>
@@ -4194,7 +4194,7 @@
 		</data>
 		<key>Resources/lib/python3.12/lib-dynload/greenlet/_greenlet.so</key>
 		<data>
-		Z7V1v3Ocs2FWOSNoVNtWTHa03Vs=
+		8dvYUnuyjKv5dwWHP+ubEpDh564=
 		</data>
 		<key>Resources/lib/python3.12/lib-dynload/grp.so</key>
 		<data>
@@ -4330,11 +4330,11 @@
 		</data>
 		<key>Resources/lib/python3.12/menubar.py</key>
 		<data>
-		LnJFVb0H2d72FK/TKzO6C36t2Po=
+		UhV5p9YbuYgIB035r0nfsixBNHM=
 		</data>
 		<key>Resources/lib/python3.12/odoo_ops.py</key>
 		<data>
-		1VrwshPnSJxBuYTa/OLSbTDsuL8=
+		ovn/x82TmInlm0Ab6+SA1zV1UZo=
 		</data>
 		<key>Resources/lib/python3.12/pip/__init__.py</key>
 		<data>
@@ -12338,7 +12338,7 @@
 		</data>
 		<key>Resources/lib/python312.zip</key>
 		<data>
-		r7xNlHkXsNGGJJXcvWQCIIWkpGM=
+		BDyBaHoo0WeSrAHJtMy5xxFIMnw=
 		</data>
 		<key>Resources/openssl.ca/cert.pem</key>
 		<data>
@@ -12350,11 +12350,11 @@
 		</data>
 		<key>Resources/site.pyc</key>
 		<data>
-		czbhFyiS2PPTpY1dXakf1sQq+14=
+		hjA4f26d0HXzs00SvwkLPprGoBw=
 		</data>
 		<key>Resources/templates/index.html</key>
 		<data>
-		GsYHaVsOk5hCHDukWsSQd9Ia/SA=
+		fqH35nDmMViBSacO72PsbyeNWgY=
 		</data>
 		<key>Resources/website_scaffold/README.md</key>
 		<data>
@@ -12876,7 +12876,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			TTy/rFnGvyT3SWJ8CzPwqJWUZ5sMqXmVu1qMsWt4E6I=
+			ftVxUvLl/iSKFRIBnp1MKEyTXE/ktDPNDwzVVFY1FZU=
 			</data>
 		</dict>
 		<key>Resources/lib/python3.12/config.py</key>
@@ -20163,7 +20163,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			f4m0C05YmCyv6Sbx2Wh+6/sOVTxLvvDUpiHJloBxmJM=
+			YNnbsvQcVs4oTooWGrMuZVP9Zmb6xo8R09loxO39XZY=
 			</data>
 		</dict>
 		<key>Resources/lib/python3.12/lib-dynload/grp.so</key>
@@ -20401,14 +20401,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			5Mnh6j3d0ZNIem9J9bS0xilLPqXWqMRSA2gfCfUfNYg=
+			301EXJi6ERtclZ6ggkQkHc280cpoM+GeEHt+Joy+PXQ=
 			</data>
 		</dict>
 		<key>Resources/lib/python3.12/odoo_ops.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			zPuMN/rBHk4f58iVnmS4uf6YnKbF1Jd86jCXJnjU/yk=
+			Jkw/2Dw1HIo3q0+hDgO8L3CFJbLIo3dbD2vAU3P2sSc=
 			</data>
 		</dict>
 		<key>Resources/lib/python3.12/pip/__init__.py</key>
@@ -34420,7 +34420,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			3N1oVNobTVih3aTq1hCuhucbR5ISaw/dAxMjQG//k0c=
+			CKaRu6Ng5shvg4exZXHyjQXt4gugWU2tnFeLM6ZMhPE=
 			</data>
 		</dict>
 		<key>Resources/openssl.ca/cert.pem</key>
@@ -34441,14 +34441,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			H/DzGPSjzgIEYC9+XDpQF8KumwfbbelyxaGjckSIoWI=
+			TPie+vCrZpVzrwjf5roiH5Ls85IsOJ7kvDLrBoJaH/A=
 			</data>
 		</dict>
 		<key>Resources/templates/index.html</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			C9rNg0Z0AlX8PVTswOTldwtPpTDwpveFhC2cIZyP4LE=
+			mGsCd6MNmWiXGMY+LLnlh5bc2ozy3rbxMXR6S3nmSRE=
 			</data>
 		</dict>
 		<key>Resources/website_scaffold/README.md</key>

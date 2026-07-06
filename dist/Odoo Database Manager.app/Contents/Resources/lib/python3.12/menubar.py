@@ -96,6 +96,8 @@ class OdooMenubarApp(rumps.App):
         from config import get_dismissed_app_version
         from version import check_for_update, get_app_version
 
+        self._activate_app()
+
         info = check_for_update(dismissed_version=get_dismissed_app_version())
         current = get_app_version()
         if not info.get("ok"):
@@ -119,7 +121,12 @@ class OdooMenubarApp(rumps.App):
         rumps.notification("Odoo DB Manager", f"À jour (v{current})", "Aucune mise à jour.")
 
     def _open_settings(self, _) -> None:
-        """Met l'app au premier plan (l'utilisateur peut cliquer sur Réglages)."""
+        """Ouvre l'app directement sur l'onglet Réglages."""
+        try:
+            import app_web
+            app_web.request_navigation("settings")
+        except Exception:
+            pass
         self._activate_app()
 
     def _open_app(self, _) -> None:

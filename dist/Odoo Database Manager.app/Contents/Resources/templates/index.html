@@ -966,44 +966,44 @@
         <p>Initialise ou met à jour une base de données Odoo locale</p>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1.5fr;grid-template-rows:auto auto;gap:16px;align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:16px;">
 
-        <!-- ── Colonne gauche, ligne 1 : Version & Branche ── -->
+        <!-- Version & Branche -->
         <div class="hs-card">
           <div class="hs-card-header">
             <h2 class="hs-card-title">Version &amp; Branche</h2>
           </div>
-          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:14px;">
+          <div class="hs-card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
 
-            <div class="hs-field">
-              <label class="hs-label">Environnement Python</label>
-              <select id="version" class="hs-select full">
-                <option value="">Auto</option>
-              </select>
-            </div>
-
-            <div style="display:flex;align-items:center;gap:10px;">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div class="hs-field">
+                <label class="hs-label">Environnement Python</label>
+                <select id="version" class="hs-select full">
+                  <option value="">Auto</option>
+                </select>
+              </div>
               <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnSetGlobalPyenv">
                 Définir comme env global
               </button>
               <span class="hs-status" id="pyenvGlobalStatus"></span>
             </div>
 
-            <div class="hs-field">
-              <label class="hs-label">Branche</label>
-              <select id="branch" class="hs-select full"></select>
-              <span class="hs-status" id="branchStatus"></span>
-            </div>
-
-            <div style="display:flex;gap:8px;">
-              <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnCheck">
-                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
-                Vérifier
-              </button>
-              <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnBranch">
-                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
-                Changer
-              </button>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div class="hs-field">
+                <label class="hs-label">Branche</label>
+                <select id="branch" class="hs-select full"></select>
+                <span class="hs-status" id="branchStatus"></span>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnCheck">
+                  <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                  Vérifier
+                </button>
+                <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnBranch">
+                  <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+                  Changer
+                </button>
+              </div>
             </div>
 
           </div>
@@ -1022,7 +1022,7 @@
               <span class="hs-status" id="dbStatus"></span>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="display:flex;flex-direction:column;gap:10px;">
               <div class="hs-field">
                 <label class="hs-label" for="scriptsDirSelect">Dossier scripts</label>
                 <p class="hs-hint">Où créer le script .sh</p>
@@ -1047,7 +1047,7 @@
               <textarea id="modules" class="hs-textarea" placeholder="website, website_sale">website,website_sale</textarea>
             </div>
 
-            <div style="display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;">
+            <div style="display:flex;flex-direction:column;gap:10px;">
               <div class="hs-field">
                 <label class="hs-label" for="updateMode">Mode update</label>
                   <p class="hs-hint">-u ou --reinit</p>
@@ -1075,6 +1075,43 @@
                 </button>
               </div>
               <div id="customAddonsList" class="addons-list" style="margin-top:8px;"></div>
+            </div>
+
+            <div class="hs-field" style="padding-top:4px;border-top:1px solid oklch(95.5% 0.004 230);">
+              <label class="hs-label" style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" id="importFromDump">
+                Créer à partir d'un dump (SaaS / Odoo.sh)
+              </label>
+              <p class="hs-hint">Restaure un dump.sql (+ filestore), puis sanitize la base (admin/admin, crons/mails désactivés, etc.)</p>
+
+              <div id="dumpImportFields" style="display:none;flex-direction:column;gap:10px;margin-top:10px;">
+                <div class="hs-field">
+                  <label class="hs-label" for="dumpPath">Fichier dump.sql</label>
+                  <div style="display:flex;gap:6px;">
+                    <input type="text" id="dumpPath" class="hs-input mono" style="flex:1;min-width:0;" placeholder="/Users/odoo/Downloads/dump.sql">
+                    <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnBrowseDump">Parcourir</button>
+                  </div>
+                </div>
+                <div class="hs-field">
+                  <label class="hs-label" for="filestorePath">Dossier filestore</label>
+                  <p class="hs-hint">Dossier "filestore" du zip téléchargé (optionnel)</p>
+                  <div style="display:flex;gap:6px;">
+                    <input type="text" id="filestorePath" class="hs-input mono" style="flex:1;min-width:0;" placeholder="/Users/odoo/Downloads/filestore">
+                    <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnBrowseFilestore">Parcourir</button>
+                  </div>
+                </div>
+                <label class="hs-label" style="display:flex;align-items:center;gap:8px;font-weight:400;">
+                  <input type="checkbox" id="dropExistingDb">
+                  Supprimer la base existante si elle existe déjà
+                </label>
+                <label class="hs-label" style="display:flex;align-items:center;gap:8px;font-weight:400;">
+                  <input type="checkbox" id="sanitizeDump" checked>
+                  Sanitizer après import (admin/admin, désactive crons/mails/SaaS)
+                </label>
+                <button class="hs-btn hs-btn-primary" id="btnImportDump" type="button">
+                  Importer le dump
+                </button>
+              </div>
             </div>
 
             <div style="display:flex;gap:8px;padding-top:4px;border-top:1px solid oklch(95.5% 0.004 230);">
@@ -1525,7 +1562,7 @@
             <p class="hs-hint">Chemin exact du dossier community (contenant odoo-bin)</p>
             <div class="field-with-browse">
               <input type="text" id="odooCommunityPath" class="hs-input mono" placeholder="~/odoo/core">
-              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" data-target="odooCommunityPath" data-type="folder" data-prompt="Choisir le dossier Odoo Community">Parcourir</button>
+              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="odooCommunityPath" data-type="folder" data-prompt="Choisir le dossier Odoo Community">Parcourir</button>
             </div>
           </div>
 
@@ -1534,7 +1571,7 @@
             <p class="hs-hint">Chemin exact du dossier enterprise</p>
             <div class="field-with-browse">
               <input type="text" id="odooEnterprisePath" class="hs-input mono" placeholder="~/odoo/enterprise">
-              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" data-target="odooEnterprisePath" data-type="folder" data-prompt="Choisir le dossier Odoo Enterprise">Parcourir</button>
+              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="odooEnterprisePath" data-type="folder" data-prompt="Choisir le dossier Odoo Enterprise">Parcourir</button>
             </div>
           </div>
 
@@ -1543,7 +1580,7 @@
             <p class="hs-hint">Un ou plusieurs chemins (séparés par une virgule)</p>
             <div class="field-with-browse">
               <input type="text" id="scriptsPath" class="hs-input mono" placeholder="~/Scripts ou /chemin/vers/scripts">
-              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" data-target="scriptsPath" data-type="folder" data-prompt="Choisir le dossier des scripts">Parcourir</button>
+              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="scriptsPath" data-type="folder" data-prompt="Choisir le dossier des scripts">Parcourir</button>
             </div>
           </div>
 
@@ -1552,7 +1589,7 @@
             <p class="hs-hint">Dossier contenant versions/ (odoo-18, odoo-19…)</p>
             <div class="field-with-browse">
               <input type="text" id="pyenvRoot" class="hs-input mono" placeholder="~/.pyenv">
-              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" data-target="pyenvRoot" data-type="folder" data-prompt="Choisir la racine pyenv">Parcourir</button>
+              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="pyenvRoot" data-type="folder" data-prompt="Choisir la racine pyenv">Parcourir</button>
             </div>
           </div>
 
@@ -1561,7 +1598,7 @@
             <p class="hs-hint">Laissez vide pour auto-détection (Homebrew, Postgres.app…)</p>
             <div class="field-with-browse">
               <input type="text" id="psqlPath" class="hs-input mono" placeholder="">
-              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" data-target="psqlPath" data-type="file" data-prompt="Choisir le fichier psql">Parcourir</button>
+              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="psqlPath" data-type="file" data-prompt="Choisir le fichier psql">Parcourir</button>
             </div>
           </div>
 
@@ -1587,6 +1624,38 @@
             <span class="status" id="configStatus"></span>
           </div>
 
+        </div>
+      </div>
+
+      <div class="hs-card" style="max-width:600px;margin-top:16px;">
+        <div class="hs-card-header">
+          <h2 class="hs-card-title">Permissions macOS (Warp)</h2>
+        </div>
+        <div class="hs-card-body" style="display:flex;flex-direction:column;gap:12px;">
+          <p class="hs-hint">
+            Si Warp s'ouvre mais qu'aucune commande ne se lance à la création d'une base, il manque probablement une de ces deux permissions.
+            Cliquez sur le bouton, puis cochez la case correspondante dans les Réglages Système (relancez l'app si besoin).
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button type="button" class="hs-btn hs-btn-secondary" id="btnOpenAccessibility">Vérifier Accessibilité</button>
+            <button type="button" class="hs-btn hs-btn-secondary" id="btnOpenAutomation">Vérifier Automatisation</button>
+            <span class="status" id="permissionsStatus"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hs-card" style="max-width:600px;margin-top:16px;">
+        <div class="hs-card-header">
+          <h2 class="hs-card-title">Diagnostic</h2>
+        </div>
+        <div class="hs-card-body" style="display:flex;flex-direction:column;gap:12px;">
+          <p class="hs-hint">
+            Ouvre le terminal sélectionné ci-dessus et vérifie que tous les prérequis (git, psql, createdb/dropdb, pyenv, environnements pyenv, chemins Odoo, PostgreSQL) sont bien installés sur cette machine.
+          </p>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button type="button" class="hs-btn hs-btn-primary" id="btnCheckPrereqs">Vérifier les prérequis</button>
+            <span class="status" id="prereqsStatus"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -1618,6 +1687,28 @@
       <div class="modal-actions">
         <button class="hs-btn hs-btn-secondary" id="btnCancelScriptModal">Annuler</button>
         <button class="hs-btn hs-btn-primary" id="btnSaveScriptModal">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="duplicateModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 class="modal-title" id="duplicateModalTitle">Dupliquer une base</h3>
+        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnCloseDuplicateModal" style="padding:4px 8px;">
+          <svg style="width:16px;height:16px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="hs-field">
+          <label class="hs-label" for="duplicateNewName">Nom de la nouvelle base</label>
+          <input type="text" id="duplicateNewName" class="hs-input mono" placeholder="ma_base_copie">
+          <span class="hs-status" id="duplicateStatus"></span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="hs-btn hs-btn-secondary" id="btnCancelDuplicateModal">Annuler</button>
+        <button class="hs-btn hs-btn-primary" id="btnConfirmDuplicateModal">Dupliquer</button>
       </div>
     </div>
   </div>
@@ -1762,6 +1853,17 @@
     window.addEventListener('hashchange', () => {
       if (location.hash === '#settings') document.querySelector('.tab[data-tab="settings"]').click();
     });
+
+    // Poll pour permettre au menu bar (process séparé de la fenêtre) de piloter la navigation.
+    setInterval(async () => {
+      try {
+        const r = await fetch('/api/pending-navigation');
+        const d = await r.json();
+        if (d.target && tabIds[d.target]) {
+          document.querySelector(`.tab[data-tab="${d.target}"]`).click();
+        }
+      } catch (_) { /* ignore */ }
+    }, 1000);
 
     async function loadConfig() {
       try {
@@ -2001,6 +2103,63 @@
       if (e.target.id === 'scriptModal') closeScriptModal();
     };
 
+    let duplicateModalState = null;
+
+    function closeDuplicateModal() {
+      const modal = $('duplicateModal');
+      if (!modal) return;
+      modal.classList.remove('show');
+      duplicateModalState = null;
+    }
+
+    function openDuplicateModal(db) {
+      duplicateModalState = { db };
+      $('duplicateModalTitle').textContent = `Dupliquer "${db}"`;
+      $('duplicateNewName').value = `${db}_copie`;
+      $('duplicateStatus').textContent = '';
+      $('duplicateStatus').className = 'hs-status';
+      $('duplicateModal').classList.add('show');
+    }
+
+    $('btnCloseDuplicateModal').onclick = () => closeDuplicateModal();
+    $('btnCancelDuplicateModal').onclick = () => closeDuplicateModal();
+    $('duplicateModal').onclick = (e) => {
+      if (e.target.id === 'duplicateModal') closeDuplicateModal();
+    };
+
+    $('btnConfirmDuplicateModal').onclick = async () => {
+      if (!duplicateModalState) return;
+      const newName = $('duplicateNewName').value.trim();
+      if (!newName) {
+        $('duplicateStatus').textContent = 'Indiquez un nom.';
+        $('duplicateStatus').className = 'hs-status warn';
+        return;
+      }
+      const btn = $('btnConfirmDuplicateModal');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/duplicate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ db: duplicateModalState.db, new_db: newName })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          showToast(d.message || 'Base dupliquée', 'success');
+          closeDuplicateModal();
+          loadDatabases();
+        } else {
+          $('duplicateStatus').textContent = d.message || 'Erreur';
+          $('duplicateStatus').className = 'hs-status warn';
+        }
+      } catch (e) {
+        $('duplicateStatus').textContent = e.message || 'Erreur';
+        $('duplicateStatus').className = 'hs-status warn';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
     $('btnSaveScriptModal').onclick = async () => {
       if (!scriptModalState) return;
       const payload = {
@@ -2048,6 +2207,111 @@
       } catch (e) {
         log(e.message, 'err');
       }
+    };
+
+    async function openMacPermission(url, btn) {
+      const s = $('permissionsStatus');
+      btn.disabled = true;
+      try {
+        const r = await fetch(url, { method: 'POST' });
+        const d = await r.json();
+        s.textContent = d.message || '';
+        s.className = 'status ' + (d.ok ? 'ok' : 'warn');
+      } catch (e) {
+        s.textContent = e.message || 'Erreur';
+        s.className = 'status warn';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    $('btnOpenAccessibility').onclick = () => openMacPermission('/api/permissions/accessibility', $('btnOpenAccessibility'));
+    $('btnOpenAutomation').onclick = () => openMacPermission('/api/permissions/automation', $('btnOpenAutomation'));
+
+    $('btnCheckPrereqs').onclick = async () => {
+      const btn = $('btnCheckPrereqs');
+      const s = $('prereqsStatus');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/check-prerequisites', { method: 'POST' });
+        const d = await r.json();
+        s.textContent = d.message || '';
+        s.className = 'status ' + (d.ok ? 'ok' : 'warn');
+      } catch (e) {
+        s.textContent = e.message || 'Erreur';
+        s.className = 'status warn';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    $('importFromDump').onchange = () => {
+      $('dumpImportFields').style.display = $('importFromDump').checked ? 'flex' : 'none';
+    };
+
+    $('btnBrowseDump').onclick = async () => {
+      try {
+        const r = await fetch('/api/browse-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: 'Choisir le fichier dump.sql' })
+        });
+        const d = await r.json();
+        if (d.ok && d.path) $('dumpPath').value = d.path;
+      } catch (e) {
+        log(e.message, 'err');
+      }
+    };
+
+    $('btnBrowseFilestore').onclick = async () => {
+      try {
+        const r = await fetch('/api/browse-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: 'Choisir le dossier filestore' })
+        });
+        const d = await r.json();
+        if (d.ok && d.path) $('filestorePath').value = d.path;
+      } catch (e) {
+        log(e.message, 'err');
+      }
+    };
+
+    $('btnImportDump').onclick = async () => {
+      const db = $('dbName').value.trim();
+      if (!db) { log('Indiquez un nom de base.', 'err'); return; }
+      const dumpPath = $('dumpPath').value.trim();
+      if (!dumpPath) { log('Indiquez le fichier dump.sql.', 'err'); return; }
+
+      $('btnImportDump').disabled = true;
+      clearLog();
+      log('--- Import du dump ---');
+
+      const body = {
+        db,
+        dump_path: dumpPath,
+        filestore_path: $('filestorePath').value.trim(),
+        drop_existing: $('dropExistingDb').checked,
+        sanitize: $('sanitizeDump').checked
+      };
+
+      try {
+        const r = await fetch('/api/create-from-dump', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        (d.log || []).forEach(line => log(line, line.startsWith('✗') ? 'err' : 'ok'));
+        if (d.ok) {
+          showToast(`Base ${db} importée depuis le dump`, 'success');
+          checkDbStatus();
+          loadDatabases();
+        } else {
+          log(d.message || 'Erreur', 'err');
+        }
+      } catch (e) { log(e.message, 'err'); }
+      finally { $('btnImportDump').disabled = false; }
     };
 
     $('btnCheck').onclick = async () => {
@@ -2354,6 +2618,7 @@
                <button class="btn btn-secondary btn-sm btn-disconnect" data-db="${escapeHtml(db)}">Déconnecter</button>`
             : `${connectBtn}
                <button class="btn btn-secondary btn-sm btn-edit-script" data-db="${escapeHtml(db)}">Script</button>
+               <button class="btn btn-secondary btn-sm btn-duplicate" data-db="${escapeHtml(db)}">Dupliquer</button>
                <button class="btn btn-secondary btn-sm btn-delete" data-db="${escapeHtml(db)}">Supprimer</button>`;
           return `
             <div class="db-row" data-db="${escapeHtml(db)}">
@@ -2398,6 +2663,9 @@
         });
         el.querySelectorAll('.btn-delete').forEach(btn => {
           btn.onclick = () => deleteDb(btn.dataset.db);
+        });
+        el.querySelectorAll('.btn-duplicate').forEach(btn => {
+          btn.onclick = () => openDuplicateModal(btn.dataset.db);
         });
       } catch (e) {
         el.innerHTML = `<div class="empty-state" style="color: var(--error);">${escapeHtml(e.message)}</div>`;

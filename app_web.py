@@ -41,9 +41,11 @@ from odoo_ops import (
     get_repos_behind_counts,
     check_repos_up_to_date,
     clear_module_locks,
+    create_db_from_dump,
     create_launch_script,
     db_exists,
     delete_db_complete,
+    duplicate_database,
     get_current_branch,
     get_db_version,
     get_db_version_and_branch,
@@ -59,6 +61,7 @@ from odoo_ops import (
     restart_odoo_server,
     run_odoo_create_in_terminal,
     run_odoo_in_terminal,
+    run_prerequisites_check_in_terminal,
     run_script_for_db,
     pull_core_enterprise,
     start_odoo_server,
@@ -76,6 +79,24 @@ else:
     _template = os.path.join(os.path.dirname(__file__), "templates")
 
 app = Flask(__name__, template_folder=_template)
+
+_pending_navigation = {"target": None}
+
+
+def request_navigation(target: str) -> None:
+    """Demande à la fenêtre de l'app (pywebview) de naviguer vers un onglet donné.
+
+    La fenêtre et le menu bar tournent dans des process séparés mais partagent
+    ce même serveur Flask : le front-end poll /api/pending-navigation.
+    """
+    _pending_navigation["target"] = target
+
+
+@app.route("/api/pending-navigation")
+def api_pending_navigation():
+    target = _pending_navigation["target"]
+    _pending_navigation["target"] = None
+    return jsonify({"target": target})
 
 
 def _path():
@@ -396,6 +417,60 @@ def api_browse_file():
         return jsonify({"ok": False, "message": str(e)}), 500
 
 
+@app.route("/api/permissions/accessibility", methods=["POST"])
+def api_permissions_accessibility():
+    """Déclenche l'apparition de l'app dans la liste Accessibilité et ouvre le réglage."""
+    try:
+        subprocess.run(
+            ["osascript", "-e", 'tell application "System Events" to get name of first process'],
+            capture_output=True, text=True, timeout=5,
+        )
+    except Exception:
+        pass
+    try:
+        subprocess.run(
+            ["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"],
+            capture_output=True, text=True, timeout=5,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 500
+    return jsonify({"ok": True, "message": "Réglages Accessibilité ouverts. Cochez Terminal (ou l'app) dans la liste."})
+
+
+@app.route("/api/permissions/automation", methods=["POST"])
+def api_permissions_automation():
+    """Déclenche l'apparition de l'app dans la liste Automatisation (contrôle de Warp/System Events) et ouvre le réglage."""
+    try:
+        subprocess.run(
+            ["osascript", "-e", 'tell application "System Events" to get name of first process'],
+            capture_output=True, text=True, timeout=5,
+        )
+    except Exception:
+        pass
+    try:
+        subprocess.run(
+            ["osascript", "-e", 'tell application "Warp" to activate'],
+            capture_output=True, text=True, timeout=5,
+        )
+    except Exception:
+        pass
+    try:
+        subprocess.run(
+            ["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation"],
+            capture_output=True, text=True, timeout=5,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 500
+    return jsonify({"ok": True, "message": "Réglages Automatisation ouverts. Cochez System Events et Warp dans la liste."})
+
+
+@app.route("/api/check-prerequisites", methods=["POST"])
+def api_check_prerequisites():
+    """Ouvre le terminal configuré et lance un script de vérification des prérequis."""
+    ok, msg = run_prerequisites_check_in_terminal()
+    return jsonify({"ok": ok, "message": msg})
+
+
 @app.route("/api/scaffold/defaults")
 def api_scaffold_defaults():
     """Options par défaut pour le générateur de module website."""
@@ -596,6 +671,18 @@ def api_delete():
     return jsonify({"ok": ok, "message": msg})
 
 
+@app.route("/api/duplicate", methods=["POST"])
+def api_duplicate():
+    """Duplique une base Postgres (+ filestore) sous un nouveau nom."""
+    data = request.json or {}
+    db = (data.get("db") or "").strip()
+    new_db = (data.get("new_db") or "").strip()
+    if not db or not new_db:
+        return jsonify({"ok": False, "message": "Nom de base source et nouveau nom requis"}), 400
+    ok, msg = duplicate_database(db, new_db)
+    return jsonify({"ok": ok, "message": msg})
+
+
 @app.route("/api/disconnect", methods=["POST"])
 def api_disconnect():
     """Arrête Odoo (Ctrl+C) pour la base en cours et ferme le terminal si Warp."""
@@ -753,6 +840,33 @@ def api_create():
         "script_error": None if ok_script else msg_script,
         "warnings": warnings,
     })
+
+
+@app.route("/api/create-from-dump", methods=["POST"])
+def api_create_from_dump():
+    """Crée une base à partir d'un dump.sql (+ filestore optionnel) et la sanitize."""
+    data = request.json or {}
+    db = (data.get("db") or "").strip()
+    dump_path = os.path.expanduser((data.get("dump_path") or "").strip())
+    filestore_path = os.path.expanduser((data.get("filestore_path") or "").strip()) or None
+    drop_existing = bool(data.get("drop_existing"))
+    sanitize = data.get("sanitize", True)
+
+    if not db:
+        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+    if not dump_path or not os.path.isfile(dump_path):
+        return jsonify({"ok": False, "message": "Fichier dump introuvable"}), 400
+    if filestore_path and not os.path.isdir(filestore_path):
+        return jsonify({"ok": False, "message": "Dossier filestore introuvable"}), 400
+
+    ok, message, log_lines = create_db_from_dump(
+        db,
+        dump_path,
+        filestore_path=filestore_path,
+        drop_existing=drop_existing,
+        sanitize=bool(sanitize),
+    )
+    return jsonify({"ok": ok, "message": message, "log": log_lines})
 
 
 @app.route("/api/script-config")

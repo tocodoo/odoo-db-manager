@@ -114,6 +114,7 @@ def run_cmd(
     cwd: Optional[str] = None,
     env: Optional[dict] = None,
     capture: bool = True,
+    timeout: int = 300,
 ) -> tuple[int, str, str]:
     """Exécute une commande et retourne (exit_code, stdout, stderr)."""
     full_env = _env_with_path()
@@ -126,7 +127,7 @@ def run_cmd(
             env=full_env,
             capture_output=capture,
             text=True,
-            timeout=300,
+            timeout=timeout,
         )
         return result.returncode, result.stdout or "", result.stderr or ""
     except subprocess.TimeoutExpired:
@@ -659,6 +660,100 @@ def run_script_for_db(
     return _launch_in_terminal(inner, cwd, script_path.name)
 
 
+def build_prerequisites_script() -> Path:
+    """Génère un script bash de vérification des prérequis et retourne son chemin."""
+    from config import get_odoo_community_path, get_odoo_enterprise_path, get_pyenv_root
+
+    pyenv_root = get_pyenv_root() or os.path.expanduser("~/.pyenv")
+    community = get_odoo_community_path() or ""
+    enterprise = get_odoo_enterprise_path() or ""
+
+    content = f"""#!/bin/bash
+echo "======================================"
+echo " Vérification des prérequis - Odoo DB Manager"
+echo "======================================"
+echo
+
+check_cmd() {{
+  if command -v "$1" >/dev/null 2>&1; then
+    echo "✓ $1 : $(command -v "$1")"
+  else
+    echo "✗ $1 : introuvable"
+  fi
+}}
+
+echo "--- Outils en ligne de commande ---"
+check_cmd git
+check_cmd psql
+check_cmd createdb
+check_cmd dropdb
+check_cmd pyenv
+check_cmd python3
+echo
+
+echo "--- pyenv ---"
+PYENV_ROOT={shlex.quote(pyenv_root)}
+if [ -d "$PYENV_ROOT/versions" ]; then
+  echo "✓ Dossier pyenv versions trouvé: $PYENV_ROOT/versions"
+  ls "$PYENV_ROOT/versions" | sed 's/^/    - /'
+else
+  echo "✗ Dossier pyenv versions introuvable: $PYENV_ROOT/versions"
+fi
+echo
+
+echo "--- Chemins Odoo configurés ---"
+COMMUNITY={shlex.quote(community)}
+ENTERPRISE={shlex.quote(enterprise)}
+if [ -n "$COMMUNITY" ] && [ -f "$COMMUNITY/odoo-bin" ]; then
+  echo "✓ Odoo Community: $COMMUNITY (odoo-bin trouvé)"
+elif [ -n "$COMMUNITY" ]; then
+  echo "✗ Odoo Community: $COMMUNITY (odoo-bin introuvable)"
+else
+  echo "✗ Odoo Community: non configuré (voir Réglages)"
+fi
+if [ -n "$ENTERPRISE" ] && [ -d "$ENTERPRISE" ]; then
+  echo "✓ Odoo Enterprise: $ENTERPRISE"
+else
+  echo "○ Odoo Enterprise: non configuré (optionnel)"
+fi
+echo
+
+echo "--- Applications Terminal ---"
+for app in "Warp" "Terminal" "iTerm"; do
+  if [ -d "/Applications/$app.app" ]; then
+    echo "✓ $app.app installé"
+  else
+    echo "✗ $app.app introuvable dans /Applications"
+  fi
+done
+echo
+
+echo "--- PostgreSQL ---"
+if command -v psql >/dev/null 2>&1; then
+  if psql -lqt >/dev/null 2>&1; then
+    echo "✓ Connexion à PostgreSQL OK"
+  else
+    echo "✗ Impossible de se connecter à PostgreSQL (le service est-il démarré ?)"
+  fi
+fi
+echo
+
+echo "======================================"
+echo " Terminé. Appuyez sur Entrée pour fermer cette fenêtre."
+read -r _
+"""
+    tmp = Path(tempfile.gettempdir()) / "odoo_dbmanager_check_prereqs.sh"
+    tmp.write_text(content, encoding="utf-8")
+    tmp.chmod(0o755)
+    return tmp
+
+
+def run_prerequisites_check_in_terminal() -> tuple[bool, str]:
+    """Ouvre le terminal configuré et lance le script de vérification des prérequis."""
+    script_path = build_prerequisites_script()
+    return _open_in_terminal(f"/bin/bash {shlex.quote(str(script_path))}")
+
+
 def _open_in_terminal(content: str, cwd: Optional[str] = None) -> tuple[bool, str]:
     """Ouvre une commande dans le terminal configuré."""
     from config import get_terminal_app
@@ -1004,6 +1099,183 @@ def delete_db_complete(db_name: str) -> tuple[bool, str]:
         except OSError as e:
             return False, f"Script non supprimé: {e}"
     return True, f"{db_name} supprimée (DB + script)"
+
+
+def _find_createdb() -> str:
+    """Retourne le chemin de createdb (même répertoire que psql)."""
+    psql = _find_psql()
+    if "/" in psql:
+        c = Path(psql).parent / "createdb"
+        if c.exists():
+            return str(c)
+    return "createdb"
+
+
+def _terminate_db_connections(db_name: str) -> None:
+    """Coupe les connexions Postgres actives sur une base (nécessaire pour createdb -T)."""
+    psql = _find_psql()
+    run_cmd([
+        psql, "-d", "postgres", "-c",
+        f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+        f"WHERE datname = '{db_name}' AND pid <> pg_backend_pid();",
+    ])
+
+
+def duplicate_database(source_db: str, new_db: str) -> tuple[bool, str]:
+    """Duplique une base Postgres (copie exacte) + filestore + script de lancement."""
+    import shutil
+    import time
+
+    if not db_exists(source_db):
+        return False, f"La base {source_db} n'existe pas."
+    if db_exists(new_db):
+        return False, f"La base {new_db} existe déjà."
+
+    stop_odoo_server(source_db)
+    _terminate_db_connections(source_db)
+    time.sleep(0.5)
+
+    createdb = _find_createdb()
+    code, out, err = run_cmd([createdb, "-T", source_db, new_db], timeout=1800)
+    if code != 0:
+        combined = (out + " " + err).lower()
+        if "being accessed by other users" in combined:
+            # Une connexion s'est rouverte entre le terminate et le createdb : on retente une fois.
+            _terminate_db_connections(source_db)
+            time.sleep(0.5)
+            code, out, err = run_cmd([createdb, "-T", source_db, new_db], timeout=1800)
+        if code != 0:
+            combined = (out + " " + err).lower()
+            if "being accessed by other users" in combined:
+                return False, f"Impossible de dupliquer {source_db}: fermez toute connexion active (Odoo, psql, pgAdmin…) puis réessayez."
+            return False, f"createdb: {err or out}"
+
+    messages = [f"✓ Base {new_db} créée (copie exacte de {source_db})"]
+
+    src_filestore = get_default_filestore_dir(source_db)
+    if src_filestore.is_dir():
+        dest_filestore = get_default_filestore_dir(new_db)
+        try:
+            dest_filestore.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(src_filestore, dest_filestore, dirs_exist_ok=True)
+            messages.append("✓ Filestore copié")
+        except OSError as e:
+            messages.append(f"✗ Copie du filestore échouée: {e}")
+    else:
+        messages.append("○ Pas de filestore trouvé pour la base source")
+
+    src_script = get_script_path_for_db(source_db)
+    if src_script and src_script.exists():
+        try:
+            new_script_path = src_script.parent / f"odoo-{new_db}.sh"
+            text = src_script.read_text(encoding="utf-8")
+            text, n = re.subn(r"^DB=.*$", f"DB={new_db}", text, count=1, flags=re.MULTILINE)
+            if n == 0:
+                messages.append("✗ Script copié mais variable DB non trouvée, à vérifier manuellement")
+            new_script_path.write_text(text, encoding="utf-8")
+            new_script_path.chmod(0o755)
+            messages.append(f"✓ Script dupliqué ({new_script_path.name})")
+        except OSError as e:
+            messages.append(f"✗ Copie du script échouée: {e}")
+    else:
+        messages.append("○ Pas de script trouvé pour la base source")
+
+    return True, " • ".join(messages)
+
+
+def get_default_filestore_dir(db_name: str) -> Path:
+    """Retourne le dossier filestore par défaut d'Odoo pour une base donnée."""
+    import platform
+    home = Path.home()
+    if platform.system() == "Darwin":
+        base = home / "Library" / "Application Support" / "Odoo" / "filestore"
+    else:
+        base = home / ".local" / "share" / "Odoo" / "filestore"
+    return base / db_name
+
+
+# Commandes de "sanitize" (cf. procédure de nettoyage des dumps SaaS/Odoo.sh).
+SANITIZE_STATEMENTS: list[tuple[str, str]] = [
+    ("UUID base", "UPDATE ir_config_parameter SET value='trululu' WHERE key='database.uuid';"),
+    ("Serveurs mail supprimés", "DELETE FROM ir_mail_server;"),
+    ("Crons désactivés", "UPDATE ir_cron SET active='False';"),
+    ("Login/mot de passe admin", "UPDATE res_users SET login='admin', password='admin' WHERE id=2;"),
+    ("Date d'expiration", "UPDATE ir_config_parameter SET value='2200-12-12' WHERE key='database.expiration_date';"),
+    ("URL de rapport supprimée", "DELETE FROM ir_config_parameter WHERE key = 'report.url';"),
+    ("Code enterprise supprimé", "DELETE FROM ir_config_parameter WHERE key = 'database.enterprise_code';"),
+    ("Serveurs mail désactivés", "UPDATE ir_mail_server SET active = 'f';"),
+    ("Notifications push désactivées", "DELETE FROM ir_config_parameter WHERE key IN ('ocn.ocn_push_notification','odoo_ocn.project_id', 'ocn.uuid');"),
+    ("Modules SaaS désinstallés", "UPDATE ir_module_module SET state='uninstalled' WHERE name ilike '%saas%';"),
+    ("Vues SaaS supprimées", "DELETE FROM ir_ui_view WHERE name ilike '%saas%';"),
+    ("Admin réactivé", "UPDATE res_users SET active='t' WHERE id=2;"),
+]
+
+
+def sanitize_database(db_name: str) -> list[str]:
+    """Nettoie une base importée depuis un dump SaaS/Odoo.sh (admin/admin, crons off, etc.)."""
+    psql = _find_psql()
+    log_lines = []
+    for label, sql in SANITIZE_STATEMENTS:
+        code, _, err = run_cmd([psql, "-d", db_name, "-c", sql])
+        if code == 0:
+            log_lines.append(f"✓ {label}")
+        else:
+            log_lines.append(f"✗ {label}: {err.strip() or 'échec'}")
+    return log_lines
+
+
+def create_db_from_dump(
+    db_name: str,
+    dump_path: str,
+    filestore_path: Optional[str] = None,
+    drop_existing: bool = False,
+    sanitize: bool = True,
+) -> tuple[bool, str, list[str]]:
+    """Crée une base à partir d'un dump.sql (+ filestore optionnel) et la sanitize."""
+    import shutil
+
+    log_lines = []
+    dump_file = Path(dump_path).expanduser()
+    if not dump_file.is_file():
+        return False, f"Fichier dump introuvable: {dump_path}", log_lines
+
+    if db_exists(db_name):
+        if not drop_existing:
+            return False, f"La base {db_name} existe déjà.", log_lines
+        ok_del, msg_del = delete_db_complete(db_name)
+        log_lines.append(msg_del if ok_del else f"✗ Suppression: {msg_del}")
+        if not ok_del:
+            return False, msg_del, log_lines
+
+    createdb = _find_createdb()
+    code, out, err = run_cmd([createdb, db_name])
+    if code != 0:
+        return False, f"createdb: {err or out}", log_lines
+    log_lines.append(f"✓ Base {db_name} créée")
+
+    psql = _find_psql()
+    code, out, err = run_cmd([psql, "-d", db_name, "-f", str(dump_file)], timeout=3600)
+    if code != 0:
+        return False, f"Import du dump échoué: {err or out}", log_lines
+    log_lines.append("✓ Dump importé")
+
+    if filestore_path:
+        src = Path(filestore_path).expanduser()
+        if not src.is_dir():
+            log_lines.append(f"✗ Dossier filestore introuvable: {filestore_path}")
+        else:
+            dest = get_default_filestore_dir(db_name)
+            try:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(src, dest, dirs_exist_ok=True)
+                log_lines.append(f"✓ Filestore copié vers {dest}")
+            except OSError as e:
+                log_lines.append(f"✗ Copie du filestore échouée: {e}")
+
+    if sanitize:
+        log_lines.extend(sanitize_database(db_name))
+
+    return True, f"{db_name} importée depuis le dump", log_lines
 
 
 def stop_all_odoo_servers() -> tuple[int, str]:

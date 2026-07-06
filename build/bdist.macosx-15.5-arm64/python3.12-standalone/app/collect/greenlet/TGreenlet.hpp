@@ -7,6 +7,8 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <atomic>
+
 #include "greenlet_compiler_compat.hpp"
 #include "greenlet_refs.hpp"
 #include "greenlet_cpython_compat.hpp"
@@ -18,12 +20,26 @@ using greenlet::refs::OwnedMainGreenlet;
 using greenlet::refs::BorrowedGreenlet;
 
 #if PY_VERSION_HEX < 0x30B00A6
+    // prior to 3.11.0a6
 #  define _PyCFrame CFrame
 #  define _PyInterpreterFrame _interpreter_frame
 #endif
 
 #if GREENLET_PY312
+#  define Py_BUILD_CORE
 #  include "internal/pycore_frame.h"
+#endif
+
+#if GREENLET_PY314
+#  include "internal/pycore_interpframe_structs.h"
+#if defined(_MSC_VER) || defined(__MINGW64__)
+#   include "greenlet_msvc_compat.hpp"
+#else
+#  include "internal/pycore_interpframe.h"
+#endif
+#ifdef Py_GIL_DISABLED
+#   include "internal/pycore_tstate.h"
+#endif
 #endif
 
 // XXX: TODO: Work to remove all virtual functions
@@ -104,13 +120,29 @@ namespace greenlet
         _PyCFrame* cframe;
         int use_tracing;
 #endif
-#if GREENLET_PY312
+#if GREENLET_PY314
+        int py_recursion_depth;
+        // I think this is only used by the JIT. At least,
+        // we only got errors not switching it when the JIT was enabled.
+        //    Python/generated_cases.c.h:12469: _PyEval_EvalFrameDefault:
+        //      Assertion `tstate->current_executor == NULL' failed.
+        // see https://github.com/python-greenlet/greenlet/issues/460
+        PyObject* current_executor;
+        _PyStackRef* stackpointer;
+    #ifdef Py_GIL_DISABLED
+        _PyCStackRef* c_stack_refs;
+    #endif
+#elif GREENLET_PY312
         int py_recursion_depth;
         int c_recursion_depth;
 #else
         int recursion_depth;
 #endif
+#if GREENLET_PY313
+        PyObject *delete_later;
+#else
         int trash_delete_nesting;
+#endif
 #if GREENLET_PY311
         _PyInterpreterFrame* current_frame;
         _PyStackChunk* datastack_chunk;
@@ -147,7 +179,7 @@ namespace greenlet
         void set_new_cframe(_PyCFrame& frame) noexcept;
 #endif
 
-        inline void may_switch_away() noexcept;
+        void may_switch_away() noexcept;
         inline void will_switch_from(PyThreadState *const origin_tstate) noexcept;
         void did_finish(PyThreadState* tstate) noexcept;
     };
@@ -314,6 +346,7 @@ namespace greenlet
     {
     private:
         G_NO_COPIES_OF_CLS(Greenlet);
+        PyGreenlet* const _self;
     private:
         // XXX: Work to remove these.
         friend class ThreadState;
@@ -326,6 +359,8 @@ namespace greenlet
         PythonState python_state;
         Greenlet(PyGreenlet* p, const StackState& initial_state);
     public:
+        // This constructor takes ownership of the PyGreenlet, by
+        // setting ``p->pimpl = this;``.
         Greenlet(PyGreenlet* p);
         virtual ~Greenlet();
 
@@ -368,6 +403,18 @@ namespace greenlet
         }
 
         virtual OwnedObject throw_GreenletExit_during_dealloc(const ThreadState& current_thread_state);
+
+        /**
+         * Depends on the state of this->args() or the current Python
+         * error indicator. Thus, it is not threadsafe or reentrant.
+         * You (you being ``green_switch``, the Python-level
+         * ``greenlet.switch`` method) should call
+         * ``check_switch_allowed`` in free-threaded builds before
+         * calling this method and catch ``PyErrOccurred`` if it isn't
+         * a valid switch. This method should also call that method
+         * because there are places where we can switch internally
+         * without going through the Python method.
+         */
         virtual OwnedObject g_switch() = 0;
         /**
          * Force the greenlet to appear dead. Used when it's not
@@ -456,11 +503,19 @@ namespace greenlet
 
         // Return a borrowed greenlet that is the Python object
         // this object represents.
-        virtual BorrowedGreenlet self() const noexcept = 0;
+        inline BorrowedGreenlet self() const noexcept
+        {
+            return BorrowedGreenlet(this->_self);
+        }
 
         // For testing. If this returns true, we should pretend that
         // slp_switch() failed.
         virtual bool force_slp_switch_error() const noexcept;
+
+        // Check the preconditions for switching to this greenlet; if they
+        // aren't met, throws PyErrOccurred. Most callers will want to
+        // catch this and clear the arguments if they've been set.
+        inline void check_switch_allowed() const;
 
     protected:
         inline void release_args();
@@ -528,11 +583,6 @@ namespace greenlet
         // Returns the previous greenlet we just switched away from.
         virtual OwnedGreenlet g_switchstack_success() noexcept;
 
-
-        // Check the preconditions for switching to this greenlet; if they
-        // aren't met, throws PyErrOccurred. Most callers will want to
-        // catch this and clear the arguments
-        inline void check_switch_allowed() const;
         class GreenletStartedWhileInPython : public std::runtime_error
         {
         public:
@@ -640,7 +690,6 @@ public:
     {
     private:
         static greenlet::PythonAllocator<UserGreenlet> allocator;
-        BorrowedGreenlet _self;
         OwnedMainGreenlet _main_greenlet;
         OwnedObject _run_callable;
         OwnedGreenlet _parent;
@@ -669,7 +718,6 @@ public:
 
         virtual const refs::BorrowedMainGreenlet main_greenlet() const;
 
-        virtual BorrowedGreenlet self() const noexcept;
         virtual void murder_in_place();
         virtual bool belongs_to_thread(const ThreadState* state) const;
         virtual int tp_traverse(visitproc visit, void* arg);
@@ -720,7 +768,7 @@ public:
     private:
         static greenlet::PythonAllocator<MainGreenlet> allocator;
         refs::BorrowedMainGreenlet _self;
-        ThreadState* _thread_state;
+        std::atomic<ThreadState*> _thread_state;
         G_NO_COPIES_OF_CLS(MainGreenlet);
     public:
         static void* operator new(size_t UNUSED(count));
@@ -743,15 +791,12 @@ public:
         virtual ThreadState* thread_state() const noexcept;
         void thread_state(ThreadState*) noexcept;
         virtual OwnedObject g_switch();
-        virtual BorrowedGreenlet self() const noexcept;
         virtual int tp_traverse(visitproc visit, void* arg);
     };
 
     // Instantiate one on the stack to save the GC state,
     // and then disable GC. When it goes out of scope, GC will be
-    // restored to its original state. Sadly, these APIs are only
-    // available on 3.10+; luckily, we only need them on 3.11+.
-#if GREENLET_PY310
+    // restored to its original state.
     class GCDisabledGuard
     {
     private:
@@ -770,7 +815,6 @@ public:
             }
         }
     };
-#endif
 
     OwnedObject& operator<<=(OwnedObject& lhs, greenlet::SwitchingArgs& rhs) noexcept;
 
