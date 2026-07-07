@@ -2270,7 +2270,9 @@
     };
 
     $('importFromDump').onchange = () => {
-      $('dumpImportFields').style.display = $('importFromDump').checked ? 'flex' : 'none';
+      const checked = $('importFromDump').checked;
+      $('dumpImportFields').style.display = checked ? 'flex' : 'none';
+      $('btnCreate').disabled = checked;
     };
 
     $('btnBrowseDump').onclick = async () => {
@@ -2335,7 +2337,10 @@
           log(d.message || 'Erreur', 'err');
         }
       } catch (e) { log(e.message, 'err'); }
-      finally { $('btnImportDump').disabled = false; }
+      finally {
+        $('btnImportDump').disabled = false;
+        $('btnCreate').disabled = false;
+      }
     };
 
     $('btnCheck').onclick = async () => {
