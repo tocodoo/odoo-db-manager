@@ -1656,6 +1656,13 @@
             <button type="button" class="hs-btn hs-btn-primary" id="btnCheckPrereqs">Vérifier les prérequis</button>
             <span class="status" id="prereqsStatus"></span>
           </div>
+          <p class="hs-hint">
+            Si le "Global env" pyenv choisi ci-dessus n'a aucun effet dans un terminal classique, c'est souvent parce que l'init de pyenv (<code>eval "$(pyenv init -)"</code>) manque dans le profil shell. Ce bouton l'ajoute automatiquement si besoin.
+          </p>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button type="button" class="hs-btn hs-btn-secondary" id="btnFixPyenvInit">Réparer l'init pyenv du shell</button>
+            <span class="status" id="pyenvInitFixStatus"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -2234,6 +2241,23 @@
       btn.disabled = true;
       try {
         const r = await fetch('/api/check-prerequisites', { method: 'POST' });
+        const d = await r.json();
+        s.textContent = d.message || '';
+        s.className = 'status ' + (d.ok ? 'ok' : 'warn');
+      } catch (e) {
+        s.textContent = e.message || 'Erreur';
+        s.className = 'status warn';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    $('btnFixPyenvInit').onclick = async () => {
+      const btn = $('btnFixPyenvInit');
+      const s = $('pyenvInitFixStatus');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/pyenv/fix-shell-init', { method: 'POST' });
         const d = await r.json();
         s.textContent = d.message || '';
         s.className = 'status ' + (d.ok ? 'ok' : 'warn');

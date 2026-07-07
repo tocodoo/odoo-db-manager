@@ -1,6 +1,4 @@
-#!/bin/sh
-'''exec' "/Users/odoo/Desktop/Odoo/03 - Useful/12 - Database Manager/venv/bin/python3.12" "$0" "$@"
-' '''
+#!/Users/odoo/odoo/odoo-db-manager/venv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys
