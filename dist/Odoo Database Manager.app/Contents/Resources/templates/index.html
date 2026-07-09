@@ -934,6 +934,13 @@
         <div class="sidebar-sub-item">Générer</div>
       </div>
 
+      <!-- Traduction (IA) -->
+      <button class="tab" data-tab="translation" id="tabTranslation" hidden>Traduction (BETA)</button>
+      <div class="sidebar-sub-nav" id="tabTranslationSubNav" hidden>
+        <div class="sidebar-sub-item">Base &amp; Module</div>
+        <div class="sidebar-sub-item">Génération</div>
+      </div>
+
       <!-- Réglages -->
       <button class="tab" data-tab="settings">Réglages</button>
       <div class="sidebar-sub-nav">
@@ -1544,6 +1551,70 @@
       </div>
     </div>
 
+    <div id="panel-translation" class="tab-panel">
+      <div class="page-header">
+        <h1>Traduction</h1>
+        <p>Exporte le .po d'un module et le traduit via l'IA configurée dans les Réglages.</p>
+      </div>
+
+      <div class="hs-card" style="max-width:600px;">
+        <div class="hs-card-header">
+          <h2 class="hs-card-title">Génération</h2>
+        </div>
+        <div class="hs-card-body" style="display:flex;flex-direction:column;gap:16px;">
+
+          <div class="hs-field">
+            <label class="hs-label" for="translateDatabase">Base de données</label>
+            <select id="translateDatabase" class="hs-select full"></select>
+          </div>
+
+          <div class="hs-field">
+            <label class="hs-label" for="translateModule">Module</label>
+            <select id="translateModule" class="hs-select full"></select>
+          </div>
+
+          <div class="hs-field">
+            <label class="hs-label" for="translateVersion">Version Odoo</label>
+            <select id="translateVersion" class="hs-select full">
+              <option value="18">18</option>
+              <option value="19">19</option>
+            </select>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="hs-field">
+              <label class="hs-label" for="translateLang">Langue cible (code ISO)</label>
+              <input type="text" id="translateLang" class="hs-input mono" placeholder="fr_FR">
+            </div>
+            <div class="hs-field">
+              <label class="hs-label" for="translateOutputPath">Dossier de sortie</label>
+              <div class="field-with-browse">
+                <input type="text" id="translateOutputPath" class="hs-input mono" placeholder="~/Desktop">
+                <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="translateOutputPath" data-type="folder" data-prompt="Choisir le dossier de sortie">Parcourir</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button class="hs-btn hs-btn-primary" id="btnGenerateTranslation">Générer la traduction</button>
+            <span class="status" id="translateStatus"></span>
+            <span class="hs-hint" id="translateElapsed"></span>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="hs-card" id="translateTerminalCard" style="max-width:600px;display:none;">
+        <div class="hs-card-header" style="display:flex;align-items:center;justify-content:space-between;">
+          <h2 class="hs-card-title">Terminal</h2>
+          <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnCopyTranslateTerminal">Copier</button>
+        </div>
+        <div class="hs-card-body">
+          <pre id="translateTerminal" style="background:#111;color:#eee;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.5;padding:12px;border-radius:8px;max-height:360px;overflow:auto;white-space:pre-wrap;word-break:break-word;margin:0;user-select:text;-webkit-user-select:text;cursor:text;"></pre>
+        </div>
+      </div>
+    </div>
+
     <div id="panel-settings" class="tab-panel">
       <div class="page-header">
         <h1>Réglages</h1>
@@ -1624,6 +1695,48 @@
             <span class="status" id="configStatus"></span>
           </div>
 
+        </div>
+      </div>
+
+      <div class="hs-card" style="max-width:600px;margin-top:16px;">
+        <div class="hs-card-header">
+          <h2 class="hs-card-title">Intelligence Artificielle</h2>
+        </div>
+        <div class="hs-card-body" style="display:flex;flex-direction:column;gap:16px;">
+          <p class="hs-hint">Choisissez comment l'app doit appeler une IA (ex: pour l'onglet Traduction).</p>
+
+          <div class="hs-field">
+            <label class="hs-label" for="aiMode">Mode</label>
+            <select id="aiMode" class="hs-select full">
+              <option value="api_key">Clé API (Anthropic, OpenAI, Gemini)</option>
+              <option value="claude_cli">Claude Code (CLI déjà connecté)</option>
+            </select>
+          </div>
+
+          <div id="aiApiKeyFields" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="hs-field">
+              <label class="hs-label" for="aiApiProvider">Provider</label>
+              <select id="aiApiProvider" class="hs-select full"></select>
+            </div>
+            <div class="hs-field">
+              <label class="hs-label" for="aiApiKey">Clé API</label>
+              <p class="hs-hint">Stockée dans le Keychain macOS, jamais en clair sur disque.</p>
+              <input type="password" id="aiApiKey" class="hs-input mono" placeholder="sk-...">
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <button type="button" class="hs-btn hs-btn-primary" id="btnValidateApiKey">Valider</button>
+              <span class="status" id="aiApiKeyStatus"></span>
+            </div>
+          </div>
+
+          <div id="aiClaudeCliFields" style="display:none;flex-direction:column;gap:12px;">
+            <p class="hs-hint" id="aiClaudeCliInfo">Vérification en cours…</p>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <button type="button" class="hs-btn hs-btn-secondary" id="btnInstallClaudeCli" style="display:none;">Installer Claude Code</button>
+              <button type="button" class="hs-btn hs-btn-primary" id="btnValidateClaudeCli">Vérifier / Valider</button>
+              <span class="status" id="aiClaudeCliStatus"></span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1731,6 +1844,7 @@
       databases: 'panel-databases',
       scaffold: 'panel-scaffold',
       settings: 'panel-settings',
+      translation: 'panel-translation',
     };
     document.querySelectorAll('.tab').forEach(t => {
       t.onclick = () => {
@@ -1743,9 +1857,28 @@
           loadDatabases();
         }
         if (t.dataset.tab === 'settings' || t.dataset.tab === 'create') loadConfig();
+        if (t.dataset.tab === 'settings') loadAiConfig();
         if (t.dataset.tab === 'scaffold') initScaffoldWizard();
+        if (t.dataset.tab === 'translation') loadTranslationForm();
       };
     });
+
+    // Après un lancement/redémarrage de base, on ne sait pas exactement quand le
+    // process odoo-bin apparaît comme "en cours" (terminal externe, délai variable) :
+    // on repolle donc quelques fois de suite juste après l'action, puis on s'arrête
+    // dès que la base cible apparaît comme "en cours" (pas de polling permanent).
+    let pollUntilRunningTimer = null;
+    function pollUntilRunning(db, { attempts = 12, intervalMs = 1200 } = {}) {
+      if (pollUntilRunningTimer) clearTimeout(pollUntilRunningTimer);
+      let count = 0;
+      const tick = async () => {
+        count++;
+        const running = await loadDatabases();
+        if (running === db || count >= attempts) return;
+        pollUntilRunningTimer = setTimeout(tick, intervalMs);
+      };
+      pollUntilRunningTimer = setTimeout(tick, intervalMs);
+    }
 
     async function loadCurrent() {
       try {
@@ -1852,6 +1985,7 @@
 
     loadCurrent();
     loadConfig();
+    loadAiConfig();
     checkAppUpdate();
 
     if (location.hash === '#settings') {
@@ -1895,6 +2029,268 @@
         }
       } catch (_) { }
     }
+
+    async function loadAiConfig() {
+      try {
+        const r = await fetch('/api/ai/config');
+        const d = await r.json();
+
+        const providerSel = $('aiApiProvider');
+        providerSel.innerHTML = Object.entries(d.providers || {})
+          .map(([k, label]) => `<option value="${k}">${escapeHtml(label)}</option>`).join('');
+        providerSel.value = d.ai_api_provider || 'anthropic';
+
+        const mode = d.ai_mode || 'api_key';
+        $('aiMode').value = mode;
+        $('aiApiKeyFields').style.display = mode === 'api_key' ? 'flex' : 'none';
+        $('aiClaudeCliFields').style.display = mode === 'claude_cli' ? 'flex' : 'none';
+
+        $('aiApiKey').value = '';
+        $('aiApiKey').placeholder = d.has_api_key ? '•••••••• (déjà enregistrée)' : 'sk-...';
+
+        const cli = d.claude_cli || { installed: false };
+        $('btnInstallClaudeCli').style.display = cli.installed ? 'none' : '';
+        $('aiClaudeCliInfo').textContent = cli.installed
+          ? `Claude Code CLI détecté (${cli.path}).`
+          : 'Claude Code CLI introuvable sur cette machine.';
+
+        const tab = $('tabTranslation');
+        const subNav = $('tabTranslationSubNav');
+        const ready = !!d.ai_validated;
+        tab.hidden = !ready;
+        subNav.hidden = !ready;
+      } catch (_) { }
+    }
+
+    $('aiMode').onchange = () => {
+      const mode = $('aiMode').value;
+      $('aiApiKeyFields').style.display = mode === 'api_key' ? 'flex' : 'none';
+      $('aiClaudeCliFields').style.display = mode === 'claude_cli' ? 'flex' : 'none';
+    };
+
+    $('btnValidateApiKey').onclick = async () => {
+      const btn = $('btnValidateApiKey');
+      const s = $('aiApiKeyStatus');
+      const provider = $('aiApiProvider').value;
+      const api_key = $('aiApiKey').value.trim();
+      if (!api_key) {
+        s.textContent = 'Entrez une clé API.';
+        s.className = 'status warn';
+        return;
+      }
+      btn.disabled = true;
+      s.textContent = 'Validation en cours…';
+      s.className = 'status';
+      try {
+        const r = await fetch('/api/ai/api-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider, api_key })
+        });
+        const d = await r.json();
+        s.textContent = d.message || (d.ok ? 'Validée.' : 'Erreur');
+        s.className = 'status ' + (d.ok ? 'ok' : 'warn');
+        if (d.ok) await loadAiConfig();
+      } catch (e) {
+        s.textContent = e.message;
+        s.className = 'status warn';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    $('btnInstallClaudeCli').onclick = async () => {
+      const btn = $('btnInstallClaudeCli');
+      const s = $('aiClaudeCliStatus');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/ai/claude-cli/install', { method: 'POST' });
+        const d = await r.json();
+        s.textContent = d.message || (d.ok ? 'Terminal ouvert.' : 'Erreur');
+        s.className = 'status ' + (d.ok ? 'ok' : 'warn');
+      } catch (e) {
+        s.textContent = e.message;
+        s.className = 'status warn';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    $('btnValidateClaudeCli').onclick = async () => {
+      const btn = $('btnValidateClaudeCli');
+      const s = $('aiClaudeCliStatus');
+      btn.disabled = true;
+      s.textContent = 'Vérification en cours…';
+      s.className = 'status';
+      try {
+        const r = await fetch('/api/ai/claude-cli/validate', { method: 'POST' });
+        const d = await r.json();
+        s.textContent = d.message || (d.ok ? 'OK' : 'Erreur');
+        s.className = 'status ' + (d.ok ? 'ok' : 'warn');
+        await loadAiConfig();
+      } catch (e) {
+        s.textContent = e.message;
+        s.className = 'status warn';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    let translateDbVersions = {};
+
+    async function loadTranslationForm() {
+      try {
+        const r = await fetch('/api/databases');
+        const d = await r.json();
+        const dbs = d.databases || [];
+        translateDbVersions = d.versions || {};
+        const sel = $('translateDatabase');
+        sel.innerHTML = dbs.map(db => `<option value="${escapeHtml(db)}">${escapeHtml(db)}</option>`).join('');
+        sel.onchange = () => {
+          applyTranslateVersion(sel.value);
+          loadTranslationModules(sel.value);
+        };
+        if (dbs.length) {
+          applyTranslateVersion(dbs[0]);
+          await loadTranslationModules(dbs[0]);
+        }
+      } catch (_) { }
+    }
+
+    function applyTranslateVersion(database) {
+      const version = translateDbVersions[database];
+      if (version === '18' || version === '19') {
+        $('translateVersion').value = version;
+      }
+    }
+
+    async function loadTranslationModules(database) {
+      const sel = $('translateModule');
+      if (!database) {
+        sel.innerHTML = '';
+        return;
+      }
+      try {
+        const r = await fetch(`/api/translate/modules?database=${encodeURIComponent(database)}`);
+        const d = await r.json();
+        const modules = d.modules || [];
+        sel.innerHTML = modules.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+      } catch (_) {
+        sel.innerHTML = '';
+      }
+    }
+
+    $('btnCopyTranslateTerminal').onclick = async () => {
+      const text = $('translateTerminal').textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copié dans le presse-papier', 'success');
+      } catch (e) {
+        const range = document.createRange();
+        range.selectNodeContents($('translateTerminal'));
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    };
+
+    let translatePollTimer = null;
+    let translateElapsedTimer = null;
+
+    function translateTerminalAppend(lines) {
+      if (!lines || !lines.length) return;
+      const term = $('translateTerminal');
+      term.textContent += (term.textContent ? '\n' : '') + lines.join('\n');
+      term.scrollTop = term.scrollHeight;
+    }
+
+    function translateElapsedStart() {
+      const startedAt = Date.now();
+      const el = $('translateElapsed');
+      el.textContent = '0s écoulées';
+      translateElapsedTimer = setInterval(() => {
+        const s = Math.round((Date.now() - startedAt) / 1000);
+        el.textContent = (s < 60 ? `${s}s` : `${Math.floor(s / 60)}min${String(s % 60).padStart(2, '0')}`) + ' écoulées';
+      }, 1000);
+    }
+
+    function translateElapsedStop() {
+      if (translateElapsedTimer) {
+        clearInterval(translateElapsedTimer);
+        translateElapsedTimer = null;
+      }
+    }
+
+    $('btnGenerateTranslation').onclick = async () => {
+      const btn = $('btnGenerateTranslation');
+      const s = $('translateStatus');
+      const database = $('translateDatabase').value;
+      const module = $('translateModule').value;
+      const version = $('translateVersion').value;
+      const lang = $('translateLang').value.trim();
+      const output_dir = $('translateOutputPath').value.trim();
+      if (!database || !module || !lang) {
+        s.textContent = 'Base, module et langue requis.';
+        s.className = 'status warn';
+        return;
+      }
+      if (translatePollTimer) {
+        clearInterval(translatePollTimer);
+        translatePollTimer = null;
+      }
+      $('translateTerminalCard').style.display = '';
+      $('translateTerminal').textContent = '';
+      btn.disabled = true;
+      s.textContent = 'Génération en cours (export .po puis appel IA)…';
+      s.className = 'status';
+      translateElapsedStop();
+      translateElapsedStart();
+      try {
+        const r = await fetch('/api/translate/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ database, module, lang, output_dir, version })
+        });
+        const d = await r.json();
+        if (!d.ok || !d.job_id) {
+          translateElapsedStop();
+          s.textContent = d.message || 'Erreur';
+          s.className = 'status warn';
+          btn.disabled = false;
+          return;
+        }
+        let offset = 0;
+        translatePollTimer = setInterval(async () => {
+          try {
+            const pr = await fetch(`/api/translate/generate/poll?job_id=${encodeURIComponent(d.job_id)}&offset=${offset}`);
+            const pd = await pr.json();
+            translateTerminalAppend(pd.lines);
+            offset = pd.offset ?? offset;
+            if (pd.done) {
+              clearInterval(translatePollTimer);
+              translatePollTimer = null;
+              translateElapsedStop();
+              btn.disabled = false;
+              s.textContent = pd.message || (pd.ok ? 'Terminé.' : 'Erreur');
+              s.className = 'status ' + (pd.ok ? 'ok' : 'warn');
+              if (pd.ok) showToast(pd.message || 'Traduction générée', 'success');
+            }
+          } catch (e) {
+            clearInterval(translatePollTimer);
+            translatePollTimer = null;
+            translateElapsedStop();
+            btn.disabled = false;
+            s.textContent = e.message;
+            s.className = 'status warn';
+          }
+        }, 700);
+      } catch (e) {
+        translateElapsedStop();
+        s.textContent = e.message;
+        s.className = 'status warn';
+        btn.disabled = false;
+      }
+    };
 
     async function loadScriptsSubdirs() {
       const rootSel = $('scriptsDirSelect');
@@ -2508,7 +2904,7 @@
           checkDbStatus();
           loadDatabases();
           document.querySelector('.tab[data-tab="databases"]').click();
-          setTimeout(loadDatabases, 2500);
+          pollUntilRunning(db, { attempts: 30, intervalMs: 2000 });
         } else {
           log(d.message || 'Erreur', 'err');
         }
@@ -2617,13 +3013,14 @@
 
     async function loadDatabases() {
       const el = $('dbList');
-      el.innerHTML = '<div class="empty-state">Chargement…</div>';
+      const isFirstLoad = el.children.length === 0;
+      if (isFirstLoad) el.innerHTML = '<div class="empty-state">Chargement…</div>';
       try {
         const r = await fetch(`/api/databases`);
         const d = await r.json();
         if (d.databases.length === 0) {
           el.innerHTML = '<div class="empty-state">Aucune base de données</div>';
-          return;
+          return null;
         }
         const running = d.running || null;
         const runningDbs = running ? d.databases.filter(db => db === running) : [];
@@ -2696,8 +3093,10 @@
         el.querySelectorAll('.btn-duplicate').forEach(btn => {
           btn.onclick = () => openDuplicateModal(btn.dataset.db);
         });
+        return running;
       } catch (e) {
         el.innerHTML = `<div class="empty-state" style="color: var(--error);">${escapeHtml(e.message)}</div>`;
+        return null;
       }
     }
 
@@ -2730,7 +3129,7 @@
           })
         });
         const d = await r.json();
-        if (d.ok) setTimeout(loadDatabases, 800);
+        if (d.ok) pollUntilRunning(db);
         else alert(d.message);
       } catch (e) { alert(e.message); }
     }
@@ -2756,7 +3155,7 @@
           body: JSON.stringify({ db })
         });
         const d = await r.json();
-        if (d.ok) setTimeout(loadDatabases, 900);
+        if (d.ok) pollUntilRunning(db);
         else alert(d.message);
       } catch (e) { alert(e.message); }
     }
