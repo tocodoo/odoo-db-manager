@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=install-common.sh
+source "${SCRIPT_DIR}/install-common.sh"
+
+_init_install_log "preinstall" "$@"
+
+install_log "Réinitialisation du receipt (évite la relocation hors /Applications)…"
+if pkgutil --forget com.odoo.dbmanager >> "$INSTALL_LOG" 2>&1; then
+  install_log "Receipt com.odoo.dbmanager supprimé (ou absent)."
+else
+  install_log "pkgutil --forget : aucun receipt existant (normal en première install)."
+fi
+
+if [[ -d "/Applications/Odoo Database Manager.app" ]]; then
+  install_log "Mise à jour : app déjà présente dans /Applications."
+else
+  install_log "Première installation dans /Applications."
+fi
+
+install_log "preinstall terminé."
+exit 0
