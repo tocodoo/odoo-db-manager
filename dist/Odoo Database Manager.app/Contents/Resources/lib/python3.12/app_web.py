@@ -13,6 +13,10 @@ from flask import Flask, jsonify, render_template, request, Response
 
 from config import (
     detect_all_paths,
+    get_ai_api_key,
+    get_ai_api_provider,
+    get_ai_mode,
+    get_ai_validated,
     get_odoo_community_path,
     get_odoo_enterprise_path,
     get_odoo_http_port,
@@ -22,6 +26,10 @@ from config import (
     get_pyenv_root,
     get_psql_path,
     get_scripts_paths,
+    save_ai_api_key,
+    save_ai_api_provider,
+    save_ai_mode,
+    save_ai_validated,
     save_odoo_path,
     save_psql_path,
     save_pyenv_root,
@@ -33,6 +41,14 @@ from scaffold_generator import (
     generate_scaffold,
     get_defaults,
     get_template_dir,
+)
+from ai_translate import (
+    PROVIDERS,
+    claude_cli_status,
+    translate_with_api_key,
+    translate_with_claude_cli,
+    validate_api_key,
+    validate_claude_cli,
 )
 from odoo_ops import (
     build_addons_path,
@@ -46,6 +62,7 @@ from odoo_ops import (
     db_exists,
     delete_db_complete,
     duplicate_database,
+    export_module_po,
     get_current_branch,
     get_db_version,
     get_db_version_and_branch,
@@ -55,8 +72,10 @@ from odoo_ops import (
     get_script_config,
     get_script_path_for_db,
     get_script_subdirectory,
+    install_claude_cli_in_terminal,
     list_scripts_subdirectories,
     list_databases,
+    list_installed_modules,
     quit_warp,
     restart_odoo_server,
     run_odoo_create_in_terminal,
@@ -651,6 +670,175 @@ def api_config_scripts_save():
     if save_scripts_paths(paths):
         return jsonify({"ok": True, "scripts_paths": paths})
     return jsonify({"ok": False, "message": "Impossible d'enregistrer"}), 500
+
+
+@app.route("/api/ai/config")
+def api_ai_config_get():
+    """Retourne l'état de la config IA (jamais la clé API elle-même)."""
+    provider = get_ai_api_provider()
+    return jsonify({
+        "ai_mode": get_ai_mode(),
+        "ai_api_provider": provider,
+        "ai_validated": get_ai_validated(),
+        "has_api_key": bool(get_ai_api_key(provider)),
+        "providers": {k: v["label"] for k, v in PROVIDERS.items()},
+        "claude_cli": claude_cli_status(),
+    })
+
+
+@app.route("/api/ai/api-key", methods=["POST"])
+def api_ai_api_key_save():
+    """Teste puis enregistre une clé API (Keychain) comme mode IA actif."""
+    data = request.json or {}
+    provider = (data.get("provider") or "").strip()
+    api_key = (data.get("api_key") or "").strip()
+    if provider not in PROVIDERS or not api_key:
+        return jsonify({"ok": False, "message": "Provider ou clé manquant."}), 400
+
+    ok, message = validate_api_key(provider, api_key)
+    if not ok:
+        return jsonify({"ok": False, "message": message}), 400
+
+    save_ai_api_key(provider, api_key)
+    save_ai_api_provider(provider)
+    save_ai_mode("api_key")
+    save_ai_validated(True)
+    return jsonify({"ok": True, "message": message})
+
+
+@app.route("/api/ai/claude-cli/install", methods=["POST"])
+def api_ai_claude_cli_install():
+    """Ouvre le terminal configuré et lance l'installeur officiel de Claude Code."""
+    ok, message = install_claude_cli_in_terminal()
+    return jsonify({"ok": ok, "message": message})
+
+
+@app.route("/api/ai/claude-cli/validate", methods=["POST"])
+def api_ai_claude_cli_validate():
+    """Vérifie que le CLI est installé et qu'une session Claude Code répond bien."""
+    ok, message = validate_claude_cli()
+    if ok:
+        save_ai_mode("claude_cli")
+    save_ai_validated(ok)
+    return jsonify({"ok": ok, "message": message})
+
+
+@app.route("/api/translate/modules")
+def api_translate_modules():
+    """Modules installés d'une base, pour peupler le formulaire de traduction."""
+    database = (request.args.get("database") or "").strip()
+    if not database:
+        return jsonify({"modules": []})
+    return jsonify({"modules": list_installed_modules(database)})
+
+
+_translate_jobs = {}
+_translate_jobs_lock = threading.Lock()
+_translate_job_counter = 0
+
+
+def _translate_job_new():
+    global _translate_job_counter
+    with _translate_jobs_lock:
+        _translate_job_counter += 1
+        job_id = str(_translate_job_counter)
+        _translate_jobs[job_id] = {"lines": [], "done": False, "ok": False, "message": ""}
+    return job_id
+
+
+def _translate_job_log(job_id, line):
+    with _translate_jobs_lock:
+        job = _translate_jobs.get(job_id)
+        if job:
+            job["lines"].append(line)
+
+
+def _translate_job_finish(job_id, ok, message):
+    with _translate_jobs_lock:
+        job = _translate_jobs.get(job_id)
+        if job:
+            job["done"] = True
+            job["ok"] = ok
+            job["message"] = message
+
+
+def _translate_worker(job_id, database, module, lang, output_dir, version, mode):
+    def log(line):
+        _translate_job_log(job_id, line)
+
+    try:
+        log(f"→ Export .po pour '{module}' ({lang}, Odoo {version or 'auto'})...")
+        ok, po_or_error = export_module_po(database, module, lang, version=version, on_output=log)
+        if not ok:
+            log(f"✗ {po_or_error}")
+            _translate_job_finish(job_id, False, po_or_error)
+            return
+        log(f"✓ Export terminé : {po_or_error}")
+
+        po_content = Path(po_or_error).read_text(encoding="utf-8")
+        log(f"→ Traduction via IA ({mode})...")
+        if mode == "claude_cli":
+            ok, result = translate_with_claude_cli(po_content, lang, on_output=log)
+        else:
+            provider = get_ai_api_provider()
+            ok, result = translate_with_api_key(po_content, lang, provider, get_ai_api_key(provider), on_output=log)
+
+        if not ok:
+            _translate_job_finish(job_id, False, result)
+            return
+
+        out_path = Path(output_dir).expanduser() / f"{module}_{lang}.po"
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(result, encoding="utf-8")
+        message = f"Fichier généré : {out_path}"
+        log(f"✓ {message}")
+        _translate_job_finish(job_id, True, message)
+    except Exception as e:
+        log(f"✗ Exception: {type(e).__name__}: {e}")
+        _translate_job_finish(job_id, False, str(e))
+
+
+@app.route("/api/translate/generate", methods=["POST"])
+def api_translate_generate():
+    """Lance en arrière-plan l'export .po + la traduction IA, et retourne un job_id à poller."""
+    data = request.json or {}
+    database = (data.get("database") or "").strip()
+    module = (data.get("module") or "").strip()
+    lang = (data.get("lang") or "").strip()
+    output_dir = (data.get("output_dir") or "").strip() or str(Path.home())
+    version = (data.get("version") or "").strip() or None
+
+    if not (database and module and lang):
+        return jsonify({"ok": False, "message": "Base, module et langue requis."}), 400
+
+    mode = get_ai_mode()
+    if mode not in ("api_key", "claude_cli"):
+        return jsonify({"ok": False, "message": "Aucune IA configurée dans les réglages."}), 400
+
+    job_id = _translate_job_new()
+    threading.Thread(
+        target=_translate_worker,
+        args=(job_id, database, module, lang, output_dir, version, mode),
+        daemon=True,
+    ).start()
+    return jsonify({"ok": True, "job_id": job_id})
+
+
+@app.route("/api/translate/generate/poll")
+def api_translate_generate_poll():
+    """Retourne les nouvelles lignes de log d'un job depuis `offset`, et son statut final si terminé."""
+    job_id = request.args.get("job_id") or ""
+    offset = int(request.args.get("offset") or 0)
+    with _translate_jobs_lock:
+        job = _translate_jobs.get(job_id)
+        if not job:
+            return jsonify({"ok": False, "message": "Job inconnu"}), 404
+        new_lines = job["lines"][offset:]
+        resp = {"lines": new_lines, "offset": offset + len(new_lines), "done": job["done"]}
+        if job["done"]:
+            resp["ok"] = job["ok"]
+            resp["message"] = job["message"]
+    return jsonify(resp)
 
 
 @app.route("/api/debug/scripts")
