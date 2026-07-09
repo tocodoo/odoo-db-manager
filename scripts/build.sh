@@ -35,7 +35,7 @@ pkgbuild \
   --install-location /Applications \
   --identifier com.odoo.dbmanager \
   --version "$APP_VERSION" \
-  --scripts build/pkg-expanded/Scripts \
+  --scripts packaging/pkg-scripts \
   "dist/Odoo-Database-Manager.pkg"
 
 echo "OK: dist/Odoo Database Manager.app"
