@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+
+# Virtualenv
+venv/
+.venv/
+
+# Build artifacts (py2app / setup.py)
+build/
+dist/
+packaging/payload/
+packaging/payload-app/
+packaging/payload-zip/
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/

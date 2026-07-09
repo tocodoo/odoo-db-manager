@@ -39,12 +39,14 @@ def _effective_enterprise_path() -> Optional[Path]:
 
 def _env_with_path() -> dict:
     """Environnement avec PATH étendu pour l'app (psql, git, etc.)."""
-    extra = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+    extra = f"{Path.home()}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
     if os.name == "posix":
         try:
+            # -i (interactive) est nécessaire pour que zsh charge .zshrc, où l'utilisateur
+            # peut ajouter des chemins (ex: ~/.local/bin) ; -l seul ne charge que .zprofile.
             _res = subprocess.run(
-                ["/bin/zsh", "-l", "-c", "echo $PATH"],
-                capture_output=True, text=True, timeout=2,
+                ["/bin/zsh", "-i", "-l", "-c", "echo $PATH"],
+                capture_output=True, text=True, timeout=5,
                 env={**os.environ, "PATH": extra},
             )
             if _res.returncode == 0 and _res.stdout.strip():
@@ -53,6 +55,16 @@ def _env_with_path() -> dict:
             pass
     e = os.environ.copy()
     e["PATH"] = extra + (":" + e.get("PATH", "") if e.get("PATH") else "")
+    # Éviter que PYTHONHOME/PYTHONPATH de l'app packagée (py2app) ne pollue
+    # les sous-processus (ex: python3 d'un venv pyenv lancé pour odoo-bin).
+    e.pop("PYTHONHOME", None)
+    e.pop("PYTHONPATH", None)
+    # Les apps GUI macOS n'ont pas de locale UTF-8 par défaut (contrairement à un
+    # shell) : sans ça, `subprocess` en mode texte encode en ASCII et plante sur
+    # tout caractère accentué (ex: prompt IA, sortie psql avec des noms accentués).
+    e.setdefault("LANG", "en_US.UTF-8")
+    e.setdefault("LC_ALL", "en_US.UTF-8")
+    e["PYTHONIOENCODING"] = "utf-8"
     return e
 
 
@@ -136,6 +148,42 @@ def run_cmd(
         return -1, "", f"Commande non trouvée: {cmd[0]}"
     except Exception as e:
         return -1, "", str(e)
+
+
+def run_cmd_streaming(
+    cmd: list[str],
+    cwd: Optional[str] = None,
+    on_output: Optional[callable] = None,
+) -> tuple[int, str]:
+    """Exécute une commande en diffusant chaque ligne de sortie via on_output au fur et à mesure."""
+    env = _env_with_path()
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=cwd,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+    except FileNotFoundError:
+        msg = f"Commande non trouvée: {cmd[0]}"
+        if on_output:
+            on_output(msg)
+        return -1, msg
+    except Exception as e:
+        if on_output:
+            on_output(str(e))
+        return -1, str(e)
+    lines = []
+    for line in proc.stdout:
+        line = line.rstrip()
+        lines.append(line)
+        if on_output and line.strip():
+            on_output(line)
+    proc.wait()
+    return proc.returncode or 0, "\n".join(lines)
 
 
 def get_pyenv_env(version: str) -> Optional[str]:
@@ -1711,6 +1759,112 @@ def run_odoo(
         return proc.returncode or 0, "".join(full_out)
     except Exception as e:
         return -1, str(e)
+
+
+def list_installed_modules(db_name: str) -> list[str]:
+    """Liste les modules à l'état 'installed' d'une base."""
+    if not db_exists(db_name):
+        return []
+    psql = _find_psql()
+    code, out, _ = run_cmd([
+        psql, "-d", db_name, "-t", "-A",
+        "-c", "SELECT name FROM ir_module_module WHERE state='installed' ORDER BY name;",
+    ])
+    if code != 0:
+        return []
+    return [line.strip() for line in out.splitlines() if line.strip()]
+
+
+def export_module_po(
+    db_name: str,
+    module_name: str,
+    lang: str,
+    odoo_path: Optional[str] = None,
+    version: Optional[str] = None,
+    on_output: Optional[callable] = None,
+) -> tuple[bool, str]:
+    """Exporte le fichier .po d'un module pour une langue via odoo-bin.
+
+    La syntaxe CLI diffère selon la version :
+    - 18 (et antérieures) : flags globaux --i18n-export/--language/--modules.
+    - 19 (et suivantes)   : sous-commande `odoo-bin i18n export`.
+
+    Retourne (True, chemin_du_po) ou (False, message_erreur).
+    """
+    core_path = _community_path(odoo_path)
+    odoo_bin = core_path / "odoo-bin"
+    if not odoo_bin.exists():
+        return False, f"odoo-bin introuvable: {odoo_bin}"
+
+    from config import get_odoo_enterprise_path, get_pyenv_for_branch, get_pyenv_root
+    enterprise = get_odoo_enterprise_path()
+    addons_path, _, missing = build_addons_path_for_modules(
+        odoo_path or "", [enterprise] if enterprise else [], [module_name]
+    )
+    if missing:
+        return False, f"Module '{module_name}' introuvable dans les addons-path connus."
+
+    detected_version, branch = get_db_version_and_branch(db_name)
+    version = (version or detected_version or "19").strip()
+    branch = branch or ("19.0" if version == "19" else "18.0")
+
+    python_exe = "python3"
+    if branch:
+        pyenv_env = get_pyenv_for_branch(branch)
+        pyenv_root = get_pyenv_root() or os.environ.get("PYENV_ROOT", os.path.expanduser("~/.pyenv"))
+        venv_python = Path(pyenv_root) / "versions" / pyenv_env / "bin" / "python3"
+        if venv_python.exists():
+            python_exe = str(venv_python)
+
+    # La langue doit être chargée/active sur la base avant de pouvoir en exporter
+    # les traductions (sinon odoo-bin i18n export échoue avec "No valid language").
+    preload_cmd = [
+        python_exe, str(odoo_bin),
+        f"--addons-path={addons_path}",
+        "-d", db_name,
+        f"--load-language={lang}",
+        "--stop-after-init",
+        "--no-http",
+    ]
+    if on_output:
+        on_output(f"$ {' '.join(preload_cmd)}")
+    code, out = run_cmd_streaming(preload_cmd, cwd=str(core_path), on_output=on_output)
+    if code != 0:
+        return False, (out or "Échec du chargement de la langue").strip()[-2000:]
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="odev-i18n-"))
+    po_path = tmp_dir / f"{module_name}_{lang}.po"
+    if version == "18":
+        cmd = [
+            python_exe, str(odoo_bin),
+            "--addons-path", addons_path,
+            "-d", db_name,
+            f"--language={lang}",
+            f"--i18n-export={po_path}",
+            "--modules", module_name,
+            "--stop-after-init",
+        ]
+    else:
+        cmd = [
+            python_exe, str(odoo_bin),
+            f"--addons-path={addons_path}",
+            "i18n", "export",
+            "-d", db_name,
+            "-l", lang,
+            "-o", str(po_path),
+            module_name,
+        ]
+    if on_output:
+        on_output(f"$ {' '.join(cmd)}")
+    code, out = run_cmd_streaming(cmd, cwd=str(core_path), on_output=on_output)
+    if code != 0 or not po_path.exists():
+        return False, (out or "Échec de l'export .po").strip()[-2000:]
+    return True, str(po_path)
+
+
+def install_claude_cli_in_terminal() -> tuple[bool, str]:
+    """Ouvre le terminal configuré et lance l'installeur officiel de Claude Code."""
+    return _launch_in_terminal("curl -fsSL https://claude.ai/install.sh | bash", cwd=str(Path.home()))
 
 
 def clear_module_locks(db_name: str) -> bool:
