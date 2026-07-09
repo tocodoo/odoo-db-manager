@@ -42,10 +42,13 @@ OPTIONS = {
         "rumps",
         "config",
         "odoo_ops",
+        "ai_translate",
         "menubar",
         "version",
         "app_web",
         "scaffold_generator",
+        "keyring",
+        "keyring.backends",
     ],
     "plist": {
         "CFBundleName": "Odoo Database Manager",

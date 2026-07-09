@@ -14,7 +14,12 @@ _DEFAULTS = {
     "terminal_app": "Warp",  # Warp, Terminal, iTerm2
     "odoo_http_port": 8069,
     "dismissed_app_version": "",
+    "ai_mode": "",  # "" | "api_key" | "claude_cli"
+    "ai_api_provider": "anthropic",  # anthropic | openai | gemini
+    "ai_validated": False,
 }
+
+AI_KEYRING_SERVICE = "Odoo Database Manager - AI"
 
 
 def _config_path() -> str:
@@ -283,6 +288,60 @@ def get_dismissed_app_version() -> str:
 
 def save_dismissed_app_version(version: str) -> bool:
     return _save_config({"dismissed_app_version": (version or "").strip()})
+
+
+def get_ai_mode() -> str:
+    """Mode IA choisi : '' (aucun), 'api_key' ou 'claude_cli'."""
+    return (_load_config().get("ai_mode") or "").strip()
+
+
+def save_ai_mode(mode: str) -> bool:
+    return _save_config({"ai_mode": (mode or "").strip()})
+
+
+def get_ai_api_provider() -> str:
+    """Provider utilisé en mode clé API : anthropic, openai ou gemini."""
+    return (_load_config().get("ai_api_provider") or _DEFAULTS["ai_api_provider"]).strip()
+
+
+def save_ai_api_provider(provider: str) -> bool:
+    return _save_config({"ai_api_provider": (provider or "").strip()})
+
+
+def get_ai_validated() -> bool:
+    """True si le mode IA courant a été testé avec succès."""
+    return bool(_load_config().get("ai_validated", False))
+
+
+def save_ai_validated(validated: bool) -> bool:
+    return _save_config({"ai_validated": bool(validated)})
+
+
+def get_ai_api_key(provider: str) -> str:
+    """Clé API stockée dans le Keychain macOS (jamais dans config.json)."""
+    try:
+        import keyring
+        return keyring.get_password(AI_KEYRING_SERVICE, provider) or ""
+    except Exception:
+        return ""
+
+
+def save_ai_api_key(provider: str, api_key: str) -> bool:
+    try:
+        import keyring
+        keyring.set_password(AI_KEYRING_SERVICE, provider, api_key)
+        return True
+    except Exception:
+        return False
+
+
+def delete_ai_api_key(provider: str) -> bool:
+    try:
+        import keyring
+        keyring.delete_password(AI_KEYRING_SERVICE, provider)
+        return True
+    except Exception:
+        return False
 
 
 def get_pyenv_for_branch(branch: str) -> str:

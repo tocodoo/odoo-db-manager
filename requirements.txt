@@ -3,3 +3,7 @@ pywebview>=4.0
 py2app>=0.28.0
 rumps>=0.4.0
 psutil>=5.9.0
+keyring>=24.0.0
+anthropic>=0.40.0
+openai>=1.50.0
+google-generativeai>=0.8.0
