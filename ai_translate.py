@@ -158,7 +158,9 @@ def estimate_translation_delay(n_chars: int) -> tuple[int, int]:
     return low, high
 
 
-def _run_claude_headless(prompt: str, timeout: int, on_output: "callable | None" = None) -> tuple[bool, str]:
+def _run_claude_headless(
+    prompt: str, timeout: int, on_output: "callable | None" = None, expect_po: bool = True
+) -> tuple[bool, str]:
     path = find_claude_cli()
     if not path:
         if on_output:
@@ -185,6 +187,8 @@ def _run_claude_headless(prompt: str, timeout: int, on_output: "callable | None"
     if result.returncode == 0 and result.stdout.strip():
         if on_output:
             on_output(f"✓ Réponse reçue ({len(result.stdout)} caractères).")
+        if not expect_po:
+            return True, result.stdout.strip()
         cleaned = _sanitize_po_output(result.stdout)
         po_error = _validate_po(cleaned)
         if po_error:
@@ -200,10 +204,12 @@ def _run_claude_headless(prompt: str, timeout: int, on_output: "callable | None"
 
 def validate_claude_cli() -> tuple[bool, str]:
     """Vérifie que le CLI est installé et qu'une session Claude Code est bien active."""
-    ok, result = _run_claude_headless("Reply with the single word: pong", timeout=60)
-    if ok:
-        return True, "Claude Code CLI opérationnel."
-    return False, result
+    ok, result = _run_claude_headless("Reply with the single word: pong", timeout=60, expect_po=False)
+    if not ok:
+        return False, result
+    if "pong" not in result.lower():
+        return False, f"Réponse inattendue du CLI Claude Code : {result[:200]!r}"
+    return True, "Claude Code CLI opérationnel."
 
 
 def translate_with_claude_cli(po_content: str, lang: str, on_output: "callable | None" = None) -> tuple[bool, str]:
