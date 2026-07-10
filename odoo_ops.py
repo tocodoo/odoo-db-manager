@@ -832,8 +832,8 @@ def run_odoo_create_in_terminal(
             python_exe = str(venv_python)
     import shlex
     db_filter = f"^{db_name}$"
-    from config import get_odoo_http_port
-    port = get_odoo_http_port()
+    from config import get_db_port
+    port = get_db_port(db_name)
     base = f"cd {shlex.quote(str(core_path))} && {python_exe} odoo-bin --addons-path={shlex.quote(addons_path)} --limit-memory-hard 0 --db-filter={shlex.quote(db_filter)} -d {shlex.quote(db_name)} --without-demo=all --dev=xml --http-port={port}"
     if db_exists(db_name):
         base += f" --reinit {','.join(update_modules)}" if update_modules else " --reinit"
@@ -861,9 +861,9 @@ def run_odoo_in_terminal(
         if venv_python.exists():
             python_exe = str(venv_python)
     import shlex
-    from config import get_odoo_http_port
+    from config import get_db_port
     db_filter = f"^{db_name}$"
-    port = get_odoo_http_port()
+    port = get_db_port(db_name)
     cmd = f"cd {shlex.quote(str(core_path))} && {python_exe} odoo-bin --addons-path={shlex.quote(addons_path)} --limit-memory-hard 0 --db-filter={shlex.quote(db_filter)} -d {shlex.quote(db_name)} --without-demo=all --http-port={port}"
     return _open_in_terminal(cmd, cwd=str(core_path))
 
@@ -1432,7 +1432,7 @@ def create_launch_script(
     import os as _os
     import shlex
 
-    from config import get_odoo_http_port, get_pyenv_for_branch
+    from config import get_db_port, get_pyenv_for_branch
 
     _odoo = Path(odoo_path).expanduser().resolve()
     if scripts_dir:
@@ -1492,7 +1492,7 @@ ARGS=(
   --db-filter "^${{DB}}$"
   -d "$DB"
   --dev=all
-  --http-port={get_odoo_http_port()}
+  --http-port={get_db_port(db_name)}
   --http-interface=127.0.0.1
 )
 
@@ -1613,6 +1613,56 @@ def update_script_config(
         return False, str(e)
 
 
+def get_script_http_port(script_path: Path) -> Optional[int]:
+    """Lit le port --http-port actuellement écrit dans le script."""
+    try:
+        text = script_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    m = re.search(r"--http-port[=\s]+(\d+)", text)
+    return int(m.group(1)) if m else None
+
+
+def set_script_http_port(script_path: Path, port: int) -> tuple[bool, str]:
+    """Remplace le --http-port dans le script (pour lancer plusieurs bases en simultané)."""
+    try:
+        text = script_path.read_text(encoding="utf-8")
+    except OSError as e:
+        return False, str(e)
+    new_text, n = re.subn(r"(--http-port[=\s]+)\d+", rf"\g<1>{int(port)}", text)
+    if n == 0:
+        return False, "Option --http-port introuvable dans le script"
+    try:
+        script_path.write_text(new_text, encoding="utf-8")
+        script_path.chmod(0o755)
+    except OSError as e:
+        return False, str(e)
+    return True, f"Port {port} appliqué au script de {script_path.stem}"
+
+
+def get_effective_db_port(db_name: str) -> int:
+    """Port HTTP effectif pour une base : celui écrit dans son script si elle en a un, sinon l'override/port global."""
+    from config import get_db_port
+
+    script_path = get_script_path_for_db(db_name)
+    if script_path:
+        port = get_script_http_port(script_path)
+        if port:
+            return port
+    return get_db_port(db_name)
+
+
+def set_db_port(db_name: str, port: int) -> tuple[bool, str]:
+    """Définit le port HTTP d'une base : patch son script s'il existe, et le garde en config sinon."""
+    from config import save_db_port
+
+    save_db_port(db_name, port)
+    script_path = get_script_path_for_db(db_name)
+    if script_path:
+        return set_script_http_port(script_path, port)
+    return True, f"Port {port} enregistré pour {db_name}"
+
+
 def _module_exists_in_addons_root(addons_root: Path, module_name: str) -> bool:
     """Vérifie si un module existe dans un dossier addons donné."""
     if not addons_root.is_dir():
@@ -1698,7 +1748,7 @@ def run_odoo(
     - update_modules: utilisés si la DB existe (--reinit)
     - on_output: callback(msg) pour afficher la sortie en temps réel
     """
-    from config import get_odoo_http_port
+    from config import get_db_port
     core_path = _community_path(odoo_path)
     odoo_bin = core_path / "odoo-bin"
     if not odoo_bin.exists():
@@ -1712,7 +1762,7 @@ def run_odoo(
         "-d", db_name,
         "--without-demo=all",
         "--dev=xml",
-        "--http-port", str(get_odoo_http_port()),
+        "--http-port", str(get_db_port(db_name)),
     ]
 
     if db_exists(db_name):

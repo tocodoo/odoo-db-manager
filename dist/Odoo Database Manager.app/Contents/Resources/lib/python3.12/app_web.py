@@ -66,6 +66,7 @@ from odoo_ops import (
     get_current_branch,
     get_db_version,
     get_db_version_and_branch,
+    get_effective_db_port,
     get_git_branches,
     get_pyenv_env,
     get_running_odoo_db,
@@ -83,6 +84,7 @@ from odoo_ops import (
     run_prerequisites_check_in_terminal,
     run_script_for_db,
     pull_core_enterprise,
+    set_db_port,
     start_odoo_server,
     stop_all_odoo_servers,
     stop_odoo_server,
@@ -1151,6 +1153,32 @@ def api_script_config_update():
         update_modules=update_modules,
         update_mode=update_mode,
     )
+    return jsonify({"ok": ok, "message": msg})
+
+
+@app.route("/api/db-port")
+def api_db_port_get():
+    """Port HTTP effectif d'une base (pour l'affichage avant modification)."""
+    db = request.args.get("db", "").strip()
+    if not db:
+        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+    return jsonify({"ok": True, "port": get_effective_db_port(db)})
+
+
+@app.route("/api/db-port", methods=["POST"])
+def api_db_port_set():
+    """Change le port HTTP d'une base (permet de lancer plusieurs bases en simultané)."""
+    data = request.json or {}
+    db = (data.get("db") or "").strip()
+    if not db:
+        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+    try:
+        port = int(data.get("port"))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "message": "Port invalide"}), 400
+    if not (1024 <= port <= 65535):
+        return jsonify({"ok": False, "message": "Le port doit être entre 1024 et 65535"}), 400
+    ok, msg = set_db_port(db, port)
     return jsonify({"ok": ok, "message": msg})
 
 

@@ -477,7 +477,46 @@
     .scripts-subdir-empty { color: var(--warn); font-style: italic; }
 
     /* ── DB list rows (JS-rendered) ── */
-    .db-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .db-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+    /* ── "Gérer" dropdown (JS-rendered: renderDbRow) ── */
+    .db-manage { position: relative; display: inline-flex; }
+    .db-manage-toggle {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px;
+      border: none; border-radius: 6px;
+      background: rgba(0,0,0,0.06); color: #1d1d1f;
+      cursor: pointer;
+      transition: background 0.15s cubic-bezier(0.4,0,0.2,1);
+    }
+    .db-manage-toggle:hover { background: rgba(0,0,0,0.1); }
+    .db-manage-toggle svg { width: 16px; height: 16px; pointer-events: none; }
+    .db-manage-menu {
+      display: none;
+      position: absolute; top: calc(100% + 4px); right: 0;
+      min-width: 168px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      padding: 4px;
+      z-index: 20;
+    }
+    .db-manage.open .db-manage-menu { display: block; }
+    .db-manage-menu button {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%;
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      color: #1d1d1f; background: none; border: none;
+      padding: 7px 8px; border-radius: 7px;
+      cursor: pointer; text-align: left; white-space: nowrap;
+      transition: background 0.15s cubic-bezier(0.4,0,0.2,1);
+    }
+    .db-manage-menu button:hover { background: rgba(0,0,0,0.06); }
+    .db-manage-menu button svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .db-manage-menu .db-manage-divider { margin: 4px 2px; border-top: 1px solid rgba(0,0,0,0.08); }
+    .db-manage-menu .danger { color: var(--error); }
+    .db-manage-menu .danger:hover { background: rgba(255,59,48,0.1); }
 
     .toast-container {
       position: fixed;
@@ -1833,6 +1872,28 @@
     </div>
   </div>
 
+  <div id="portModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 class="modal-title" id="portModalTitle">Modifier le port</h3>
+        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnClosePortModal" style="padding:4px 8px;">
+          <svg style="width:16px;height:16px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="hs-field">
+          <label class="hs-label" for="portModalInput">Port HTTP</label>
+          <input type="number" id="portModalInput" class="hs-input mono" min="1024" max="65535" step="1">
+          <span class="hs-status" id="portModalStatus"></span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="hs-btn hs-btn-secondary" id="btnCancelPortModal">Annuler</button>
+        <button class="hs-btn hs-btn-primary" id="btnConfirmPortModal">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const $ = id => document.getElementById(id);
     let odooHttpPort = 8069;
@@ -2563,6 +2624,69 @@
       }
     };
 
+    let portModalState = null;
+
+    function closePortModal() {
+      const modal = $('portModal');
+      if (!modal) return;
+      modal.classList.remove('show');
+      portModalState = null;
+    }
+
+    async function openPortModal(db) {
+      portModalState = { db };
+      $('portModalTitle').textContent = `Modifier le port de "${db}"`;
+      $('portModalStatus').textContent = '';
+      $('portModalStatus').className = 'hs-status';
+      $('portModalInput').value = odooHttpPort;
+      $('portModal').classList.add('show');
+      try {
+        const r = await fetch(`/api/db-port?db=${encodeURIComponent(db)}`);
+        const d = await r.json();
+        if (d.ok && portModalState && portModalState.db === db) {
+          $('portModalInput').value = d.port;
+        }
+      } catch (_) { }
+    }
+
+    $('btnClosePortModal').onclick = () => closePortModal();
+    $('btnCancelPortModal').onclick = () => closePortModal();
+    $('portModal').onclick = (e) => {
+      if (e.target.id === 'portModal') closePortModal();
+    };
+
+    $('btnConfirmPortModal').onclick = async () => {
+      if (!portModalState) return;
+      const port = parseInt($('portModalInput').value, 10);
+      if (!port || port < 1024 || port > 65535) {
+        $('portModalStatus').textContent = 'Port invalide (1024-65535).';
+        $('portModalStatus').className = 'hs-status warn';
+        return;
+      }
+      const btn = $('btnConfirmPortModal');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/db-port', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ db: portModalState.db, port })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          showToast(d.message || 'Port mis à jour', 'success');
+          closePortModal();
+        } else {
+          $('portModalStatus').textContent = d.message || 'Erreur';
+          $('portModalStatus').className = 'hs-status warn';
+        }
+      } catch (e) {
+        $('portModalStatus').textContent = e.message || 'Erreur';
+        $('portModalStatus').className = 'hs-status warn';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
     $('btnSaveScriptModal').onclick = async () => {
       if (!scriptModalState) return;
       const payload = {
@@ -3037,15 +3161,51 @@
             : '';
           const connectLabel = isRunning ? 'Ouvrir' : 'Connecter';
           const connectBtn = `<button class="btn btn-primary btn-sm btn-connect" data-db="${escapeHtml(db)}" data-running="${isRunning}">${connectLabel}</button>`;
-          const actions = isRunning
-            ? `${connectBtn}
-               <button class="btn btn-secondary btn-sm btn-edit-script" data-db="${escapeHtml(db)}">Script</button>
-               <button class="btn btn-secondary btn-sm btn-restart" data-db="${escapeHtml(db)}">Restart</button>
-               <button class="btn btn-secondary btn-sm btn-disconnect" data-db="${escapeHtml(db)}">Déconnecter</button>`
-            : `${connectBtn}
-               <button class="btn btn-secondary btn-sm btn-edit-script" data-db="${escapeHtml(db)}">Script</button>
-               <button class="btn btn-secondary btn-sm btn-duplicate" data-db="${escapeHtml(db)}">Dupliquer</button>
-               <button class="btn btn-secondary btn-sm btn-delete" data-db="${escapeHtml(db)}">Supprimer</button>`;
+          const menuItems = isRunning
+            ? `<button type="button" class="btn-edit-script" data-db="${escapeHtml(db)}">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                 Script
+               </button>
+               <button type="button" class="btn-edit-port" data-db="${escapeHtml(db)}">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/></svg>
+                 Port
+               </button>
+               <button type="button" class="btn-restart" data-db="${escapeHtml(db)}">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                 Restart
+               </button>
+               <div class="db-manage-divider"></div>
+               <button type="button" class="danger btn-disconnect" data-db="${escapeHtml(db)}">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" x2="12" y1="2" y2="12"/></svg>
+                 Déconnecter
+               </button>`
+            : `<button type="button" class="btn-edit-script" data-db="${escapeHtml(db)}">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                 Script
+               </button>
+               <button type="button" class="btn-edit-port" data-db="${escapeHtml(db)}">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/></svg>
+                 Port
+               </button>
+               <button type="button" class="btn-duplicate" data-db="${escapeHtml(db)}">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                 Dupliquer
+               </button>
+               <div class="db-manage-divider"></div>
+               <button type="button" class="danger btn-delete" data-db="${escapeHtml(db)}">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                 Supprimer
+               </button>`;
+          const manageDropdown = `
+            <div class="db-manage">
+              <button type="button" class="db-manage-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Gérer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
+              <div class="db-manage-menu" role="menu">
+                ${menuItems}
+              </div>
+            </div>
+          `;
           return `
             <div class="db-row" data-db="${escapeHtml(db)}">
               <div class="db-info">
@@ -3056,7 +3216,8 @@
                 </div>
               </div>
               <div class="db-actions">
-                ${actions}
+                ${connectBtn}
+                ${manageDropdown}
               </div>
             </div>
           `;
@@ -3093,6 +3254,24 @@
         el.querySelectorAll('.btn-duplicate').forEach(btn => {
           btn.onclick = () => openDuplicateModal(btn.dataset.db);
         });
+        el.querySelectorAll('.btn-edit-port').forEach(btn => {
+          btn.onclick = () => openPortModal(btn.dataset.db);
+        });
+        el.querySelectorAll('.db-manage').forEach(wrap => {
+          const toggle = wrap.querySelector('.db-manage-toggle');
+          toggle.onclick = (e) => {
+            e.stopPropagation();
+            const willOpen = !wrap.classList.contains('open');
+            closeAllDbManageMenus();
+            if (willOpen) {
+              wrap.classList.add('open');
+              toggle.setAttribute('aria-expanded', 'true');
+            }
+          };
+          wrap.querySelectorAll('.db-manage-menu button').forEach(btn => {
+            btn.addEventListener('click', () => closeAllDbManageMenus());
+          });
+        });
         return running;
       } catch (e) {
         el.innerHTML = `<div class="empty-state" style="color: var(--error);">${escapeHtml(e.message)}</div>`;
@@ -3105,6 +3284,16 @@
       div.textContent = s;
       return div.innerHTML;
     }
+
+    function closeAllDbManageMenus() {
+      document.querySelectorAll('.db-manage.open').forEach(wrap => {
+        wrap.classList.remove('open');
+        const toggle = wrap.querySelector('.db-manage-toggle');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      });
+    }
+    document.addEventListener('click', closeAllDbManageMenus);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllDbManageMenus(); });
 
     async function openInBrowser() {
       try {
