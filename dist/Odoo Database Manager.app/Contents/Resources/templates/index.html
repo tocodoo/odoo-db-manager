@@ -3112,19 +3112,20 @@
       }
     };
 
-    $('dbSearch').oninput = () => {
+    function filterDbList() {
       const q = ($('dbSearch').value || '').trim().toLowerCase();
       const rows = document.querySelectorAll('#dbList .db-row');
       rows.forEach(row => {
         const db = (row.dataset.db || '').toLowerCase();
-        row.style.display = db.includes(q) ? '' : 'none';
+        row.style.display = !q || db.includes(q) ? '' : 'none';
       });
       const blocks = document.querySelectorAll('#dbList .db-block');
       blocks.forEach(block => {
         const visible = block.querySelectorAll('.db-row:not([style*="display: none"])').length;
         block.style.display = visible > 0 ? '' : 'none';
       });
-    };
+    }
+    $('dbSearch').oninput = filterDbList;
 
     $('btnDisconnectAll').onclick = async () => {
       try {
@@ -3135,7 +3136,23 @@
       } catch (e) { alert(e.message); }
     };
 
-    async function loadDatabases() {
+    let loadDatabasesPromise = null;
+    let loadDatabasesQueued = false;
+    function loadDatabases() {
+      if (loadDatabasesPromise) {
+        loadDatabasesQueued = true;
+        return loadDatabasesPromise;
+      }
+      loadDatabasesPromise = loadDatabasesNow().finally(() => {
+        loadDatabasesPromise = null;
+        if (loadDatabasesQueued) {
+          loadDatabasesQueued = false;
+          loadDatabases();
+        }
+      });
+      return loadDatabasesPromise;
+    }
+    async function loadDatabasesNow() {
       const el = $('dbList');
       const isFirstLoad = el.children.length === 0;
       if (isFirstLoad) el.innerHTML = '<div class="empty-state">Chargement…</div>';
@@ -3272,6 +3289,7 @@
             btn.addEventListener('click', () => closeAllDbManageMenus());
           });
         });
+        filterDbList();
         return running;
       } catch (e) {
         el.innerHTML = `<div class="empty-state" style="color: var(--error);">${escapeHtml(e.message)}</div>`;
