@@ -34,11 +34,11 @@
 		</data>
 		<key>Resources/lib/python3.12/app_web.py</key>
 		<data>
-		k1MqfM58YPTD3jDsWYCP3XIMP9I=
+		r+UhiaVZMa59i0VK5GcqboxQRYs=
 		</data>
 		<key>Resources/lib/python3.12/config.py</key>
 		<data>
-		g/J46SBZr47ZqE08Yu0wSWVrSzQ=
+		jmR/zKKiF4388q+5xLIXZ/WBIEo=
 		</data>
 		<key>Resources/lib/python3.12/flask/__init__.py</key>
 		<data>
@@ -3602,7 +3602,7 @@
 		</data>
 		<key>Resources/lib/python3.12/odoo_ops.py</key>
 		<data>
-		Pl+CVcwGoCwQNa4eru2LPbNFhS4=
+		Q1oLJZQUMC1Ij87lRBHS7hfWGvA=
 		</data>
 		<key>Resources/lib/python3.12/psutil/__init__.py</key>
 		<data>
@@ -8494,7 +8494,7 @@
 		</data>
 		<key>Resources/lib/python312.zip</key>
 		<data>
-		dumTTlZ9QjyGKsGz0MwwySjuZzk=
+		HHBUQvwTtlpINLPWILQc18i/F7I=
 		</data>
 		<key>Resources/openssl.ca/cert.pem</key>
 		<data>
@@ -8506,11 +8506,11 @@
 		</data>
 		<key>Resources/site.pyc</key>
 		<data>
-		t+j/hPqX7DTBQpRtUT7FDobzR04=
+		1J5wSfO9E9j78I3Ot/xq9KnibZY=
 		</data>
 		<key>Resources/templates/index.html</key>
 		<data>
-		eoTviSwjzyvMlQa0QSClbA11LEA=
+		YB7dBxuWjSI8dpr9K03KnKpP3mE=
 		</data>
 		<key>Resources/website_scaffold/README.md</key>
 		<data>
@@ -8949,14 +8949,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			35EPGC9pAIU9yjY0fYiTG6btPU79XHbmM99NrYnV2Wk=
+			Qio46vGjR215NXgVfMiL38sO0YuSM3z49P597AgGvtE=
 			</data>
 		</dict>
 		<key>Resources/lib/python3.12/config.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			iyrN3nyRosXzHf25S0SdgyVtQs+/di2x5FrN6Q4aCn8=
+			4DdXh+e9pM7z4tMb9ogYWh2zqquwvz96ghXb7u05HHg=
 			</data>
 		</dict>
 		<key>Resources/lib/python3.12/flask/__init__.py</key>
@@ -15193,7 +15193,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			TjlD8rA1bhfm3udY1VUjmIdofcTrLXyVLE6up00GF0M=
+			CXeFny9GOEq7SKbivwezeI9j48JMjj0uiX9YiDqNzOM=
 			</data>
 		</dict>
 		<key>Resources/lib/python3.12/psutil/__init__.py</key>
@@ -23759,7 +23759,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			55ts7W+O+BEXe00eAKfVg7Ej0NXoo/gEtgsHlC0uvR0=
+			YDwtYMqLpXndK6PRFLyT50x3ytJI8Gl2obZoYt6V9cY=
 			</data>
 		</dict>
 		<key>Resources/openssl.ca/cert.pem</key>
@@ -23780,14 +23780,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			/WqeALoziQZWAlzDSJNRP2GF93E8nxpQ2u0StK2YaeY=
+			crfuiguUrEghqFNtDuFC2vOmhGEft/OoiCiSGCd4bXw=
 			</data>
 		</dict>
 		<key>Resources/templates/index.html</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			D9x5ns9zprrLpzoGoNvO6GLpljOxANQmkV1QLXqu1jI=
+			1dfkQD8/xK+3kSW0aUjLWbiAk11S+JMh6h6KIwPCFfk=
 			</data>
 		</dict>
 		<key>Resources/website_scaffold/README.md</key>

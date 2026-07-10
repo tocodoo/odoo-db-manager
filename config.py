@@ -13,6 +13,7 @@ _DEFAULTS = {
     "psql_path": "",  # vide = auto-détection
     "terminal_app": "Warp",  # Warp, Terminal, iTerm2
     "odoo_http_port": 8069,
+    "db_ports": {},
     "dismissed_app_version": "",
     "ai_mode": "",  # "" | "api_key" | "claude_cli"
     "ai_api_provider": "anthropic",  # anthropic | openai | gemini
@@ -194,6 +195,29 @@ def get_odoo_http_port() -> int:
 
 def save_odoo_http_port(port: int) -> bool:
     return _save_config({"odoo_http_port": int(port)})
+
+
+def get_db_ports() -> dict:
+    """Overrides de port HTTP par base (pour lancer plusieurs bases en simultané)."""
+    v = _load_config().get("db_ports", {})
+    return v if isinstance(v, dict) else {}
+
+
+def get_db_port(db_name: str) -> int:
+    """Port HTTP pour une base : override si défini, sinon le port global."""
+    v = get_db_ports().get(db_name)
+    if v not in (None, ""):
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            pass
+    return get_odoo_http_port()
+
+
+def save_db_port(db_name: str, port: int) -> bool:
+    ports = get_db_ports()
+    ports[db_name] = int(port)
+    return _save_config({"db_ports": ports})
 
 
 def _default_odoo() -> str:
