@@ -998,10 +998,8 @@
        aria-live="polite">
     <div id="appUpdateBannerText"></div>
     <div class="app-update-banner-actions">
-      <button type="button" id="btnDismissAppUpdate"
-              style="padding:5px 12px;font-size:12px;font-weight:500;border-radius:6px;border:1px solid #fcd34d;background:#fff;color:#92400e;cursor:pointer;">Plus tard</button>
-      <button type="button" id="btnDownloadAppUpdate"
-              style="padding:5px 12px;font-size:12px;font-weight:500;border-radius:6px;border:none;background:#92400e;color:#fff;cursor:pointer;">Télécharger</button>
+      <button type="button" id="btnApplyAppUpdate"
+              style="padding:5px 12px;font-size:12px;font-weight:500;border-radius:6px;border:none;background:#92400e;color:#fff;cursor:pointer;">Mettre à jour</button>
     </div>
   </div>
 
@@ -1898,7 +1896,6 @@
     const $ = id => document.getElementById(id);
     let odooHttpPort = 8069;
     let scriptModalState = null;
-    let appUpdateState = null;
 
     const tabIds = {
       create: 'panel-create',
@@ -2000,14 +1997,12 @@
       try {
         const r = await fetch('/api/app/update-check');
         const d = await r.json();
-        appUpdateState = d;
         if (!d.update_available) {
           banner.classList.remove('show');
           document.body.classList.remove('has-update-banner');
           return;
         }
-        const notes = d.release_notes ? ` — ${d.release_notes}` : '';
-        text.innerHTML = `<strong>Mise à jour disponible</strong> : version <strong>${escapeHtml(d.latest_version || '')}</strong> (vous avez ${escapeHtml(d.current_version || '')})${escapeHtml(notes)}`;
+        text.innerHTML = `<strong>Mise à jour disponible</strong> (vous avez ${escapeHtml(d.current_version || '')})`;
         banner.classList.add('show');
         document.body.classList.add('has-update-banner');
       } catch (_) {
@@ -2016,32 +2011,21 @@
       }
     }
 
-    $('btnDownloadAppUpdate').onclick = async () => {
-      const url = (appUpdateState && appUpdateState.download_url) || '';
-      if (!url) return;
+    $('btnApplyAppUpdate').onclick = async () => {
+      const btn = $('btnApplyAppUpdate');
+      btn.disabled = true;
+      btn.textContent = 'Mise à jour…';
       try {
-        await fetch('/api/app/open-download', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url })
-        });
-      } catch (_) {
-        window.open(url, '_blank', 'noopener');
+        const r = await fetch('/api/app/update', { method: 'POST' });
+        const d = await r.json();
+        if (!d.ok) throw new Error(d.error || 'Échec de la mise à jour');
+        $('appUpdateBannerText').innerHTML = "<strong>Mise à jour en cours</strong> : l'app va redémarrer toute seule.";
+        btn.style.display = 'none';
+      } catch (e) {
+        $('appUpdateBannerText').innerHTML = `<strong>La mise à jour a échoué</strong> : ${escapeHtml(e.message)}`;
+        btn.disabled = false;
+        btn.textContent = 'Réessayer';
       }
-    };
-
-    $('btnDismissAppUpdate').onclick = async () => {
-      const version = (appUpdateState && appUpdateState.latest_version) || '';
-      if (!version) return;
-      try {
-        await fetch('/api/app/update-dismiss', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ version })
-        });
-      } catch (_) { /* ignore */ }
-      $('appUpdateBanner').classList.remove('show');
-      document.body.classList.remove('has-update-banner');
     };
 
     loadCurrent();

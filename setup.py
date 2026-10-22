@@ -1,4 +1,4 @@
-"""Build: python setup.py py2app"""
+"""App macOS légère (py2app alias) : install.sh lance `python setup.py py2app -A`."""
 from setuptools import setup
 
 from version import APP_VERSION

@@ -14,7 +14,6 @@ _DEFAULTS = {
     "terminal_app": "Warp",  # Warp, Terminal, iTerm2
     "odoo_http_port": 8069,
     "db_ports": {},
-    "dismissed_app_version": "",
     "ai_mode": "",  # "" | "api_key" | "claude_cli"
     "ai_api_provider": "anthropic",  # anthropic | openai | gemini
     "ai_validated": False,
@@ -304,14 +303,6 @@ def detect_all_paths() -> dict:
         pass
 
     return result
-
-
-def get_dismissed_app_version() -> str:
-    return str(_load_config().get("dismissed_app_version") or "").strip()
-
-
-def save_dismissed_app_version(version: str) -> bool:
-    return _save_config({"dismissed_app_version": (version or "").strip()})
 
 
 def get_ai_mode() -> str:

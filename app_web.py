@@ -137,39 +137,25 @@ def index():
 
 @app.route("/api/app/version")
 def api_app_version():
-    from version import get_app_version, UPDATE_MANIFEST_URL
+    from version import get_app_version
 
-    return jsonify({"version": get_app_version(), "manifest_url": UPDATE_MANIFEST_URL})
+    return jsonify({"version": get_app_version()})
 
 
 @app.route("/api/app/update-check")
 def api_app_update_check():
-    from config import get_dismissed_app_version
     from version import check_for_update
 
-    return jsonify(check_for_update(dismissed_version=get_dismissed_app_version()))
+    return jsonify(check_for_update())
 
 
-@app.route("/api/app/update-dismiss", methods=["POST"])
-def api_app_update_dismiss():
-    from config import save_dismissed_app_version
+@app.route("/api/app/update", methods=["POST"])
+def api_app_update():
+    """git pull + réinstallation en arrière-plan ; l'app se relance toute seule."""
+    from version import apply_update
 
-    data = request.json or {}
-    version = (data.get("version") or "").strip()
-    if not version:
-        return jsonify({"ok": False, "message": "version requise"}), 400
-    ok = save_dismissed_app_version(version)
-    return jsonify({"ok": ok})
-
-
-@app.route("/api/app/open-download", methods=["POST"])
-def api_app_open_download():
-    data = request.json or {}
-    url = (data.get("url") or "").strip()
-    if not url:
-        return jsonify({"ok": False, "message": "url requise"}), 400
-    webbrowser.open(url)
-    return jsonify({"ok": True})
+    result = apply_update()
+    return jsonify(result), (200 if result.get("ok") else 500)
 
 
 def _detect_version(branch: str) -> str:

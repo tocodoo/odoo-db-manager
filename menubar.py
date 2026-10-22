@@ -93,13 +93,10 @@ class OdooMenubarApp(rumps.App):
         rumps.notification("Odoo DB Manager", msg, ok)
 
     def _check_updates(self, _) -> None:
-        from config import get_dismissed_app_version
-        from version import check_for_update, get_app_version
+        from version import apply_update, check_for_update
 
-        self._activate_app()
-
-        info = check_for_update(dismissed_version=get_dismissed_app_version())
-        current = get_app_version()
+        info = check_for_update()
+        current = info.get("current_version") or "?"
         if not info.get("ok"):
             rumps.notification(
                 "Odoo DB Manager",
@@ -107,18 +104,19 @@ class OdooMenubarApp(rumps.App):
                 info.get("error") or "Erreur réseau",
             )
             return
-        if info.get("update_available"):
-            latest = info.get("latest_version") or "?"
-            url = info.get("download_url") or ""
-            rumps.notification(
-                "Odoo DB Manager",
-                f"Mise à jour {latest} disponible",
-                info.get("release_notes") or "Ouvrez l'app pour télécharger.",
-            )
-            if url:
-                webbrowser.open(url)
+        if not info.get("update_available"):
+            rumps.notification("Odoo DB Manager", f"À jour (v{current})", "Aucune mise à jour.")
             return
-        rumps.notification("Odoo DB Manager", f"À jour (v{current})", "Aucune mise à jour.")
+        if rumps.alert(
+            "Mise à jour disponible",
+            "L'app va se mettre à jour puis redémarrer.",
+            ok="Mettre à jour",
+            cancel="Plus tard",
+        ) != 1:
+            return
+        result = apply_update()
+        if not result.get("ok"):
+            rumps.notification("Odoo DB Manager", "La mise à jour a échoué", result.get("error") or "")
 
     def _open_settings(self, _) -> None:
         """Ouvre l'app directement sur l'onglet Réglages."""
