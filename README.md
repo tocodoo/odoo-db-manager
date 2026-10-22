@@ -34,23 +34,23 @@ It takes a minute or two. When it is done, the app opens and its icon appears in
 > [!TIP]
 > If a window asks to install the **Command Line Tools**, click **Install**. The Terminal waits for it, then continues on its own.
 
-**3. Check the Réglages (Settings) tab** the first time: Odoo folder, scripts folder, pyenv root, `psql` path (empty = auto-detected).
+**3. Check the Settings tab** the first time: Odoo folder, scripts folder, pyenv root, `psql` path (empty = auto-detected).
 
 That's it, you only do this once.
 
 ## Use
 
-- **Créer une base**: pick the version and branch, type the database name and the modules, click **Créer / Mettre à jour**.
-- **Mes bases**: start, stop, restart, open, clear module locks, change the port.
-- **Menu bar**: the running databases, with **Ouvrir**, **Restart** and **Déconnecter**.
+- **Create a database**: four steps: environment and branch, launch script, database name and modules, then custom addons or a dump. Click **Create / Update**.
+- **My databases**: start, stop, restart, open, clear module locks, change the port.
+- **Menu bar**: the running databases, with **Open**, **Restart** and **Disconnect**.
 
 Each database gets its own launch script (`.sh`), opened in Warp, Terminal or iTerm2.
 
 ## Updates
 
-Nothing to download. When a new version is out, the app shows **Mise à jour disponible**: click **Mettre à jour**, the app restarts on the new version.
+Nothing to download. When a new version is out, the app shows **Update available**: click **Update**, the app restarts on the new version.
 
-From the menu bar: **Vérifier les mises à jour…**
+From the menu bar: **Check for updates…**
 
 ## Something wrong?
 
@@ -58,7 +58,7 @@ From the menu bar: **Vérifier les mises à jour…**
 |---|---|
 | The app does not open | Paste the install line again in the Terminal. |
 | The update fails | Paste the install line again in the Terminal. |
-| *"PostgreSQL (psql) not found"* | Install [Postgres.app](https://postgresapp.com) or `brew install postgresql`, or set the `psql` path in Réglages. |
+| *"PostgreSQL (psql) not found"* | Install [Postgres.app](https://postgresapp.com) or `brew install postgresql`, or set the `psql` path in Settings. |
 | *"pyenv not found"* | Install [pyenv](https://github.com/pyenv/pyenv) and create the `odoo-18` / `odoo-19` environments. |
 | Anything else | [Open an issue](https://github.com/tocodoo/odoo-db-manager/issues) and attach `~/Library/Logs/Odoo Database Manager/update.log` if it exists. |
 
@@ -89,7 +89,7 @@ From the menu bar: **Vérifier les mises à jour…**
 | **Git** | Apple's Command Line Tools |
 | **Python** 3.10+ | Homebrew if you have it, otherwise python.org (signature checked) |
 
-Then it clones this repository into `~/odoodbmanager` (the app updates itself through git), creates a Python environment in `venv/`, installs the dependencies, and puts a light **Odoo Database Manager.app** in `/Applications` (or `~/Applications` without admin rights) that runs the code of the clone. Running it again updates everything; the app's **Mettre à jour** button does a `git pull` then runs it with `--update`.
+Then it clones this repository into `~/odoodbmanager` (the app updates itself through git), creates a Python environment in `venv/`, installs the dependencies, and puts a light **Odoo Database Manager.app** in `/Applications` (or `~/Applications` without admin rights) that runs the code of the clone. Running it again updates everything; the app's **Update** button does a `git pull` then runs it with `--update`.
 
 If an older version was installed with the `.pkg`, it is replaced (macOS asks for your password once).
 

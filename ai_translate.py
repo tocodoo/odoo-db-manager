@@ -65,9 +65,9 @@ def _validate_po(text: str) -> "str | None":
             if line.startswith('msgid ""'):
                 has_header = True
             continue
-        return f"ligne {i} ne respecte pas la syntaxe .po : {line[:100]!r}"
+        return f"line {i} is not valid .po syntax: {line[:100]!r}"
     if not has_header:
-        return "en-tête .po manquant (msgid \"\" attendu en début de fichier)"
+        return ".po header missing (expected msgid \"\" at the start of the file)"
     return None
 
 
@@ -76,10 +76,10 @@ def translate_with_api_key(
 ) -> tuple[bool, str]:
     """Envoie le contenu .po au provider choisi et retourne (True, texte_traduit) ou (False, erreur)."""
     if not api_key:
-        return False, "Clé API manquante."
+        return False, "Missing API key."
     prompt = _build_prompt(po_content, lang)
     if on_output:
-        on_output(f"→ Appel {provider} ({PROVIDERS.get(provider, {}).get('default_model', '?')})...")
+        on_output(f"→ Calling {provider} ({PROVIDERS.get(provider, {}).get('default_model', '?')})...")
     try:
         if provider == "anthropic":
             import anthropic
@@ -105,7 +105,7 @@ def translate_with_api_key(
             resp = model.generate_content(prompt)
             raw = resp.text
         else:
-            return False, f"Provider inconnu: {provider}"
+            return False, f"Unknown provider: {provider}"
     except Exception as e:
         if on_output:
             on_output(f"✗ {type(e).__name__}: {e}")
@@ -115,8 +115,8 @@ def translate_with_api_key(
     po_error = _validate_po(cleaned)
     if po_error:
         if on_output:
-            on_output(f"✗ Réponse IA invalide (pas un .po valide) : {po_error}")
-        return False, f"Le modèle n'a pas renvoyé un fichier .po valide : {po_error}"
+            on_output(f"✗ Invalid AI response (not a valid .po): {po_error}")
+        return False, f"The model did not return a valid .po file: {po_error}"
     return True, cleaned
 
 
@@ -124,7 +124,7 @@ def validate_api_key(provider: str, api_key: str) -> tuple[bool, str]:
     """Test minimal pour valider la clé avant de l'enregistrer."""
     ok, result = translate_with_api_key('msgid "Test"\nmsgstr ""', "fr_FR", provider, api_key)
     if ok:
-        return True, "Clé API valide."
+        return True, "API key is valid."
     return False, result
 
 
@@ -164,12 +164,12 @@ def _run_claude_headless(
     path = find_claude_cli()
     if not path:
         if on_output:
-            on_output("✗ Claude Code CLI introuvable.")
-        return False, "Claude Code CLI introuvable."
+            on_output("✗ Claude Code CLI not found.")
+        return False, "Claude Code CLI not found."
     if on_output:
-        on_output(f"$ {path} -p --output-format text  (prompt: {len(prompt)} caractères)")
+        on_output(f"$ {path} -p --output-format text  (prompt: {len(prompt)} characters)")
         low, high = estimate_translation_delay(len(prompt))
-        on_output(f"≈ Délai estimé : {_format_duration(low)} - {_format_duration(high)} (variable selon la charge du modèle)")
+        on_output(f"≈ Estimated time: {_format_duration(low)} - {_format_duration(high)} (varies with model load)")
     try:
         result = subprocess.run(
             [path, "-p", "--output-format", "text"],
@@ -182,21 +182,21 @@ def _run_claude_headless(
         )
     except subprocess.TimeoutExpired:
         if on_output:
-            on_output("✗ Timeout lors de l'appel à Claude Code.")
-        return False, "Timeout lors de l'appel à Claude Code."
+            on_output("✗ Timed out calling Claude Code.")
+        return False, "Timed out calling Claude Code."
     if result.returncode == 0 and result.stdout.strip():
         if on_output:
-            on_output(f"✓ Réponse reçue ({len(result.stdout)} caractères).")
+            on_output(f"✓ Response received ({len(result.stdout)} characters).")
         if not expect_po:
             return True, result.stdout.strip()
         cleaned = _sanitize_po_output(result.stdout)
         po_error = _validate_po(cleaned)
         if po_error:
             if on_output:
-                on_output(f"✗ Réponse IA invalide (pas un .po valide) : {po_error}")
-            return False, f"Le modèle n'a pas renvoyé un fichier .po valide : {po_error}"
+                on_output(f"✗ Invalid AI response (not a valid .po): {po_error}")
+            return False, f"The model did not return a valid .po file: {po_error}"
         return True, cleaned
-    error = (result.stderr or result.stdout or "Échec de l'appel à Claude Code.").strip()
+    error = (result.stderr or result.stdout or "Claude Code call failed.").strip()
     if on_output:
         on_output(f"✗ (code {result.returncode}) {error}")
     return False, error
@@ -208,8 +208,8 @@ def validate_claude_cli() -> tuple[bool, str]:
     if not ok:
         return False, result
     if "pong" not in result.lower():
-        return False, f"Réponse inattendue du CLI Claude Code : {result[:200]!r}"
-    return True, "Claude Code CLI opérationnel."
+        return False, f"Unexpected response from Claude Code CLI: {result[:200]!r}"
+    return True, "Claude Code CLI is working."
 
 
 def translate_with_claude_cli(po_content: str, lang: str, on_output: "callable | None" = None) -> tuple[bool, str]:

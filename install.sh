@@ -150,6 +150,6 @@ cat <<EOF
 ────────────────────────────────────────────────────────────
 Done. Odoo Database Manager is open (icon in the menu bar).
 Next time, open it from Applications or Spotlight.
-Updates: click "Mettre à jour" in the app when it shows one.
+Updates: click "Update" in the app when it shows one.
 ────────────────────────────────────────────────────────────
 EOF

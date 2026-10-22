@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Odoo Database Manager - Interface web + CLI.
-  python3 app.py              → lance l'interface web
+Odoo Database Manager - Web UI + CLI.
+  python3 app.py              → launches the web UI
   python3 app.py create mydb  → CLI
 
-Commandes CLI:
-  create <db>     Créer ou mettre à jour une base
-  branch <name>   Changer la branche git (core + enterprise)
-  check           Vérifier que core et enterprise sont sur la même branche
-  locks <db>      Nettoyer les verrous de modules
-  branches        Lister les branches disponibles
+CLI commands:
+  create <db>     Create or update a database
+  branch <name>   Switch the git branch (core + enterprise)
+  check           Check that core and enterprise are on the same branch
+  locks <db>      Clear module locks
+  branches        List available branches
 """
 import argparse
 import sys
@@ -91,10 +91,10 @@ def cmd_create(args):
 
     ok, msg = check_branches_match(path, branch)
     if not ok:
-        print(f"Attention: {msg}\n")
+        print(f"Warning: {msg}\n")
 
     addons = build_addons_path(path, extra)
-    print(f"Base: {db} | Pyenv: {pyenv}")
+    print(f"Database: {db} | Pyenv: {pyenv}")
     print(f"Addons: {addons[:100]}...")
     print("---")
 
@@ -111,12 +111,12 @@ def cmd_create(args):
     if code == 0:
         ok_script, msg_script = create_launch_script(path, db, addons, pyenv, version=version, branch=branch)
         if ok_script:
-            print(f"Script créé : {msg_script}")
+            print(f"Script created: {msg_script}")
         else:
-            print(f"Script : {msg_script}")
-        print("--- Terminé avec succès ---")
+            print(f"Script: {msg_script}")
+        print("--- Completed successfully ---")
     else:
-        print(f"--- Erreur (code {code}) ---")
+        print(f"--- Error (code {code}) ---")
     return code
 
 
@@ -137,9 +137,9 @@ def cmd_check(args):
 
 def cmd_locks(args):
     if clear_module_locks(args.db):
-        print("Verrous nettoyés.")
+        print("Locks cleared.")
         return 0
-    print("Impossible de nettoyer les verrous.")
+    print("Could not clear locks.")
     return 1
 
 
@@ -147,11 +147,11 @@ def cmd_branches(args):
     path = _resolve_path(args.path)
     core = Path(path) / "core"
     if not core.is_dir():
-        print(f"Dépôt core introuvable: {core}")
+        print(f"core repository not found: {core}")
         return 1
     branches = get_git_branches(str(core))
     if not branches:
-        print("Aucune branche trouvée.")
+        print("No branches found.")
         return 0
     for b in branches:
         print(f"  {b}")
@@ -183,36 +183,36 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("--path", "-p", help=f"Chemin Odoo (défaut: {DEFAULT_ODOO_PATH})")
+    parser.add_argument("--path", "-p", help=f"Odoo path (default: {DEFAULT_ODOO_PATH})")
 
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # create
-    c = sub.add_parser("create", help="Créer ou mettre à jour une base")
-    c.add_argument("db", help="Nom de la base")
-    c.add_argument("--modules", "-m", help="Modules à installer (virgule)")
-    c.add_argument("--branch", "-b", help="Branche git (défaut: 19.0)")
-    c.add_argument("--version", "-v", choices=["18", "19"], help="Version Odoo (détermine pyenv)")
-    c.add_argument("--extra", "-e", help="Dossiers addons supplémentaires (virgule)")
+    c = sub.add_parser("create", help="Create or update a database")
+    c.add_argument("db", help="Database name")
+    c.add_argument("--modules", "-m", help="Modules to install (comma-separated)")
+    c.add_argument("--branch", "-b", help="Git branch (default: 19.0)")
+    c.add_argument("--version", "-v", choices=["18", "19"], help="Odoo version (determines pyenv)")
+    c.add_argument("--extra", "-e", help="Extra addons folders (comma-separated)")
     c.set_defaults(func=cmd_create)
 
     # branch
-    b = sub.add_parser("branch", help="Changer la branche (core + enterprise)")
-    b.add_argument("branch", help="Nom de la branche (ex: 19.0)")
+    b = sub.add_parser("branch", help="Switch branch (core + enterprise)")
+    b.add_argument("branch", help="Branch name (e.g. 19.0)")
     b.set_defaults(func=cmd_branch)
 
     # check
-    k = sub.add_parser("check", help="Vérifier les branches")
-    k.add_argument("--branch", "-b", default="19.0", help="Branche attendue")
+    k = sub.add_parser("check", help="Check branches")
+    k.add_argument("--branch", "-b", default="19.0", help="Expected branch")
     k.set_defaults(func=cmd_check)
 
     # locks
-    l = sub.add_parser("locks", help="Nettoyer les verrous")
-    l.add_argument("db", help="Nom de la base")
+    l = sub.add_parser("locks", help="Clear module locks")
+    l.add_argument("db", help="Database name")
     l.set_defaults(func=cmd_locks)
 
     # branches
-    br = sub.add_parser("branches", help="Lister les branches")
+    br = sub.add_parser("branches", help="List branches")
     br.set_defaults(func=cmd_branches)
 
     args = parser.parse_args()

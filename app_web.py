@@ -205,7 +205,7 @@ def api_pyenv_envs():
 
 def _pyenv_init_block(pyenv_root: str) -> str:
     return (
-        "# Pyenv init (ajouté par Odoo DB Manager)\n"
+        "# Pyenv init (added by Odoo DB Manager)\n"
         f'export PYENV_ROOT="{pyenv_root}"\n'
         '[ -d "$PYENV_ROOT/bin" ] && export PATH="$PYENV_ROOT/bin:$PATH"\n'
         "if command -v pyenv >/dev/null 2>&1; then\n"
@@ -252,11 +252,11 @@ def api_pyenv_fix_shell_init():
     if errors:
         return jsonify({"ok": False, "message": "; ".join(errors)}), 500
     if updated:
-        message = "Init pyenv ajouté à : " + ", ".join(updated) + ". Ouvrez un nouveau terminal pour appliquer."
+        message = "pyenv init added to: " + ", ".join(updated) + ". Open a new terminal to apply."
     elif already_ok:
-        message = "Init pyenv déjà présent (" + ", ".join(already_ok) + ")."
+        message = "pyenv init already present (" + ", ".join(already_ok) + ")."
     else:
-        message = "Aucun profil shell trouvé à modifier."
+        message = "No shell profile found to update."
     return jsonify({"ok": True, "updated": updated, "already_ok": already_ok, "message": message})
 
 
@@ -266,7 +266,7 @@ def api_pyenv_global_set():
     env_name = (data.get("env_name") or "").strip()
     envs = _list_pyenv_envs()
     if env_name and env_name not in envs:
-        return jsonify({"ok": False, "message": f"Environnement introuvable: {env_name}"}), 400
+        return jsonify({"ok": False, "message": f"Environment not found: {env_name}"}), 400
     # Forcer l'environnement global pyenv pour tous les nouveaux shells.
     applied = False
     apply_message = ""
@@ -318,9 +318,9 @@ def api_pyenv_global_set():
                         version_file = pyenv_root / "version"
                         version_file.write_text(target + "\n", encoding="utf-8")
                         applied = True
-                        apply_message = "pyenv global indisponible, fallback fichier version appliqué"
+                        apply_message = "pyenv global unavailable; applied version file fallback"
                     except Exception:
-                        err = (result2.stderr or result2.stdout or result.stderr or result.stdout or "Erreur pyenv global").strip()
+                        err = (result2.stderr or result2.stdout or result.stderr or result.stdout or "pyenv global error").strip()
                         return jsonify({"ok": False, "message": err}), 500
             else:
                 applied = True
@@ -331,9 +331,9 @@ def api_pyenv_global_set():
                 version_file = pyenv_root / "version"
                 version_file.write_text(target + "\n", encoding="utf-8")
                 applied = True
-                apply_message = "pyenv binaire introuvable, fallback fichier version appliqué"
+                apply_message = "pyenv binary not found; applied version file fallback"
             except Exception:
-                apply_message = "pyenv introuvable (env enregistré dans l'app uniquement)"
+                apply_message = "pyenv not found (environment saved in the app only)"
 
         # Override durable pour tous les nouveaux shells (zsh/bash),
         # même si un profil local force un autre env.
@@ -374,12 +374,12 @@ def api_pyenv_global_set():
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 500
     if not save_pyenv_global_env(env_name):
-        return jsonify({"ok": False, "message": "Impossible d'enregistrer l'environnement global"}), 500
+        return jsonify({"ok": False, "message": "Could not save the global environment"}), 500
     return jsonify({
         "ok": True,
         "global_env": env_name,
         "applied": applied,
-        "message": apply_message or ("Override shell installé" if shell_profiles_updated else ""),
+        "message": apply_message or ("Shell override installed" if shell_profiles_updated else ""),
     })
 
 
@@ -387,7 +387,7 @@ def api_pyenv_global_set():
 def api_branches():
     core = Path(get_odoo_community_path())
     if not core.is_dir():
-        return jsonify({"error": f"core introuvable: {core}"}), 404
+        return jsonify({"error": f"core not found: {core}"}), 404
     branches = get_git_branches(str(core))
     return jsonify({"branches": branches})
 
@@ -405,7 +405,7 @@ def api_branch():
     path = _path()
     branch = (request.json or {}).get("branch")
     if not branch:
-        return jsonify({"error": "branch requis"}), 400
+        return jsonify({"error": "branch is required"}), 400
     ok, msg = switch_branch(path, branch)
     return jsonify({"ok": ok, "message": msg})
 
@@ -429,9 +429,9 @@ def api_git_pull():
 def api_locks():
     db = (request.json or {}).get("db")
     if not db:
-        return jsonify({"error": "db requis"}), 400
+        return jsonify({"error": "db is required"}), 400
     ok = clear_module_locks(db)
-    return jsonify({"ok": ok, "message": "Verrous nettoyés." if ok else "Impossible de nettoyer."})
+    return jsonify({"ok": ok, "message": "Locks cleared." if ok else "Could not clear locks."})
 
 
 def _escape_applescript(s: str) -> str:
@@ -443,7 +443,7 @@ def _escape_applescript(s: str) -> str:
 def api_browse_folder():
     """Ouvre le sélecteur de dossier natif macOS et retourne le chemin choisi."""
     data = request.json or {}
-    prompt = _escape_applescript(data.get("prompt", "Choisir un dossier"))
+    prompt = _escape_applescript(data.get("prompt", "Choose a folder"))
     try:
         result = subprocess.run(
             ["osascript", "-e", f'return POSIX path of (choose folder with prompt "{prompt}")'],
@@ -453,9 +453,9 @@ def api_browse_folder():
         )
         if result.returncode == 0 and result.stdout.strip():
             return jsonify({"ok": True, "path": result.stdout.strip()})
-        return jsonify({"ok": False, "message": "Aucun dossier sélectionné"})
+        return jsonify({"ok": False, "message": "No folder selected"})
     except subprocess.TimeoutExpired:
-        return jsonify({"ok": False, "message": "Délai dépassé"}), 500
+        return jsonify({"ok": False, "message": "Timed out"}), 500
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 500
 
@@ -464,7 +464,7 @@ def api_browse_folder():
 def api_browse_file():
     """Ouvre le sélecteur de fichier natif macOS et retourne le chemin choisi."""
     data = request.json or {}
-    prompt = _escape_applescript(data.get("prompt", "Choisir un fichier"))
+    prompt = _escape_applescript(data.get("prompt", "Choose a file"))
     try:
         result = subprocess.run(
             ["osascript", "-e", f'return POSIX path of (choose file with prompt "{prompt}")'],
@@ -474,9 +474,9 @@ def api_browse_file():
         )
         if result.returncode == 0 and result.stdout.strip():
             return jsonify({"ok": True, "path": result.stdout.strip()})
-        return jsonify({"ok": False, "message": "Aucun fichier sélectionné"})
+        return jsonify({"ok": False, "message": "No file selected"})
     except subprocess.TimeoutExpired:
-        return jsonify({"ok": False, "message": "Délai dépassé"}), 500
+        return jsonify({"ok": False, "message": "Timed out"}), 500
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 500
 
@@ -498,7 +498,7 @@ def api_permissions_accessibility():
         )
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 500
-    return jsonify({"ok": True, "message": "Réglages Accessibilité ouverts. Cochez Terminal (ou l'app) dans la liste."})
+    return jsonify({"ok": True, "message": "Accessibility settings opened. Check Terminal (or the app) in the list."})
 
 
 @app.route("/api/permissions/automation", methods=["POST"])
@@ -525,7 +525,7 @@ def api_permissions_automation():
         )
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 500
-    return jsonify({"ok": True, "message": "Réglages Automatisation ouverts. Cochez System Events et Warp dans la liste."})
+    return jsonify({"ok": True, "message": "Automation settings opened. Check System Events and Warp in the list."})
 
 
 @app.route("/api/check-prerequisites", methods=["POST"])
@@ -639,7 +639,7 @@ def api_config_save():
             "terminal_app": cfg.get("terminal_app", "Warp"),
             "odoo_http_port": int(cfg.get("odoo_http_port", 8069)),
         })
-    return jsonify({"ok": False, "message": "Impossible d'enregistrer"}), 500
+    return jsonify({"ok": False, "message": "Could not save"}), 500
 
 
 @app.route("/api/config/scripts")
@@ -657,7 +657,7 @@ def api_config_scripts_save():
     paths = [p.strip() for p in paths if p and str(p).strip()]
     if save_scripts_paths(paths):
         return jsonify({"ok": True, "scripts_paths": paths})
-    return jsonify({"ok": False, "message": "Impossible d'enregistrer"}), 500
+    return jsonify({"ok": False, "message": "Could not save"}), 500
 
 
 @app.route("/api/ai/config")
@@ -681,7 +681,7 @@ def api_ai_api_key_save():
     provider = (data.get("provider") or "").strip()
     api_key = (data.get("api_key") or "").strip()
     if provider not in PROVIDERS or not api_key:
-        return jsonify({"ok": False, "message": "Provider ou clé manquant."}), 400
+        return jsonify({"ok": False, "message": "Missing provider or key."}), 400
 
     ok, message = validate_api_key(provider, api_key)
     if not ok:
@@ -755,16 +755,16 @@ def _translate_worker(job_id, database, module, lang, output_dir, version, mode)
         _translate_job_log(job_id, line)
 
     try:
-        log(f"→ Export .po pour '{module}' ({lang}, Odoo {version or 'auto'})...")
+        log(f"→ Exporting .po for '{module}' ({lang}, Odoo {version or 'auto'})...")
         ok, po_or_error = export_module_po(database, module, lang, version=version, on_output=log)
         if not ok:
             log(f"✗ {po_or_error}")
             _translate_job_finish(job_id, False, po_or_error)
             return
-        log(f"✓ Export terminé : {po_or_error}")
+        log(f"✓ Export finished: {po_or_error}")
 
         po_content = Path(po_or_error).read_text(encoding="utf-8")
-        log(f"→ Traduction via IA ({mode})...")
+        log(f"→ Translating with AI ({mode})...")
         if mode == "claude_cli":
             ok, result = translate_with_claude_cli(po_content, lang, on_output=log)
         else:
@@ -778,7 +778,7 @@ def _translate_worker(job_id, database, module, lang, output_dir, version, mode)
         out_path = Path(output_dir).expanduser() / f"{module}_{lang}.po"
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(result, encoding="utf-8")
-        message = f"Fichier généré : {out_path}"
+        message = f"File generated: {out_path}"
         log(f"✓ {message}")
         _translate_job_finish(job_id, True, message)
     except Exception as e:
@@ -797,11 +797,11 @@ def api_translate_generate():
     version = (data.get("version") or "").strip() or None
 
     if not (database and module and lang):
-        return jsonify({"ok": False, "message": "Base, module et langue requis."}), 400
+        return jsonify({"ok": False, "message": "Database, module and language are required."}), 400
 
     mode = get_ai_mode()
     if mode not in ("api_key", "claude_cli"):
-        return jsonify({"ok": False, "message": "Aucune IA configurée dans les réglages."}), 400
+        return jsonify({"ok": False, "message": "No AI configured in settings."}), 400
 
     job_id = _translate_job_new()
     threading.Thread(
@@ -820,7 +820,7 @@ def api_translate_generate_poll():
     with _translate_jobs_lock:
         job = _translate_jobs.get(job_id)
         if not job:
-            return jsonify({"ok": False, "message": "Job inconnu"}), 404
+            return jsonify({"ok": False, "message": "Unknown job"}), 404
         new_lines = job["lines"][offset:]
         resp = {"lines": new_lines, "offset": offset + len(new_lines), "done": job["done"]}
         if job["done"]:
@@ -853,7 +853,7 @@ def api_scripts_subdirs():
     """Sous-dossiers directs du dossier scripts choisi (réglages)."""
     scripts_dir = (request.args.get("dir") or "").strip()
     if not scripts_dir:
-        return jsonify({"ok": False, "subdirs": [], "message": "Dossier scripts requis"}), 400
+        return jsonify({"ok": False, "subdirs": [], "message": "Scripts folder is required"}), 400
     subdirs = list_scripts_subdirectories(scripts_dir)
     return jsonify({"ok": True, "dir": scripts_dir, "subdirs": subdirs})
 
@@ -899,7 +899,7 @@ def api_delete():
     data = request.json or {}
     db = data.get("db", "").strip()
     if not db:
-        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+        return jsonify({"ok": False, "message": "Database name is required"}), 400
     ok, msg = delete_db_complete(db)
     return jsonify({"ok": ok, "message": msg})
 
@@ -911,7 +911,7 @@ def api_duplicate():
     db = (data.get("db") or "").strip()
     new_db = (data.get("new_db") or "").strip()
     if not db or not new_db:
-        return jsonify({"ok": False, "message": "Nom de base source et nouveau nom requis"}), 400
+        return jsonify({"ok": False, "message": "Source database name and new name are required"}), 400
     ok, msg = duplicate_database(db, new_db)
     return jsonify({"ok": ok, "message": msg})
 
@@ -922,7 +922,7 @@ def api_disconnect():
     data = request.json or {}
     db = data.get("db", "").strip()
     if not db:
-        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+        return jsonify({"ok": False, "message": "Database name is required"}), 400
     ok, msg = stop_odoo_server(db)
     if ok and get_terminal_app() == "Warp":
         quit_warp()
@@ -935,7 +935,7 @@ def api_restart():
     data = request.json or {}
     db = data.get("db", "").strip()
     if not db:
-        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+        return jsonify({"ok": False, "message": "Database name is required"}), 400
     ok, msg = restart_odoo_server(db, odoo_path=_path())
     return jsonify({"ok": ok, "message": msg})
 
@@ -948,7 +948,7 @@ def api_connect():
     db = data.get("db", "").strip()
 
     if not db:
-        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+        return jsonify({"ok": False, "message": "Database name is required"}), 400
 
     requested_env = (data.get("pyenv_env") or "").strip() or get_pyenv_global_env() or ""
     script_path = get_script_path_for_db(db)
@@ -1021,7 +1021,7 @@ def api_create():
     extra = list(dict.fromkeys(custom_addons + extra_legacy))
 
     if not db:
-        return jsonify({"error": "Nom de base requis"}), 400
+        return jsonify({"error": "Database name is required"}), 400
 
     modules = _parse_modules(modules_raw)
     update_modules_raw = data.get("update_modules", modules_raw)
@@ -1063,12 +1063,12 @@ def api_create():
         return jsonify({"ok": False, "message": msg})
     warnings = []
     if detected_addons:
-        warnings.append(f"Dossiers addons auto-détectés: {', '.join(detected_addons)}")
+        warnings.append(f"Auto-detected addons folders: {', '.join(detected_addons)}")
     if missing_modules:
-        warnings.append(f"Modules introuvables dans addons-path: {', '.join(missing_modules)}")
+        warnings.append(f"Modules not found in addons-path: {', '.join(missing_modules)}")
     return jsonify({
         "ok": True,
-        "message": f"Création lancée dans Warp : {db}",
+        "message": f"Creation started in Warp: {db}",
         "script": msg_script if ok_script else None,
         "script_error": None if ok_script else msg_script,
         "warnings": warnings,
@@ -1086,11 +1086,11 @@ def api_create_from_dump():
     sanitize = data.get("sanitize", True)
 
     if not db:
-        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+        return jsonify({"ok": False, "message": "Database name is required"}), 400
     if not dump_path or not os.path.isfile(dump_path):
-        return jsonify({"ok": False, "message": "Fichier dump introuvable"}), 400
+        return jsonify({"ok": False, "message": "Dump file not found"}), 400
     if filestore_path and not os.path.isdir(filestore_path):
-        return jsonify({"ok": False, "message": "Dossier filestore introuvable"}), 400
+        return jsonify({"ok": False, "message": "Filestore folder not found"}), 400
 
     ok, message, log_lines = create_db_from_dump(
         db,
@@ -1106,10 +1106,10 @@ def api_create_from_dump():
 def api_script_config():
     db = request.args.get("db", "").strip()
     if not db:
-        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+        return jsonify({"ok": False, "message": "Database name is required"}), 400
     script_path = get_script_path_for_db(db)
     if not script_path:
-        return jsonify({"ok": False, "message": "Script introuvable"}), 404
+        return jsonify({"ok": False, "message": "Script not found"}), 404
     try:
         cfg = get_script_config(script_path)
         return jsonify({"ok": True, "script": str(script_path), **cfg})
@@ -1122,16 +1122,16 @@ def api_script_config_update():
     data = request.json or {}
     db = (data.get("db") or "").strip()
     if not db:
-        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+        return jsonify({"ok": False, "message": "Database name is required"}), 400
     script_path = get_script_path_for_db(db)
     if not script_path:
-        return jsonify({"ok": False, "message": "Script introuvable"}), 404
+        return jsonify({"ok": False, "message": "Script not found"}), 404
     addons_path = (data.get("addons_path") or "").strip()
     install_modules = _parse_modules(data.get("install_modules", ""))
     update_modules = _parse_modules(data.get("update_modules", ""))
     update_mode = _normalize_update_mode(data.get("update_mode", "reinit"))
     if not addons_path:
-        return jsonify({"ok": False, "message": "addons_path requis"}), 400
+        return jsonify({"ok": False, "message": "addons_path is required"}), 400
     ok, msg = update_script_config(
         script_path=script_path,
         addons_path=addons_path,
@@ -1147,7 +1147,7 @@ def api_db_port_get():
     """Port HTTP effectif d'une base (pour l'affichage avant modification)."""
     db = request.args.get("db", "").strip()
     if not db:
-        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+        return jsonify({"ok": False, "message": "Database name is required"}), 400
     return jsonify({"ok": True, "port": get_effective_db_port(db)})
 
 
@@ -1157,32 +1157,57 @@ def api_db_port_set():
     data = request.json or {}
     db = (data.get("db") or "").strip()
     if not db:
-        return jsonify({"ok": False, "message": "Nom de base requis"}), 400
+        return jsonify({"ok": False, "message": "Database name is required"}), 400
     try:
         port = int(data.get("port"))
     except (TypeError, ValueError):
-        return jsonify({"ok": False, "message": "Port invalide"}), 400
+        return jsonify({"ok": False, "message": "Invalid port"}), 400
     if not (1024 <= port <= 65535):
-        return jsonify({"ok": False, "message": "Le port doit être entre 1024 et 65535"}), 400
+        return jsonify({"ok": False, "message": "Port must be between 1024 and 65535"}), 400
     ok, msg = set_db_port(db, port)
     return jsonify({"ok": ok, "message": msg})
 
 
-def _activate_app() -> None:
-    """Met la fenêtre existante au premier plan (sans en ouvrir une nouvelle)."""
-    subprocess.run(
-        ["osascript", "-e", 'tell application "Odoo Database Manager" to activate'],
-        check=False,
+def _app_bundle_path() -> str:
+    """Chemin du .app. py2app fournit RESOURCEPATH (…/X.app/Contents/Resources), y compris en
+    mode alias où sys.executable pointe vers le python du venv et non vers le bundle."""
+    resources = os.environ.get("RESOURCEPATH")
+    if resources:
+        return os.path.dirname(os.path.dirname(resources))
+    return os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
+
+
+def _window_pids(port: int) -> list[int]:
+    """PIDs des processus fenêtre (lancés avec --window-only) pour ce port."""
+    result = subprocess.run(
+        ["/usr/bin/pgrep", "-f", "--", f"--window-only http://127.0.0.1:{port}"],
+        capture_output=True, text=True, check=False,
     )
+    return [int(p) for p in result.stdout.split() if p.isdigit() and int(p) != os.getpid()]
+
+
+def _activate_app(port: int) -> None:
+    """Ramène la fenêtre au premier plan, ou l'ouvre si elle n'existe pas."""
+    pids = _window_pids(port)
+    if not pids:
+        _open_window_process(port)
+        return
+    try:
+        from AppKit import NSApplicationActivateIgnoringOtherApps, NSRunningApplication
+
+        window_app = NSRunningApplication.runningApplicationWithProcessIdentifier_(pids[0])
+        if window_app is not None:
+            window_app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
+    except Exception:
+        pass
 
 
 def _open_window_process(port: int) -> None:
     """Lance la fenêtre dans un subprocess (rumps garde la boucle principale)."""
     url = f"http://127.0.0.1:{port}"
     if getattr(sys, "frozen", False):
-        app_bundle = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
         # En pratique c'est le mode le plus fiable pour ouvrir la GUI pywebview depuis l'instance menubar.
-        subprocess.Popen(["open", "-n", "-a", app_bundle, "--args", "--window-only", url])
+        subprocess.Popen(["open", "-n", "-a", _app_bundle_path(), "--args", "--window-only", url])
     else:
         base = os.path.dirname(os.path.abspath(__file__))
         subprocess.Popen([sys.executable, os.path.join(base, "app.py"), "--window-only", url])
@@ -1211,7 +1236,9 @@ def main():
     # Menu bar (rumps.run) + ouvre la fenêtre en subprocess
     from menubar import OdooMenubarApp
     menubar = OdooMenubarApp(port=port)
-    menubar._open_app = lambda _: _activate_app()  # Ramener la fenêtre au premier plan
+    # « Ouvrir l'app » et « Réglages » : ramener la fenêtre, ou la rouvrir si elle a disparu
+    menubar._open_app = lambda _: _activate_app(port)
+    menubar._activate_app = lambda: _activate_app(port)
     _open_window_process(port)
     menubar.run()
 

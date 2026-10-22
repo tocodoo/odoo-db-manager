@@ -27,7 +27,7 @@ def _git(*args: str, timeout: float = 15.0) -> str:
         env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
     )
     if result.returncode != 0:
-        raise RuntimeError((result.stderr or result.stdout).strip() or f"git {args[0]} a échoué")
+        raise RuntimeError((result.stderr or result.stdout).strip() or f"git {args[0]} failed")
     return result.stdout.strip()
 
 
@@ -47,7 +47,7 @@ def check_for_update() -> dict[str, Any]:
             "ok": False,
             "current_version": current,
             "update_available": False,
-            "error": f"Installation sans git : relancez {INSTALL_COMMAND}",
+            "error": f"Not a git install: re-run {INSTALL_COMMAND}",
         }
     try:
         _git("fetch", "--quiet")

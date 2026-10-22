@@ -114,7 +114,7 @@ DEFAULT_GRAY_COLORS = {
 def normalize_odoo_version(raw: str) -> str:
     version = (raw or "19").strip()
     if version not in SUPPORTED_ODOO_VERSIONS:
-        raise ValueError(f"Version Odoo non supportée : {version} (18 ou 19).")
+        raise ValueError(f"Unsupported Odoo version: {version} (18 or 19).")
     return version
 
 
@@ -134,7 +134,7 @@ def normalize_module_slug(raw: str) -> str:
     slug = re.sub(r"[^a-z0-9_]", "_", (raw or "").strip().lower())
     slug = re.sub(r"_+", "_", slug).strip("_")
     if not slug:
-        raise ValueError("Nom de module invalide (lettres, chiffres et _ uniquement).")
+        raise ValueError("Invalid module name (letters, digits and _ only).")
     if slug[0].isdigit():
         slug = f"m_{slug}"
     return slug
@@ -231,7 +231,7 @@ def _normalize_pages(pages: list[dict] | None, module: str) -> list[dict]:
         slug = re.sub(r"[^a-z0-9_]", "_", slug)
         slug = re.sub(r"_+", "_", slug).strip("_") or f"page_{idx + 1}"
         if url in seen_urls:
-            raise ValueError(f"URL en double : {url}")
+            raise ValueError(f"Duplicate URL: {url}")
         seen_urls.add(url)
         normalized.append(
             {
@@ -483,16 +483,16 @@ def generate_scaffold(config: dict) -> dict[str, Any]:
     theme_label = (config.get("theme_label") or "").strip() or theme_label_from_slug(slug)
     output_dir = Path((config.get("output_path") or "").strip()).expanduser().resolve()
     if not output_dir.is_dir():
-        raise ValueError(f"Dossier de destination introuvable : {output_dir}")
+        raise ValueError(f"Destination folder not found: {output_dir}")
 
     target = output_dir / module
     if target.exists():
-        raise ValueError(f"Le module existe déjà : {target}")
+        raise ValueError(f"Module already exists: {target}")
 
     odoo_version = normalize_odoo_version(config.get("odoo_version", "19"))
     template_dir = get_template_dir(odoo_version)
     if not template_dir.is_dir():
-        raise ValueError(f"Template scaffold Odoo {odoo_version} introuvable : {template_dir}")
+        raise ValueError(f"Odoo {odoo_version} scaffold template not found: {template_dir}")
 
     shutil.copytree(
         template_dir,

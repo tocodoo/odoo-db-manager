@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
@@ -758,23 +758,23 @@
 
       <button class="tab active" data-tab="create">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
-        Créer une base <span class="tab-index">01</span>
+        Create a database <span class="tab-index">01</span>
       </button>
       <div class="sidebar-sub-nav"><div class="sub-inner">
-        <button type="button" class="sidebar-sub-item" data-wz-step="0">Environnement</button>
-        <button type="button" class="sidebar-sub-item" data-wz-step="1">Script de lancement</button>
-        <button type="button" class="sidebar-sub-item" data-wz-step="2">Nouvelle base</button>
+        <button type="button" class="sidebar-sub-item" data-wz-step="0">Environment</button>
+        <button type="button" class="sidebar-sub-item" data-wz-step="1">Launch script</button>
+        <button type="button" class="sidebar-sub-item" data-wz-step="2">New database</button>
         <button type="button" class="sidebar-sub-item" data-wz-step="3">Addons &amp; dump</button>
       </div></div>
 
       <button class="tab" data-tab="databases">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
-        Mes bases <span class="tab-index">02</span>
+        My databases <span class="tab-index">02</span>
       </button>
       <div class="sidebar-sub-nav"><div class="sub-inner">
-        <button type="button" class="sidebar-sub-item" data-jump="secDbList">Liste des bases</button>
-        <button type="button" class="sidebar-sub-item" data-jump="secDbEnv">Version &amp; branche</button>
-        <button type="button" class="sidebar-sub-item" data-jump="secDbGit">Synchronisation Git</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secDbList">Database list</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secDbEnv">Version &amp; branch</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secDbGit">Git sync</button>
       </div></div>
 
       <button class="tab" data-tab="scaffold">
@@ -785,29 +785,29 @@
         <button type="button" class="sidebar-sub-item" data-step="0">Module</button>
         <button type="button" class="sidebar-sub-item" data-step="1">Pages</button>
         <button type="button" class="sidebar-sub-item" data-step="2">Site</button>
-        <button type="button" class="sidebar-sub-item" data-step="3">Thème</button>
-        <button type="button" class="sidebar-sub-item" data-step="4">Générer</button>
+        <button type="button" class="sidebar-sub-item" data-step="3">Theme</button>
+        <button type="button" class="sidebar-sub-item" data-step="4">Generate</button>
       </div></div>
 
       <button class="tab" data-tab="translation" id="tabTranslation" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
-        Traduction <span class="tab-beta">BETA</span>
+        Translation <span class="tab-beta">BETA</span>
       </button>
       <div class="sidebar-sub-nav" id="tabTranslationSubNav" hidden><div class="sub-inner">
-        <button type="button" class="sidebar-sub-item" data-jump="secTranslateForm">Base &amp; module</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secTranslateForm">Database &amp; module</button>
         <button type="button" class="sidebar-sub-item" data-jump="translateTerminalCard">Terminal</button>
       </div></div>
 
       <button class="tab" data-tab="settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.3a2 2 0 0 1-2 0l-.2-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.2.1a2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.8l-.2.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.2-.1a2 2 0 0 1 2 0l.4.3a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.3a2 2 0 0 1 2 0l.2.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.2-.1a2 2 0 0 1-1-1.8v-.5a2 2 0 0 1 1-1.7l.2-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.2.1a2 2 0 0 1-2 0l-.4-.3a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-        Réglages <span class="tab-index">05</span>
+        Settings <span class="tab-index">05</span>
       </button>
       <div class="sidebar-sub-nav"><div class="sub-inner">
-        <button type="button" class="sidebar-sub-item" data-jump="secSetPaths">Chemins</button>
-        <button type="button" class="sidebar-sub-item" data-jump="secSetAi">Intelligence artificielle</button>
-        <button type="button" class="sidebar-sub-item" data-jump="secSetPerms">Permissions macOS</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secSetPaths">Paths</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secSetAi">Artificial intelligence</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secSetPerms">macOS permissions</button>
         <button type="button" class="sidebar-sub-item" data-jump="secSetDiag">Diagnostic</button>
-        <button type="button" class="sidebar-sub-item" data-jump="secSetAbout">À propos</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secSetAbout">About</button>
       </div></div>
     </nav>
 
@@ -822,7 +822,7 @@
   <div id="appUpdateBanner" class="app-update-banner" role="status" aria-live="polite">
     <div id="appUpdateBannerText"></div>
     <div class="app-update-banner-actions">
-      <button type="button" id="btnApplyAppUpdate" class="hs-btn hs-btn-primary hs-btn-sm">Mettre à jour</button>
+      <button type="button" id="btnApplyAppUpdate" class="hs-btn hs-btn-primary hs-btn-sm">Update</button>
     </div>
   </div>
 
@@ -834,7 +834,7 @@
         <div class="stepper-thumb"></div>
         <button type="button" class="wz-step-btn active" data-step="0">
           <span class="scaffold-step-num">1</span>
-          <span class="scaffold-step-label">Environnement</span>
+          <span class="scaffold-step-label">Environment</span>
         </button>
         <div class="scaffold-step-connector"></div>
         <button type="button" class="wz-step-btn" data-step="1">
@@ -844,7 +844,7 @@
         <div class="scaffold-step-connector"></div>
         <button type="button" class="wz-step-btn" data-step="2">
           <span class="scaffold-step-num">3</span>
-          <span class="scaffold-step-label">Base</span>
+          <span class="scaffold-step-label">Database</span>
         </button>
         <div class="scaffold-step-connector"></div>
         <button type="button" class="wz-step-btn" data-step="3">
@@ -858,34 +858,34 @@
       <div class="wz-panel active reveal" data-step="0">
         <div class="hs-card wz-card" id="secCreateEnv">
           <div class="hs-card-header">
-            <h2 class="hs-card-title"><span class="card-index">01</span>Version &amp; branche</h2>
+            <h2 class="hs-card-title"><span class="card-index">01</span>Version &amp; branch</h2>
           </div>
           <div class="hs-card-body fields">
             <div class="grid-2">
               <div class="hs-field">
-                <label class="hs-label" for="version">Environnement Python</label>
+                <label class="hs-label" for="version">Python environment</label>
                 <select id="version" class="hs-select full">
                   <option value="">Auto</option>
                 </select>
               </div>
               <div class="hs-field">
-                <label class="hs-label" for="branch">Branche</label>
+                <label class="hs-label" for="branch">Branch</label>
                 <select id="branch" class="hs-select full"></select>
               </div>
             </div>
             <div class="grid-2">
               <div class="row env-global-row">
-                <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnSetGlobalPyenv">Définir comme env global</button>
+                <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnSetGlobalPyenv">Set as global env</button>
                 <span class="hs-status" id="pyenvGlobalStatus"></span>
               </div>
               <div class="row">
                 <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnCheck">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"/></svg>
-                  Vérifier
+                  Check
                 </button>
                 <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnBranch">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
-                  Changer
+                  Switch
                 </button>
               </div>
             </div>
@@ -898,26 +898,26 @@
       <div class="wz-panel" data-step="1">
         <div class="hs-card wz-card" id="secCreateScript">
           <div class="hs-card-header">
-            <h2 class="hs-card-title"><span class="card-index">02</span>Script de lancement</h2>
+            <h2 class="hs-card-title"><span class="card-index">02</span>Launch script</h2>
           </div>
           <div class="hs-card-body fields">
             <div class="grid-2">
               <div class="hs-field">
-                <label class="hs-label" for="scriptsDirSelect">Dossier scripts</label>
-                <p class="hs-hint">Où créer le script .sh</p>
+                <label class="hs-label" for="scriptsDirSelect">Scripts folder</label>
+                <p class="hs-hint">Where to create the .sh script</p>
                 <select id="scriptsDirSelect" class="hs-select full">
                   <option value="">~/Scripts</option>
                 </select>
               </div>
               <div class="hs-field">
-                <label class="hs-label" for="scriptsSubdirSelect">Sous-dossier</label>
-                <p class="hs-hint">Pour ranger le script</p>
+                <label class="hs-label" for="scriptsSubdirSelect">Subfolder</label>
+                <p class="hs-hint">To organize the script</p>
                 <select id="scriptsSubdirSelect" class="hs-select full">
-                  <option value="">Racine du dossier</option>
+                  <option value="">Folder root</option>
                 </select>
               </div>
             </div>
-            <p class="hs-hint" id="scriptsSubdirEmpty" hidden style="color:var(--warn);margin:0;">Aucun sous-dossier — créez-en un dans Réglages.</p>
+            <p class="hs-hint" id="scriptsSubdirEmpty" hidden style="color:var(--warn);margin:0;">No subfolder — create one in Settings.</p>
           </div>
         </div>
       </div>
@@ -926,26 +926,26 @@
       <div class="wz-panel" data-step="2">
         <div class="hs-card wz-card" id="secCreateDb">
           <div class="hs-card-header">
-            <h2 class="hs-card-title"><span class="card-index">03</span>Nouvelle base de données</h2>
+            <h2 class="hs-card-title"><span class="card-index">03</span>New database</h2>
           </div>
           <div class="hs-card-body fields">
             <div class="hs-field">
-              <label class="hs-label" for="dbName">Nom de la base</label>
-              <input type="text" id="dbName" class="hs-input mono" placeholder="ma_base" autocomplete="off" spellcheck="false">
+              <label class="hs-label" for="dbName">Database name</label>
+              <input type="text" id="dbName" class="hs-input mono" placeholder="my_database" autocomplete="off" spellcheck="false">
               <span class="hs-status" id="dbStatus"></span>
             </div>
             <div class="hs-field">
               <div class="label-row">
-                <label class="hs-label" for="modules">Modules à installer</label>
-                <span class="hs-hint">séparés par une virgule</span>
+                <label class="hs-label" for="modules">Modules to install</label>
+                <span class="hs-hint">comma-separated</span>
               </div>
               <textarea id="modules" class="hs-textarea" placeholder="website, website_sale">website,website_sale</textarea>
             </div>
             <hr class="divider">
             <div class="grid-2">
               <div class="hs-field">
-                <label class="hs-label" for="updateMode">Mode update</label>
-                <p class="hs-hint">Si la base existe déjà</p>
+                <label class="hs-label" for="updateMode">Update mode</label>
+                <p class="hs-hint">If the database already exists</p>
                 <select id="updateMode" class="hs-select">
                   <option value="reinit">--reinit</option>
                   <option value="update">-u</option>
@@ -953,7 +953,7 @@
               </div>
               <div class="hs-field">
                 <label class="hs-label" for="updateModules">Modules update / reinit</label>
-                <p class="hs-hint">Appliqués au relancement</p>
+                <p class="hs-hint">Applied on relaunch</p>
                 <textarea id="updateModules" class="hs-textarea" placeholder="website, website_sale" style="min-height:42px;">website,website_sale</textarea>
               </div>
             </div>
@@ -966,19 +966,19 @@
         <div class="stack wz-card">
           <div class="hs-card" id="secCreateAddons">
             <div class="hs-card-header">
-              <h2 class="hs-card-title"><span class="card-index">04</span>Addons paths custom</h2>
-              <span class="hs-hint" style="margin:0;">optionnel</span>
+              <h2 class="hs-card-title"><span class="card-index">04</span>Custom addons paths</h2>
+              <span class="hs-hint" style="margin:0;">optional</span>
             </div>
             <div class="hs-card-body fields">
               <div class="field-with-browse">
                 <input type="text" id="customAddonInput" class="hs-input mono" placeholder="/Users/odoo/odoo/psbe-client" spellcheck="false">
                 <button type="button" class="hs-btn hs-btn-secondary" id="btnAddCustomAddon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                  Ajouter
+                  Add
                 </button>
                 <button type="button" class="hs-btn hs-btn-secondary" id="btnBrowseCustomAddon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
-                  Parcourir
+                  Browse
                 </button>
               </div>
               <div id="customAddonsList" class="addons-list"></div>
@@ -987,48 +987,48 @@
 
           <div class="hs-card" id="secCreateDump">
             <div class="hs-card-header">
-              <h2 class="hs-card-title"><span class="card-index">05</span>Depuis un dump</h2>
+              <h2 class="hs-card-title"><span class="card-index">05</span>From a dump</h2>
               <span class="hs-hint" style="margin:0;">SaaS / Odoo.sh</span>
             </div>
             <div class="hs-card-body fields">
               <label class="switch-row" for="importFromDump">
                 <input type="checkbox" id="importFromDump">
-                <span>Créer à partir d'un dump
-                  <small>Restaure un dump.sql (+ filestore) et sanitize la base. Importez le dump, puis cliquez sur Créer.</small>
+                <span>Create from a dump
+                  <small>Restores a dump.sql (+ filestore) and sanitizes the database. Import the dump, then click Create.</small>
                 </span>
               </label>
 
               <div id="dumpImportFields" style="display:none;flex-direction:column;gap:16px;">
                 <hr class="divider">
                 <div class="hs-field">
-                  <label class="hs-label" for="dumpPath">Fichier dump.sql</label>
+                  <label class="hs-label" for="dumpPath">dump.sql file</label>
                   <div class="field-with-browse">
                     <input type="text" id="dumpPath" class="hs-input mono" placeholder="/Users/odoo/Downloads/dump.sql" spellcheck="false">
-                    <button type="button" class="hs-btn hs-btn-secondary" id="btnBrowseDump">Parcourir</button>
+                    <button type="button" class="hs-btn hs-btn-secondary" id="btnBrowseDump">Browse</button>
                   </div>
                 </div>
                 <div class="hs-field">
                   <div class="label-row">
-                    <label class="hs-label" for="filestorePath">Dossier filestore</label>
-                    <span class="hs-hint">optionnel</span>
+                    <label class="hs-label" for="filestorePath">Filestore folder</label>
+                    <span class="hs-hint">optional</span>
                   </div>
                   <div class="field-with-browse">
                     <input type="text" id="filestorePath" class="hs-input mono" placeholder="/Users/odoo/Downloads/filestore" spellcheck="false">
-                    <button type="button" class="hs-btn hs-btn-secondary" id="btnBrowseFilestore">Parcourir</button>
+                    <button type="button" class="hs-btn hs-btn-secondary" id="btnBrowseFilestore">Browse</button>
                   </div>
                 </div>
                 <label class="switch-row" for="dropExistingDb">
                   <input type="checkbox" id="dropExistingDb">
-                  <span>Supprimer la base existante si elle existe déjà</span>
+                  <span>Drop the existing database if it already exists</span>
                 </label>
                 <label class="switch-row" for="sanitizeDump">
                   <input type="checkbox" id="sanitizeDump" checked>
-                  <span>Sanitizer après import <small>admin/admin, désactive crons, mails et SaaS</small></span>
+                  <span>Sanitize after import <small>admin/admin, disables crons, emails and SaaS</small></span>
                 </label>
                 <div class="row">
                   <button class="hs-btn hs-btn-primary" id="btnImportDump" type="button">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                    Importer le dump
+                    Import dump
                   </button>
                   <span class="status" id="dumpImportStatus"></span>
                 </div>
@@ -1044,18 +1044,18 @@
       <div class="scaffold-nav-actions wz-nav">
         <button type="button" class="hs-btn hs-btn-secondary" id="btnCreatePrev" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
-          Précédent
+          Previous
         </button>
         <div class="row">
           <span class="hs-hint" id="createHint" style="margin:0;"></span>
-          <button class="hs-btn hs-btn-ghost" id="btnLocks" hidden>Nettoyer les verrous</button>
+          <button class="hs-btn hs-btn-ghost" id="btnLocks" hidden>Clear locks</button>
           <button type="button" class="hs-btn hs-btn-primary" id="btnCreateNext">
-            Suivant
+            Next
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
           </button>
           <button class="hs-btn hs-btn-cta" id="btnCreate" hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"/></svg>
-            Créer / Mettre à jour
+            Create / Update
           </button>
         </div>
       </div>
@@ -1066,15 +1066,15 @@
 
       <div class="stats">
         <div class="stat reveal" style="--seg:var(--tt-seg-3)">
-          <div class="stat-label">Bases</div>
+          <div class="stat-label">Databases</div>
           <div class="stat-value" id="statTotal">0</div>
         </div>
         <div class="stat reveal" style="--seg:var(--tt-live)">
-          <div class="stat-label">En cours</div>
+          <div class="stat-label">Running</div>
           <div class="stat-value" id="statRunning">0</div>
         </div>
         <div class="stat reveal" style="--seg:var(--tt-red-hot)">
-          <div class="stat-label">Branche</div>
+          <div class="stat-label">Branch</div>
           <div class="stat-value small" id="statBranch">—</div>
         </div>
       </div>
@@ -1082,59 +1082,59 @@
       <div class="layout layout-main-aside">
         <div class="hs-card reveal" id="secDbList">
           <div class="hs-card-header">
-            <h2 class="hs-card-title"><span class="card-index">01</span>Bases de données</h2>
+            <h2 class="hs-card-title"><span class="card-index">01</span>Databases</h2>
             <div class="row">
-              <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnDisconnectAll" title="Arrêter tous les processus Odoo">
+              <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnDisconnectAll" title="Stop all Odoo processes">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-                Vider les processus
+                Kill all processes
               </button>
               <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnRefreshDb">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-                Actualiser
+                Refresh
               </button>
             </div>
           </div>
           <div style="padding:16px 22px 6px;">
             <div class="search">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z"/></svg>
-              <input type="text" id="dbSearch" class="hs-input" placeholder="Rechercher une base…" autocomplete="off" spellcheck="false">
+              <input type="text" id="dbSearch" class="hs-input" placeholder="Search databases…" autocomplete="off" spellcheck="false">
               <kbd>⌘K</kbd>
             </div>
           </div>
           <div id="dbList">
-            <div class="empty-state">Chargement…</div>
+            <div class="empty-state">Loading…</div>
           </div>
         </div>
 
         <aside class="stack sticky">
           <div class="hs-card reveal" id="secDbEnv">
             <div class="hs-card-header">
-              <h2 class="hs-card-title"><span class="card-index">02</span>Version &amp; branche</h2>
+              <h2 class="hs-card-title"><span class="card-index">02</span>Version &amp; branch</h2>
             </div>
             <div class="hs-card-body fields">
               <div class="hs-field">
-                <label class="hs-label" for="versionDb">Environnement Python</label>
+                <label class="hs-label" for="versionDb">Python environment</label>
                 <select id="versionDb" class="hs-select full">
                   <option value="">Auto</option>
                 </select>
                 <div class="row env-global-row">
-                  <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnSetGlobalPyenvDb">Définir comme env global</button>
+                  <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnSetGlobalPyenvDb">Set as global env</button>
                   <span class="hs-status" id="pyenvGlobalStatusDb"></span>
                 </div>
               </div>
               <div class="hs-field">
-                <label class="hs-label" for="branchDb">Branche</label>
+                <label class="hs-label" for="branchDb">Branch</label>
                 <select id="branchDb" class="hs-select full"></select>
                 <span class="hs-status" id="branchStatusDb"></span>
               </div>
               <div class="grid-2" style="gap:16px;">
                 <button class="hs-btn hs-btn-secondary" id="btnCheckDb">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"/></svg>
-                  Vérifier
+                  Check
                 </button>
                 <button class="hs-btn hs-btn-secondary" id="btnBranchDb">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
-                  Changer
+                  Switch
                 </button>
               </div>
             </div>
@@ -1142,12 +1142,12 @@
 
           <div class="hs-card reveal" id="secDbGit">
             <div class="hs-card-header">
-              <h2 class="hs-card-title"><span class="card-index">03</span>Synchronisation Git</h2>
+              <h2 class="hs-card-title"><span class="card-index">03</span>Git sync</h2>
             </div>
             <div class="hs-card-body fields" style="gap:10px;">
               <button class="hs-btn hs-btn-secondary block" id="btnCheckUpdatesDb">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-                Vérifier si à jour
+                Check for updates
               </button>
               <button class="hs-btn hs-btn-primary block" id="btnPullDb">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
@@ -1183,12 +1183,12 @@
         <div class="scaffold-step-connector"></div>
         <button type="button" class="scaffold-step-btn" data-step="3">
           <span class="scaffold-step-num">4</span>
-          <span class="scaffold-step-label">Thème</span>
+          <span class="scaffold-step-label">Theme</span>
         </button>
         <div class="scaffold-step-connector"></div>
         <button type="button" class="scaffold-step-btn" data-step="4">
           <span class="scaffold-step-num">5</span>
-          <span class="scaffold-step-label">Générer</span>
+          <span class="scaffold-step-label">Generate</span>
         </button>
         <div class="stepper-progress"><i id="stepperProgress"></i></div>
       </div>
@@ -1198,45 +1198,45 @@
         <div class="layout layout-main-aside">
           <div class="hs-card">
             <div class="hs-card-header">
-              <h2 class="hs-card-title"><span class="card-index">01</span>Informations du module</h2>
+              <h2 class="hs-card-title"><span class="card-index">01</span>Module details</h2>
             </div>
             <div class="hs-card-body fields">
               <div class="hs-field">
-                <label class="hs-label" for="scaffoldOdooVersion">Version Odoo</label>
+                <label class="hs-label" for="scaffoldOdooVersion">Odoo version</label>
                 <select id="scaffoldOdooVersion" class="hs-select full">
                   <option value="19">Odoo 19 — html_builder / Interaction</option>
                   <option value="18">Odoo 18 — publicWidget / we-button</option>
                 </select>
-                <span class="hs-status" id="scaffoldVersionHint">Template : website_scaffold (Odoo 19)</span>
+                <span class="hs-status" id="scaffoldVersionHint">Template: website_scaffold (Odoo 19)</span>
               </div>
               <div class="hs-field">
-                <label class="hs-label" for="scaffoldModuleSlug">Nom du module</label>
-                <p class="hs-hint">Sans le préfixe <code>website_</code> — ex. <code>acme</code> → <code>website_acme</code></p>
+                <label class="hs-label" for="scaffoldModuleSlug">Module name</label>
+                <p class="hs-hint">Without the <code>website_</code> prefix — e.g. <code>acme</code> → <code>website_acme</code></p>
                 <input type="text" id="scaffoldModuleSlug" class="hs-input mono" placeholder="acme" pattern="[a-z0-9_]+" spellcheck="false">
                 <div class="scaffold-preview-module" id="scaffoldModulePreview">website_…</div>
               </div>
               <div class="grid-2">
                 <div class="hs-field">
-                  <label class="hs-label" for="scaffoldModuleTitle">Titre du module</label>
+                  <label class="hs-label" for="scaffoldModuleTitle">Module title</label>
                   <input type="text" id="scaffoldModuleTitle" class="hs-input" placeholder="ACME Website">
                 </div>
                 <div class="hs-field">
-                  <label class="hs-label" for="scaffoldAuthor">Auteur</label>
+                  <label class="hs-label" for="scaffoldAuthor">Author</label>
                   <input type="text" id="scaffoldAuthor" class="hs-input" placeholder="Odoo PSBE">
                 </div>
               </div>
               <div class="hs-field">
-                <label class="hs-label" for="scaffoldThemeLabel">Nom du thème</label>
-                <p class="hs-hint">Header, footer et palette : utilisé dans primary_variables et les options du builder</p>
+                <label class="hs-label" for="scaffoldThemeLabel">Theme name</label>
+                <p class="hs-hint">Header, footer and palette: used in primary_variables and the builder options</p>
                 <input type="text" id="scaffoldThemeLabel" class="hs-input" placeholder="Acme">
               </div>
             </div>
           </div>
           <div class="hs-card card-cta">
             <div class="hs-card-body fields" style="gap:10px;">
-              <div class="hs-hint mono" style="margin:0;">Étape 1 / 5</div>
-              <p style="margin:0;font-size:15px;line-height:1.5;">Le module est généré depuis <code>website_scaffold</code> (Odoo 19) ou <code>website_scaffold_18</code>.</p>
-              <p class="hs-hint" style="margin:0;">Pages, branding, couleurs et typo se règlent dans les étapes suivantes, puis tout est écrit d'un coup à l'étape 5.</p>
+              <div class="hs-hint mono" style="margin:0;">Step 1 / 5</div>
+              <p style="margin:0;font-size:15px;line-height:1.5;">The module is generated from <code>website_scaffold</code> (Odoo 19) or <code>website_scaffold_18</code>.</p>
+              <p class="hs-hint" style="margin:0;">Pages, branding, colors and typography are set in the next steps, then everything is written at once in step 5.</p>
             </div>
           </div>
         </div>
@@ -1246,14 +1246,14 @@
       <div class="scaffold-step-panel" data-step="1">
         <div class="hs-card">
           <div class="hs-card-header">
-            <h2 class="hs-card-title"><span class="card-index">02</span>Pages du module</h2>
+            <h2 class="hs-card-title"><span class="card-index">02</span>Module pages</h2>
             <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnScaffoldAddPage">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
-              Ajouter une page
+              Add a page
             </button>
           </div>
           <div class="hs-card-body">
-            <p class="hs-hint" style="margin:0 0 16px;">Chaque page est créée vide (<code>oe_structure oe_empty</code>), comme la home du scaffold.</p>
+            <p class="hs-hint" style="margin:0 0 16px;">Each page is created empty (<code>oe_structure oe_empty</code>), like the scaffold home page.</p>
             <div id="scaffoldPagesList" class="scaffold-pages-list"></div>
           </div>
         </div>
@@ -1263,27 +1263,27 @@
       <div class="scaffold-step-panel" data-step="2">
         <div class="hs-card">
           <div class="hs-card-header">
-            <h2 class="hs-card-title"><span class="card-index">03</span>Branding du site</h2>
+            <h2 class="hs-card-title"><span class="card-index">03</span>Website branding</h2>
           </div>
           <div class="hs-card-body fields">
             <div class="grid-2">
               <div class="hs-field">
-                <label class="hs-label" for="scaffoldWebsiteName">Nom du site</label>
+                <label class="hs-label" for="scaffoldWebsiteName">Website name</label>
                 <input type="text" id="scaffoldWebsiteName" class="hs-input" placeholder="ACME Corp">
               </div>
               <div class="hs-field">
-                <label class="hs-label" for="scaffoldMetaTitle">Meta title par défaut</label>
+                <label class="hs-label" for="scaffoldMetaTitle">Default meta title</label>
                 <input type="text" id="scaffoldMetaTitle" class="hs-input" placeholder="ACME — Official website">
               </div>
             </div>
             <div class="hs-field">
               <div class="label-row">
                 <label class="hs-label" for="scaffoldFaviconPath">Favicon</label>
-                <span class="hs-hint">PNG — copié dans static/description/favicon.png</span>
+                <span class="hs-hint">PNG — copied to static/description/favicon.png</span>
               </div>
               <div class="field-with-browse">
-                <input type="text" id="scaffoldFaviconPath" class="hs-input mono" placeholder="Optionnel" spellcheck="false">
-                <button type="button" class="hs-btn hs-btn-secondary" id="btnScaffoldBrowseFavicon">Parcourir</button>
+                <input type="text" id="scaffoldFaviconPath" class="hs-input mono" placeholder="Optional" spellcheck="false">
+                <button type="button" class="hs-btn hs-btn-secondary" id="btnScaffoldBrowseFavicon">Browse</button>
               </div>
             </div>
           </div>
@@ -1297,7 +1297,7 @@
             <div class="hs-card">
               <details open>
                 <summary class="scaffold-theme-summary">
-                  <h2 class="hs-card-title"><span class="card-index">A</span>Couleurs principales <code>o-color-1 → 5</code></h2>
+                  <h2 class="hs-card-title"><span class="card-index">A</span>Main colors <code>o-color-1 → 5</code></h2>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="hs-card-body">
@@ -1308,7 +1308,7 @@
             <div class="hs-card">
               <details>
                 <summary class="scaffold-theme-summary">
-                  <h2 class="hs-card-title"><span class="card-index">B</span>Couleurs sémantiques</h2>
+                  <h2 class="hs-card-title"><span class="card-index">B</span>Semantic colors</h2>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="hs-card-body">
@@ -1319,7 +1319,7 @@
             <div class="hs-card">
               <details>
                 <summary class="scaffold-theme-summary">
-                  <h2 class="hs-card-title"><span class="card-index">C</span>Gris</h2>
+                  <h2 class="hs-card-title"><span class="card-index">C</span>Grays</h2>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="hs-card-body">
@@ -1333,17 +1333,17 @@
             <div class="hs-card">
               <details open>
                 <summary class="scaffold-theme-summary">
-                  <h2 class="hs-card-title"><span class="card-index">D</span>Typographie</h2>
+                  <h2 class="hs-card-title"><span class="card-index">D</span>Typography</h2>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="hs-card-body">
                   <div class="grid-2">
                     <div class="hs-field">
-                      <label class="hs-label" for="scaffoldFont">Police de base</label>
+                      <label class="hs-label" for="scaffoldFont">Base font</label>
                       <select id="scaffoldFont" class="hs-select full"></select>
                     </div>
                     <div class="hs-field">
-                      <label class="hs-label" for="scaffoldHeadingsFont">Titres</label>
+                      <label class="hs-label" for="scaffoldHeadingsFont">Headings</label>
                       <select id="scaffoldHeadingsFont" class="hs-select full"></select>
                     </div>
                     <div class="hs-field">
@@ -1351,7 +1351,7 @@
                       <select id="scaffoldNavbarFont" class="hs-select full"></select>
                     </div>
                     <div class="hs-field">
-                      <label class="hs-label" for="scaffoldButtonsFont">Boutons</label>
+                      <label class="hs-label" for="scaffoldButtonsFont">Buttons</label>
                       <select id="scaffoldButtonsFont" class="hs-select full"></select>
                     </div>
                   </div>
@@ -1361,7 +1361,7 @@
             <div class="hs-card">
               <details>
                 <summary class="scaffold-theme-summary">
-                  <h2 class="hs-card-title"><span class="card-index">E</span>Layout, boutons &amp; header</h2>
+                  <h2 class="hs-card-title"><span class="card-index">E</span>Layout, buttons &amp; header</h2>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="hs-card-body">
@@ -1376,15 +1376,15 @@
                       </select>
                     </div>
                     <div class="hs-field">
-                      <label class="hs-label" for="scaffoldLinkUnderline">Soulignement liens</label>
+                      <label class="hs-label" for="scaffoldLinkUnderline">Link underline</label>
                       <select id="scaffoldLinkUnderline" class="hs-select full">
                         <option value="hover">Hover</option>
-                        <option value="never">Jamais</option>
-                        <option value="always">Toujours</option>
+                        <option value="never">Never</option>
+                        <option value="always">Always</option>
                       </select>
                     </div>
                     <div class="hs-field">
-                      <label class="hs-label" for="scaffoldHeaderLinksStyle">Style liens header</label>
+                      <label class="hs-label" for="scaffoldHeaderLinksStyle">Header link style</label>
                       <select id="scaffoldHeaderLinksStyle" class="hs-select full">
                         <option value="default">Default</option>
                         <option value="fill">Fill</option>
@@ -1397,23 +1397,23 @@
                       </select>
                     </div>
                     <div class="hs-field">
-                      <label class="hs-label" for="scaffoldHeaderFontSize">Taille header</label>
+                      <label class="hs-label" for="scaffoldHeaderFontSize">Header font size</label>
                       <input type="text" id="scaffoldHeaderFontSize" class="hs-input mono" placeholder="1rem">
                     </div>
                     <div class="hs-field">
-                      <label class="hs-label" for="scaffoldLogoHeight">Hauteur logo</label>
+                      <label class="hs-label" for="scaffoldLogoHeight">Logo height</label>
                       <input type="text" id="scaffoldLogoHeight" class="hs-input mono" placeholder="1.5rem">
                     </div>
                     <div class="hs-field">
-                      <label class="hs-label" for="scaffoldBtnRadiusLg">Radius bouton LG</label>
+                      <label class="hs-label" for="scaffoldBtnRadiusLg">LG button radius</label>
                       <input type="text" id="scaffoldBtnRadiusLg" class="hs-input mono" placeholder="2rem">
                     </div>
                     <div class="hs-field">
-                      <label class="hs-label" for="scaffoldMenuColor">Menu (o_cc n°)</label>
+                      <label class="hs-label" for="scaffoldMenuColor">Menu (o_cc no.)</label>
                       <input type="number" id="scaffoldMenuColor" class="hs-input mono" min="1" max="5" value="2">
                     </div>
                     <div class="hs-field">
-                      <label class="hs-label" for="scaffoldFooterColor">Footer (o_cc n°)</label>
+                      <label class="hs-label" for="scaffoldFooterColor">Footer (o_cc no.)</label>
                       <input type="number" id="scaffoldFooterColor" class="hs-input mono" min="1" max="5" value="5">
                     </div>
                   </div>
@@ -1428,22 +1428,22 @@
       <div class="scaffold-step-panel" data-step="4">
         <div class="hs-card card-cta">
           <div class="hs-card-header">
-            <h2 class="hs-card-title"><span class="card-index">05</span>Générer le module</h2>
+            <h2 class="hs-card-title"><span class="card-index">05</span>Generate the module</h2>
           </div>
           <div class="hs-card-body fields">
             <div class="hs-field">
-              <label class="hs-label" for="scaffoldOutputPath">Dossier de destination</label>
-              <p class="hs-hint">Le module sera créé dans ce dossier (ex. votre addons_path client)</p>
+              <label class="hs-label" for="scaffoldOutputPath">Destination folder</label>
+              <p class="hs-hint">The module will be created in this folder (e.g. your client's addons_path)</p>
               <div class="field-with-browse">
                 <input type="text" id="scaffoldOutputPath" class="hs-input mono" placeholder="/Users/odoo/odoo/psbe-acme" spellcheck="false">
-                <button type="button" class="hs-btn hs-btn-secondary" id="btnScaffoldBrowseOutput">Parcourir</button>
+                <button type="button" class="hs-btn hs-btn-secondary" id="btnScaffoldBrowseOutput">Browse</button>
               </div>
             </div>
             <div class="scaffold-preview-module" id="scaffoldFinalPreview"></div>
             <div class="row">
               <button type="button" class="hs-btn hs-btn-cta" id="btnScaffoldGenerate">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/></svg>
-                Créer le module
+                Create module
               </button>
               <span class="status" id="scaffoldStatus"></span>
             </div>
@@ -1454,10 +1454,10 @@
       <div class="scaffold-nav-actions">
         <button type="button" class="hs-btn hs-btn-secondary" id="btnScaffoldPrev" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
-          Précédent
+          Previous
         </button>
         <button type="button" class="hs-btn hs-btn-primary" id="btnScaffoldNext">
-          Suivant
+          Next
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
         </button>
       </div>
@@ -1469,11 +1469,11 @@
       <div class="layout layout-aside-main">
         <div class="hs-card reveal" id="secTranslateForm">
           <div class="hs-card-header">
-            <h2 class="hs-card-title"><span class="card-index">01</span>Génération</h2>
+            <h2 class="hs-card-title"><span class="card-index">01</span>Generation</h2>
           </div>
           <div class="hs-card-body fields">
             <div class="hs-field">
-              <label class="hs-label" for="translateDatabase">Base de données</label>
+              <label class="hs-label" for="translateDatabase">Database</label>
               <select id="translateDatabase" class="hs-select full"></select>
             </div>
             <div class="hs-field">
@@ -1482,27 +1482,27 @@
             </div>
             <div class="grid-2">
               <div class="hs-field">
-                <label class="hs-label" for="translateVersion">Version Odoo</label>
+                <label class="hs-label" for="translateVersion">Odoo version</label>
                 <select id="translateVersion" class="hs-select full">
                   <option value="18">18</option>
                   <option value="19">19</option>
                 </select>
               </div>
               <div class="hs-field">
-                <label class="hs-label" for="translateLang">Langue cible</label>
+                <label class="hs-label" for="translateLang">Target language</label>
                 <input type="text" id="translateLang" class="hs-input mono" placeholder="fr_FR" spellcheck="false">
               </div>
             </div>
             <div class="hs-field">
-              <label class="hs-label" for="translateOutputPath">Dossier de sortie</label>
+              <label class="hs-label" for="translateOutputPath">Output folder</label>
               <div class="field-with-browse">
                 <input type="text" id="translateOutputPath" class="hs-input mono" placeholder="~/Desktop" spellcheck="false">
-                <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="translateOutputPath" data-type="folder" data-prompt="Choisir le dossier de sortie">Parcourir</button>
+                <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="translateOutputPath" data-type="folder" data-prompt="Choose the output folder">Browse</button>
               </div>
             </div>
           </div>
           <div class="hs-card-footer">
-            <button class="hs-btn hs-btn-cta" id="btnGenerateTranslation">Générer la traduction</button>
+            <button class="hs-btn hs-btn-cta" id="btnGenerateTranslation">Generate translation</button>
             <span class="status" id="translateStatus"></span>
             <span class="hs-hint" id="translateElapsed" style="margin:0;"></span>
           </div>
@@ -1511,7 +1511,7 @@
         <div class="hs-card reveal" id="translateTerminalCard" style="display:none;">
           <div class="hs-card-header">
             <h2 class="hs-card-title"><span class="terminal-dots"><i></i><i></i><i></i></span>Terminal</h2>
-            <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnCopyTranslateTerminal">Copier</button>
+            <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnCopyTranslateTerminal">Copy</button>
           </div>
           <div class="hs-card-body">
             <pre id="translateTerminal" class="terminal"></pre>
@@ -1525,36 +1525,36 @@
 
       <div class="settings-grid">
         <nav class="settings-toc reveal" id="settingsToc">
-          <button type="button" data-jump="secSetPaths"><span>01</span>Chemins &amp; terminal</button>
-          <button type="button" data-jump="secSetAi"><span>02</span>Intelligence artificielle</button>
-          <button type="button" data-jump="secSetPerms"><span>03</span>Permissions macOS</button>
+          <button type="button" data-jump="secSetPaths"><span>01</span>Paths &amp; terminal</button>
+          <button type="button" data-jump="secSetAi"><span>02</span>Artificial intelligence</button>
+          <button type="button" data-jump="secSetPerms"><span>03</span>macOS permissions</button>
           <button type="button" data-jump="secSetDiag"><span>04</span>Diagnostic</button>
-          <button type="button" data-jump="secSetAbout"><span>05</span>À propos</button>
+          <button type="button" data-jump="secSetAbout"><span>05</span>About</button>
         </nav>
 
         <div class="stack">
           <div class="hs-card reveal" id="secSetPaths">
             <div class="hs-card-header">
-              <h2 class="hs-card-title"><span class="card-index">01</span>Chemins &amp; terminal</h2>
+              <h2 class="hs-card-title"><span class="card-index">01</span>Paths &amp; terminal</h2>
             </div>
             <div class="hs-card-body fields">
               <div class="grid-2">
                 <div class="hs-field">
                   <label class="hs-label" for="odooCommunityPath">Odoo Community</label>
-                  <p class="hs-hint">Dossier contenant odoo-bin</p>
+                  <p class="hs-hint">Folder containing odoo-bin</p>
                   <div class="field-with-browse">
                     <input type="text" id="odooCommunityPath" class="hs-input mono" placeholder="~/odoo/core" spellcheck="false">
-                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="odooCommunityPath" data-type="folder" data-prompt="Choisir le dossier Odoo Community" title="Parcourir">
+                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="odooCommunityPath" data-type="folder" data-prompt="Choose the Odoo Community folder" title="Browse">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
                     </button>
                   </div>
                 </div>
                 <div class="hs-field">
                   <label class="hs-label" for="odooEnterprisePath">Odoo Enterprise</label>
-                  <p class="hs-hint">Dossier enterprise</p>
+                  <p class="hs-hint">Enterprise folder</p>
                   <div class="field-with-browse">
                     <input type="text" id="odooEnterprisePath" class="hs-input mono" placeholder="~/odoo/enterprise" spellcheck="false">
-                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="odooEnterprisePath" data-type="folder" data-prompt="Choisir le dossier Odoo Enterprise" title="Parcourir">
+                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="odooEnterprisePath" data-type="folder" data-prompt="Choose the Odoo Enterprise folder" title="Browse">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
                     </button>
                   </div>
@@ -1562,11 +1562,11 @@
               </div>
 
               <div class="hs-field">
-                <label class="hs-label" for="scriptsPath">Dossier des scripts</label>
-                <p class="hs-hint">Un ou plusieurs chemins, séparés par une virgule</p>
+                <label class="hs-label" for="scriptsPath">Scripts folder</label>
+                <p class="hs-hint">One or more paths, comma-separated</p>
                 <div class="field-with-browse">
-                  <input type="text" id="scriptsPath" class="hs-input mono" placeholder="~/Scripts ou /chemin/vers/scripts" spellcheck="false">
-                  <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="scriptsPath" data-type="folder" data-prompt="Choisir le dossier des scripts" title="Parcourir">
+                  <input type="text" id="scriptsPath" class="hs-input mono" placeholder="~/Scripts or /path/to/scripts" spellcheck="false">
+                  <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="scriptsPath" data-type="folder" data-prompt="Choose the scripts folder" title="Browse">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
                   </button>
                 </div>
@@ -1574,21 +1574,21 @@
 
               <div class="grid-2">
                 <div class="hs-field">
-                  <label class="hs-label" for="pyenvRoot">Racine pyenv</label>
-                  <p class="hs-hint">Contient versions/ (odoo-18, odoo-19…)</p>
+                  <label class="hs-label" for="pyenvRoot">pyenv root</label>
+                  <p class="hs-hint">Contains versions/ (odoo-18, odoo-19…)</p>
                   <div class="field-with-browse">
                     <input type="text" id="pyenvRoot" class="hs-input mono" placeholder="~/.pyenv" spellcheck="false">
-                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="pyenvRoot" data-type="folder" data-prompt="Choisir la racine pyenv" title="Parcourir">
+                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="pyenvRoot" data-type="folder" data-prompt="Choose the pyenv root" title="Browse">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
                     </button>
                   </div>
                 </div>
                 <div class="hs-field">
-                  <label class="hs-label" for="psqlPath">Chemin psql</label>
-                  <p class="hs-hint">Vide = auto-détection</p>
+                  <label class="hs-label" for="psqlPath">psql path</label>
+                  <p class="hs-hint">Empty = auto-detect</p>
                   <div class="field-with-browse">
                     <input type="text" id="psqlPath" class="hs-input mono" placeholder="auto" spellcheck="false">
-                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="psqlPath" data-type="file" data-prompt="Choisir le fichier psql" title="Parcourir">
+                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="psqlPath" data-type="file" data-prompt="Choose the psql file" title="Browse">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6"/></svg>
                     </button>
                   </div>
@@ -1600,7 +1600,7 @@
               <div class="grid-2">
                 <div class="hs-field">
                   <label class="hs-label" for="terminalApp">Terminal</label>
-                  <p class="hs-hint">Pour lancer Odoo et les scripts</p>
+                  <p class="hs-hint">Used to launch Odoo and scripts</p>
                   <select id="terminalApp" class="hs-select full">
                     <option value="Warp">Warp</option>
                     <option value="Terminal">Terminal</option>
@@ -1608,29 +1608,29 @@
                   </select>
                 </div>
                 <div class="hs-field">
-                  <label class="hs-label" for="odooHttpPort">Port HTTP Odoo</label>
-                  <p class="hs-hint">8069 par défaut</p>
+                  <label class="hs-label" for="odooHttpPort">Odoo HTTP port</label>
+                  <p class="hs-hint">8069 by default</p>
                   <input type="number" id="odooHttpPort" class="hs-input mono" min="1024" max="65535" placeholder="8069">
                 </div>
               </div>
             </div>
             <div class="hs-card-footer">
-              <button class="hs-btn hs-btn-primary" id="btnSaveConfig">Enregistrer</button>
+              <button class="hs-btn hs-btn-primary" id="btnSaveConfig">Save</button>
               <span class="status" id="configStatus"></span>
             </div>
           </div>
 
           <div class="hs-card reveal" id="secSetAi">
             <div class="hs-card-header">
-              <h2 class="hs-card-title"><span class="card-index">02</span>Intelligence artificielle</h2>
+              <h2 class="hs-card-title"><span class="card-index">02</span>Artificial intelligence</h2>
             </div>
             <div class="hs-card-body fields">
-              <p class="hs-hint" style="margin:0;">Comment l'app appelle une IA (ex. pour l'onglet Traduction).</p>
+              <p class="hs-hint" style="margin:0;">How the app calls an AI (e.g. for the Translation tab).</p>
               <div class="hs-field">
                 <label class="hs-label" for="aiMode">Mode</label>
                 <select id="aiMode" class="hs-select full">
-                  <option value="api_key">Clé API (Anthropic, OpenAI, Gemini)</option>
-                  <option value="claude_cli">Claude Code (CLI déjà connecté)</option>
+                  <option value="api_key">API key (Anthropic, OpenAI, Gemini)</option>
+                  <option value="claude_cli">Claude Code (CLI already signed in)</option>
                 </select>
               </div>
 
@@ -1641,22 +1641,22 @@
                     <select id="aiApiProvider" class="hs-select full"></select>
                   </div>
                   <div class="hs-field">
-                    <label class="hs-label" for="aiApiKey">Clé API</label>
+                    <label class="hs-label" for="aiApiKey">API key</label>
                     <input type="password" id="aiApiKey" class="hs-input mono" placeholder="sk-...">
                   </div>
                 </div>
-                <p class="hs-hint" style="margin:-6px 0 0;">Stockée dans le Trousseau macOS, jamais en clair sur le disque.</p>
+                <p class="hs-hint" style="margin:-6px 0 0;">Stored in the macOS Keychain, never in plain text on disk.</p>
                 <div class="row">
-                  <button type="button" class="hs-btn hs-btn-primary" id="btnValidateApiKey">Valider</button>
+                  <button type="button" class="hs-btn hs-btn-primary" id="btnValidateApiKey">Validate</button>
                   <span class="status" id="aiApiKeyStatus"></span>
                 </div>
               </div>
 
               <div id="aiClaudeCliFields" style="display:none;flex-direction:column;gap:14px;">
-                <p class="hs-hint" id="aiClaudeCliInfo" style="margin:0;">Vérification en cours…</p>
+                <p class="hs-hint" id="aiClaudeCliInfo" style="margin:0;">Checking…</p>
                 <div class="row">
-                  <button type="button" class="hs-btn hs-btn-secondary" id="btnInstallClaudeCli" style="display:none;">Installer Claude Code</button>
-                  <button type="button" class="hs-btn hs-btn-primary" id="btnValidateClaudeCli">Vérifier / Valider</button>
+                  <button type="button" class="hs-btn hs-btn-secondary" id="btnInstallClaudeCli" style="display:none;">Install Claude Code</button>
+                  <button type="button" class="hs-btn hs-btn-primary" id="btnValidateClaudeCli">Check / Validate</button>
                   <span class="status" id="aiClaudeCliStatus"></span>
                 </div>
               </div>
@@ -1665,16 +1665,16 @@
 
           <div class="hs-card reveal" id="secSetPerms">
             <div class="hs-card-header">
-              <h2 class="hs-card-title"><span class="card-index">03</span>Permissions macOS <code>Warp</code></h2>
+              <h2 class="hs-card-title"><span class="card-index">03</span>macOS permissions <code>Warp</code></h2>
             </div>
             <div class="hs-card-body fields">
               <p class="hs-hint" style="margin:0;">
-                Si Warp s'ouvre mais qu'aucune commande ne se lance à la création d'une base, il manque probablement une de ces deux permissions.
-                Cliquez sur le bouton, puis cochez la case dans les Réglages Système (relancez l'app si besoin).
+                If Warp opens but no command runs when creating a database, one of these two permissions is probably missing.
+                Click the button, then tick the checkbox in System Settings (relaunch the app if needed).
               </p>
               <div class="row">
-                <button type="button" class="hs-btn hs-btn-secondary" id="btnOpenAccessibility">Vérifier Accessibilité</button>
-                <button type="button" class="hs-btn hs-btn-secondary" id="btnOpenAutomation">Vérifier Automatisation</button>
+                <button type="button" class="hs-btn hs-btn-secondary" id="btnOpenAccessibility">Check Accessibility</button>
+                <button type="button" class="hs-btn hs-btn-secondary" id="btnOpenAutomation">Check Automation</button>
                 <span class="status" id="permissionsStatus"></span>
               </div>
             </div>
@@ -1687,20 +1687,20 @@
             <div class="hs-card-body fields">
               <div class="fields" style="gap:10px;">
                 <p class="hs-hint" style="margin:0;">
-                  Ouvre le terminal choisi et vérifie tous les prérequis : git, psql, createdb/dropdb, pyenv, environnements pyenv, chemins Odoo, PostgreSQL.
+                  Opens the selected terminal and checks all prerequisites: git, psql, createdb/dropdb, pyenv, pyenv environments, Odoo paths, PostgreSQL.
                 </p>
                 <div class="row">
-                  <button type="button" class="hs-btn hs-btn-primary" id="btnCheckPrereqs">Vérifier les prérequis</button>
+                  <button type="button" class="hs-btn hs-btn-primary" id="btnCheckPrereqs">Check prerequisites</button>
                   <span class="status" id="prereqsStatus"></span>
                 </div>
               </div>
               <hr class="divider">
               <div class="fields" style="gap:10px;">
                 <p class="hs-hint" style="margin:0;">
-                  Si le « global env » pyenv n'a aucun effet dans un terminal classique, l'init de pyenv (<code>eval "$(pyenv init -)"</code>) manque souvent dans le profil shell. Ce bouton l'ajoute si besoin.
+                  If the pyenv "global env" has no effect in a regular terminal, the pyenv init (<code>eval "$(pyenv init -)"</code>) is often missing from the shell profile. This button adds it if needed.
                 </p>
                 <div class="row">
-                  <button type="button" class="hs-btn hs-btn-secondary" id="btnFixPyenvInit">Réparer l'init pyenv du shell</button>
+                  <button type="button" class="hs-btn hs-btn-secondary" id="btnFixPyenvInit">Fix shell pyenv init</button>
                   <span class="status" id="pyenvInitFixStatus"></span>
                 </div>
               </div>
@@ -1714,7 +1714,7 @@
                   <div class="brand-mark"><svg viewBox="0 0 155 157"><use href="#tt-icon"/></svg></div>
                   <div>
                     <strong>Odoo DB Manager</strong>
-                    <div class="hs-hint" style="margin:2px 0 0;">Un outil <a href="https://tocotools.odoo.com" target="_blank" rel="noopener" style="color:var(--tt-red-hot);text-decoration:none;">tocotools</a> · mises à jour en un clic</div>
+                    <div class="hs-hint" style="margin:2px 0 0;">A <a href="https://tocotools.odoo.com" target="_blank" rel="noopener" style="color:var(--tt-red-hot);text-decoration:none;">tocotools</a> tool · one-click updates</div>
                   </div>
                 </div>
                 <span class="chip"><span class="dot"></span>Version {{ app_version }}</span>
@@ -1741,7 +1741,7 @@
     <div class="modal-card">
       <div class="modal-head">
         <h3 class="modal-title" id="scriptModalTitle">Script DB</h3>
-        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnCloseScriptModal" style="width:32px;padding:0;" aria-label="Fermer">
+        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnCloseScriptModal" style="width:32px;padding:0;" aria-label="Close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 18 18 6M6 6l12 12"/></svg>
         </button>
       </div>
@@ -1760,8 +1760,8 @@
         </div>
       </div>
       <div class="modal-actions">
-        <button class="hs-btn hs-btn-secondary" id="btnCancelScriptModal">Annuler</button>
-        <button class="hs-btn hs-btn-primary" id="btnSaveScriptModal">Enregistrer</button>
+        <button class="hs-btn hs-btn-secondary" id="btnCancelScriptModal">Cancel</button>
+        <button class="hs-btn hs-btn-primary" id="btnSaveScriptModal">Save</button>
       </div>
     </div>
   </div>
@@ -1769,21 +1769,21 @@
   <div id="duplicateModal" class="modal-backdrop">
     <div class="modal-card">
       <div class="modal-head">
-        <h3 class="modal-title" id="duplicateModalTitle">Dupliquer une base</h3>
-        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnCloseDuplicateModal" style="width:32px;padding:0;" aria-label="Fermer">
+        <h3 class="modal-title" id="duplicateModalTitle">Duplicate a database</h3>
+        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnCloseDuplicateModal" style="width:32px;padding:0;" aria-label="Close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 18 18 6M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="modal-body">
         <div class="hs-field">
-          <label class="hs-label" for="duplicateNewName">Nom de la nouvelle base</label>
-          <input type="text" id="duplicateNewName" class="hs-input mono" placeholder="ma_base_copie" spellcheck="false">
+          <label class="hs-label" for="duplicateNewName">New database name</label>
+          <input type="text" id="duplicateNewName" class="hs-input mono" placeholder="my_database_copy" spellcheck="false">
           <span class="hs-status" id="duplicateStatus"></span>
         </div>
       </div>
       <div class="modal-actions">
-        <button class="hs-btn hs-btn-secondary" id="btnCancelDuplicateModal">Annuler</button>
-        <button class="hs-btn hs-btn-primary" id="btnConfirmDuplicateModal">Dupliquer</button>
+        <button class="hs-btn hs-btn-secondary" id="btnCancelDuplicateModal">Cancel</button>
+        <button class="hs-btn hs-btn-primary" id="btnConfirmDuplicateModal">Duplicate</button>
       </div>
     </div>
   </div>
@@ -1791,21 +1791,21 @@
   <div id="portModal" class="modal-backdrop">
     <div class="modal-card">
       <div class="modal-head">
-        <h3 class="modal-title" id="portModalTitle">Modifier le port</h3>
-        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnClosePortModal" style="width:32px;padding:0;" aria-label="Fermer">
+        <h3 class="modal-title" id="portModalTitle">Change port</h3>
+        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnClosePortModal" style="width:32px;padding:0;" aria-label="Close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 18 18 6M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="modal-body">
         <div class="hs-field">
-          <label class="hs-label" for="portModalInput">Port HTTP</label>
+          <label class="hs-label" for="portModalInput">HTTP port</label>
           <input type="number" id="portModalInput" class="hs-input mono" min="1024" max="65535" step="1">
           <span class="hs-status" id="portModalStatus"></span>
         </div>
       </div>
       <div class="modal-actions">
-        <button class="hs-btn hs-btn-secondary" id="btnCancelPortModal">Annuler</button>
-        <button class="hs-btn hs-btn-primary" id="btnConfirmPortModal">Enregistrer</button>
+        <button class="hs-btn hs-btn-secondary" id="btnCancelPortModal">Cancel</button>
+        <button class="hs-btn hs-btn-primary" id="btnConfirmPortModal">Save</button>
       </div>
     </div>
   </div>
@@ -1828,10 +1828,7 @@
         document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
         t.classList.add('active');
         $(tabIds[t.dataset.tab]).classList.add('active');
-        if (t.dataset.tab === 'databases') {
-          loadScriptsPath();
-          loadDatabases();
-        }
+        if (t.dataset.tab === 'databases') loadDatabases();
         if (t.dataset.tab === 'settings' || t.dataset.tab === 'create') loadConfig();
         if (t.dataset.tab === 'settings') loadAiConfig();
         if (t.dataset.tab === 'scaffold') initScaffoldWizard();
@@ -1920,7 +1917,7 @@
           document.body.classList.remove('has-update-banner');
           return;
         }
-        text.innerHTML = `<strong>Mise à jour disponible</strong> (vous avez ${escapeHtml(d.current_version || '')})`;
+        text.innerHTML = `<strong>Update available</strong> (you have ${escapeHtml(d.current_version || '')})`;
         banner.classList.add('show');
         document.body.classList.add('has-update-banner');
       } catch (_) {
@@ -1932,17 +1929,17 @@
     $('btnApplyAppUpdate').onclick = async () => {
       const btn = $('btnApplyAppUpdate');
       btn.disabled = true;
-      btn.textContent = 'Mise à jour…';
+      btn.textContent = 'Updating…';
       try {
         const r = await fetch('/api/app/update', { method: 'POST' });
         const d = await r.json();
-        if (!d.ok) throw new Error(d.error || 'Échec de la mise à jour');
-        $('appUpdateBannerText').innerHTML = "<strong>Mise à jour en cours</strong> : l'app va redémarrer toute seule.";
+        if (!d.ok) throw new Error(d.error || 'Update failed');
+        $('appUpdateBannerText').innerHTML = "<strong>Updating</strong>: the app will restart on its own.";
         btn.style.display = 'none';
       } catch (e) {
-        $('appUpdateBannerText').innerHTML = `<strong>La mise à jour a échoué</strong> : ${escapeHtml(e.message)}`;
+        $('appUpdateBannerText').innerHTML = `<strong>Update failed</strong>: ${escapeHtml(e.message)}`;
         btn.disabled = false;
-        btn.textContent = 'Réessayer';
+        btn.textContent = 'Retry';
       }
     };
 
@@ -2009,13 +2006,13 @@
         $('aiClaudeCliFields').style.display = mode === 'claude_cli' ? 'flex' : 'none';
 
         $('aiApiKey').value = '';
-        $('aiApiKey').placeholder = d.has_api_key ? '•••••••• (déjà enregistrée)' : 'sk-...';
+        $('aiApiKey').placeholder = d.has_api_key ? '•••••••• (already saved)' : 'sk-...';
 
         const cli = d.claude_cli || { installed: false };
         $('btnInstallClaudeCli').style.display = cli.installed ? 'none' : '';
         $('aiClaudeCliInfo').textContent = cli.installed
-          ? `Claude Code CLI détecté (${cli.path}).`
-          : 'Claude Code CLI introuvable sur cette machine.';
+          ? `Claude Code CLI found (${cli.path}).`
+          : 'Claude Code CLI not found on this machine.';
 
         const tab = $('tabTranslation');
         const subNav = $('tabTranslationSubNav');
@@ -2037,12 +2034,12 @@
       const provider = $('aiApiProvider').value;
       const api_key = $('aiApiKey').value.trim();
       if (!api_key) {
-        s.textContent = 'Entrez une clé API.';
+        s.textContent = 'Enter an API key.';
         s.className = 'status warn';
         return;
       }
       btn.disabled = true;
-      s.textContent = 'Validation en cours…';
+      s.textContent = 'Validating…';
       s.className = 'status';
       try {
         const r = await fetch('/api/ai/api-key', {
@@ -2051,7 +2048,7 @@
           body: JSON.stringify({ provider, api_key })
         });
         const d = await r.json();
-        s.textContent = d.message || (d.ok ? 'Validée.' : 'Erreur');
+        s.textContent = d.message || (d.ok ? 'Validated.' : 'Error');
         s.className = 'status ' + (d.ok ? 'ok' : 'warn');
         if (d.ok) await loadAiConfig();
       } catch (e) {
@@ -2069,7 +2066,7 @@
       try {
         const r = await fetch('/api/ai/claude-cli/install', { method: 'POST' });
         const d = await r.json();
-        s.textContent = d.message || (d.ok ? 'Terminal ouvert.' : 'Erreur');
+        s.textContent = d.message || (d.ok ? 'Terminal opened.' : 'Error');
         s.className = 'status ' + (d.ok ? 'ok' : 'warn');
       } catch (e) {
         s.textContent = e.message;
@@ -2083,12 +2080,12 @@
       const btn = $('btnValidateClaudeCli');
       const s = $('aiClaudeCliStatus');
       btn.disabled = true;
-      s.textContent = 'Vérification en cours…';
+      s.textContent = 'Checking…';
       s.className = 'status';
       try {
         const r = await fetch('/api/ai/claude-cli/validate', { method: 'POST' });
         const d = await r.json();
-        s.textContent = d.message || (d.ok ? 'OK' : 'Erreur');
+        s.textContent = d.message || (d.ok ? 'OK' : 'Error');
         s.className = 'status ' + (d.ok ? 'ok' : 'warn');
         await loadAiConfig();
       } catch (e) {
@@ -2147,7 +2144,7 @@
       const text = $('translateTerminal').textContent;
       try {
         await navigator.clipboard.writeText(text);
-        showToast('Copié dans le presse-papier', 'success');
+        showToast('Copied to clipboard', 'success');
       } catch (e) {
         const range = document.createRange();
         range.selectNodeContents($('translateTerminal'));
@@ -2170,10 +2167,10 @@
     function translateElapsedStart() {
       const startedAt = Date.now();
       const el = $('translateElapsed');
-      el.textContent = '0s écoulées';
+      el.textContent = '0s elapsed';
       translateElapsedTimer = setInterval(() => {
         const s = Math.round((Date.now() - startedAt) / 1000);
-        el.textContent = (s < 60 ? `${s}s` : `${Math.floor(s / 60)}min${String(s % 60).padStart(2, '0')}`) + ' écoulées';
+        el.textContent = (s < 60 ? `${s}s` : `${Math.floor(s / 60)}min${String(s % 60).padStart(2, '0')}`) + ' elapsed';
       }, 1000);
     }
 
@@ -2193,7 +2190,7 @@
       const lang = $('translateLang').value.trim();
       const output_dir = $('translateOutputPath').value.trim();
       if (!database || !module || !lang) {
-        s.textContent = 'Base, module et langue requis.';
+        s.textContent = 'Database, module and language are required.';
         s.className = 'status warn';
         return;
       }
@@ -2204,7 +2201,7 @@
       $('translateTerminalCard').style.display = '';
       $('translateTerminal').textContent = '';
       btn.disabled = true;
-      s.textContent = 'Génération en cours (export .po puis appel IA)…';
+      s.textContent = 'Generating (.po export, then AI call)…';
       s.className = 'status';
       translateElapsedStop();
       translateElapsedStart();
@@ -2217,7 +2214,7 @@
         const d = await r.json();
         if (!d.ok || !d.job_id) {
           translateElapsedStop();
-          s.textContent = d.message || 'Erreur';
+          s.textContent = d.message || 'Error';
           s.className = 'status warn';
           btn.disabled = false;
           return;
@@ -2234,9 +2231,9 @@
               translatePollTimer = null;
               translateElapsedStop();
               btn.disabled = false;
-              s.textContent = pd.message || (pd.ok ? 'Terminé.' : 'Erreur');
+              s.textContent = pd.message || (pd.ok ? 'Done.' : 'Error');
               s.className = 'status ' + (pd.ok ? 'ok' : 'warn');
-              if (pd.ok) showToast(pd.message || 'Traduction générée', 'success');
+              if (pd.ok) showToast(pd.message || 'Translation generated', 'success');
             }
           } catch (e) {
             clearInterval(translatePollTimer);
@@ -2262,7 +2259,7 @@
       if (!rootSel || !subSel) return;
       const dir = rootSel.value.trim();
       if (!dir) {
-        subSel.innerHTML = '<option value="">Racine du dossier</option>';
+        subSel.innerHTML = '<option value="">Folder root</option>';
         if (emptyMsg) emptyMsg.hidden = true;
         return;
       }
@@ -2271,11 +2268,11 @@
         const d = await r.json();
         const subdirs = (d.ok && d.subdirs) ? d.subdirs : [];
         subSel.innerHTML =
-          '<option value="">Racine du dossier</option>' +
+          '<option value="">Folder root</option>' +
           subdirs.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
         if (emptyMsg) emptyMsg.hidden = subdirs.length > 0;
       } catch (_) {
-        subSel.innerHTML = '<option value="">Racine du dossier</option>';
+        subSel.innerHTML = '<option value="">Folder root</option>';
         if (emptyMsg) emptyMsg.hidden = false;
       }
     }
@@ -2289,7 +2286,7 @@
       btn.onclick = async () => {
         const target = btn.dataset.target;
         const type = btn.dataset.type || 'folder';
-        const prompt = btn.dataset.prompt || 'Choisir';
+        const prompt = btn.dataset.prompt || 'Choose';
         const s = $('configStatus');
         const url = type === 'file' ? '/api/browse-file' : '/api/browse-folder';
         try {
@@ -2303,12 +2300,12 @@
             $(target).value = d.path;
             s.textContent = '';
           } else {
-            s.textContent = d.message || 'Annulé';
+            s.textContent = d.message || 'Cancelled';
             s.className = 'status warn';
             setTimeout(() => { s.textContent = ''; }, 2000);
           }
         } catch (e) {
-          s.textContent = e.message || 'Erreur';
+          s.textContent = e.message || 'Error';
           s.className = 'status warn';
         }
       };
@@ -2334,13 +2331,13 @@
         });
         const d = await r.json();
         if (d.ok) {
-          s.textContent = 'Enregistré.';
+          s.textContent = 'Saved.';
           s.className = 'status ok';
           await loadConfig();
           await loadPyenvEnvs();
           if (typeof loadDatabases === 'function') loadDatabases();
         } else {
-          s.textContent = d.message || 'Erreur';
+          s.textContent = d.message || 'Error';
           s.className = 'status warn';
         }
       } catch (e) {
@@ -2356,7 +2353,7 @@
         const r = await fetch(`/api/db-exists?db=${encodeURIComponent(db)}`);
         const d = await r.json();
         const s = $('dbStatus');
-        s.textContent = d.exists ? '(existe)' : '(sera créée)';
+        s.textContent = d.exists ? '(exists)' : '(will be created)';
         s.className = 'status ' + (d.exists ? 'warn' : 'ok');
       } catch (_) { }
     }
@@ -2392,7 +2389,7 @@
       list.innerHTML = uniq.map(path => `
         <div class="addons-item" data-path="${escapeHtml(path)}">
           <span>${escapeHtml(path)}</span>
-          <button type="button" class="btn btn-secondary btn-sm btn-remove-addon" data-path="${escapeHtml(path)}">Supprimer</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-remove-addon" data-path="${escapeHtml(path)}">Remove</button>
         </div>
       `).join('');
       list.querySelectorAll('.btn-remove-addon').forEach(btn => {
@@ -2426,10 +2423,10 @@
         await navigator.clipboard.writeText(text);
         const btn = $('btnCopyLog');
         const orig = btn.textContent;
-        btn.textContent = 'Copié !';
+        btn.textContent = 'Copied!';
         setTimeout(() => { btn.textContent = orig; }, 1500);
       } catch (e) {
-        log('Copie impossible : ' + e.message, 'err');
+        log('Copy failed: ' + e.message, 'err');
       }
     };
 
@@ -2480,8 +2477,8 @@
 
     function openDuplicateModal(db) {
       duplicateModalState = { db };
-      $('duplicateModalTitle').textContent = `Dupliquer "${db}"`;
-      $('duplicateNewName').value = `${db}_copie`;
+      $('duplicateModalTitle').textContent = `Duplicate "${db}"`;
+      $('duplicateNewName').value = `${db}_copy`;
       $('duplicateStatus').textContent = '';
       $('duplicateStatus').className = 'hs-status';
       $('duplicateModal').classList.add('show');
@@ -2497,7 +2494,7 @@
       if (!duplicateModalState) return;
       const newName = $('duplicateNewName').value.trim();
       if (!newName) {
-        $('duplicateStatus').textContent = 'Indiquez un nom.';
+        $('duplicateStatus').textContent = 'Enter a name.';
         $('duplicateStatus').className = 'hs-status warn';
         return;
       }
@@ -2511,15 +2508,15 @@
         });
         const d = await r.json();
         if (d.ok) {
-          showToast(d.message || 'Base dupliquée', 'success');
+          showToast(d.message || 'Database duplicated', 'success');
           closeDuplicateModal();
           loadDatabases();
         } else {
-          $('duplicateStatus').textContent = d.message || 'Erreur';
+          $('duplicateStatus').textContent = d.message || 'Error';
           $('duplicateStatus').className = 'hs-status warn';
         }
       } catch (e) {
-        $('duplicateStatus').textContent = e.message || 'Erreur';
+        $('duplicateStatus').textContent = e.message || 'Error';
         $('duplicateStatus').className = 'hs-status warn';
       } finally {
         btn.disabled = false;
@@ -2537,7 +2534,7 @@
 
     async function openPortModal(db) {
       portModalState = { db };
-      $('portModalTitle').textContent = `Modifier le port de "${db}"`;
+      $('portModalTitle').textContent = `Change port for "${db}"`;
       $('portModalStatus').textContent = '';
       $('portModalStatus').className = 'hs-status';
       $('portModalInput').value = odooHttpPort;
@@ -2561,7 +2558,7 @@
       if (!portModalState) return;
       const port = parseInt($('portModalInput').value, 10);
       if (!port || port < 1024 || port > 65535) {
-        $('portModalStatus').textContent = 'Port invalide (1024-65535).';
+        $('portModalStatus').textContent = 'Invalid port (1024-65535).';
         $('portModalStatus').className = 'hs-status warn';
         return;
       }
@@ -2575,14 +2572,14 @@
         });
         const d = await r.json();
         if (d.ok) {
-          showToast(d.message || 'Port mis à jour', 'success');
+          showToast(d.message || 'Port updated', 'success');
           closePortModal();
         } else {
-          $('portModalStatus').textContent = d.message || 'Erreur';
+          $('portModalStatus').textContent = d.message || 'Error';
           $('portModalStatus').className = 'hs-status warn';
         }
       } catch (e) {
-        $('portModalStatus').textContent = e.message || 'Erreur';
+        $('portModalStatus').textContent = e.message || 'Error';
         $('portModalStatus').className = 'hs-status warn';
       } finally {
         btn.disabled = false;
@@ -2606,13 +2603,13 @@
         });
         const d = await r.json();
         if (!d.ok) {
-          alert(d.message || 'Erreur update script');
+          alert(d.message || 'Error updating script');
           return;
         }
         closeScriptModal();
-        showToast(`Script ${payload.db} mis à jour`, 'success');
+        showToast(`Script ${payload.db} updated`, 'success');
       } catch (e) {
-        alert(e.message || 'Erreur');
+        alert(e.message || 'Error');
       }
     };
 
@@ -2629,7 +2626,7 @@
         const r = await fetch('/api/browse-folder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: 'Choisir un dossier addons custom' })
+          body: JSON.stringify({ prompt: 'Choose a custom addons folder' })
         });
         const d = await r.json();
         if (d.ok && d.path) addCustomAddonPath(d.path);
@@ -2647,7 +2644,7 @@
         s.textContent = d.message || '';
         s.className = 'status ' + (d.ok ? 'ok' : 'warn');
       } catch (e) {
-        s.textContent = e.message || 'Erreur';
+        s.textContent = e.message || 'Error';
         s.className = 'status warn';
       } finally {
         btn.disabled = false;
@@ -2667,7 +2664,7 @@
         s.textContent = d.message || '';
         s.className = 'status ' + (d.ok ? 'ok' : 'warn');
       } catch (e) {
-        s.textContent = e.message || 'Erreur';
+        s.textContent = e.message || 'Error';
         s.className = 'status warn';
       } finally {
         btn.disabled = false;
@@ -2684,7 +2681,7 @@
         s.textContent = d.message || '';
         s.className = 'status ' + (d.ok ? 'ok' : 'warn');
       } catch (e) {
-        s.textContent = e.message || 'Erreur';
+        s.textContent = e.message || 'Error';
         s.className = 'status warn';
       } finally {
         btn.disabled = false;
@@ -2696,7 +2693,7 @@
     function updateCreateLock() {
       const waitingDump = $('importFromDump').checked && !dumpImported;
       $('btnCreate').disabled = waitingDump;
-      $('createHint').textContent = waitingDump ? "Importez d'abord le dump" : '';
+      $('createHint').textContent = waitingDump ? 'Import the dump first' : '';
     }
 
     $('importFromDump').onchange = () => {
@@ -2713,7 +2710,7 @@
     function setCreateStep(step) {
       if (step > 2 && createStep <= 2 && !$('dbName').value.trim()) {
         setCreateStep(2);
-        showToast('Indiquez un nom de base.', 'error');
+        showToast('Enter a database name.', 'error');
         $('dbName').focus();
         return;
       }
@@ -2748,7 +2745,7 @@
         const r = await fetch('/api/browse-file', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: 'Choisir le fichier dump.sql' })
+          body: JSON.stringify({ prompt: 'Choose the dump.sql file' })
         });
         const d = await r.json();
         if (d.ok && d.path) $('dumpPath').value = d.path;
@@ -2762,7 +2759,7 @@
         const r = await fetch('/api/browse-folder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: 'Choisir le dossier filestore' })
+          body: JSON.stringify({ prompt: 'Choose the filestore folder' })
         });
         const d = await r.json();
         if (d.ok && d.path) $('filestorePath').value = d.path;
@@ -2773,13 +2770,13 @@
 
     $('btnImportDump').onclick = async () => {
       const db = $('dbName').value.trim();
-      if (!db) { log('Indiquez un nom de base.', 'err'); return; }
+      if (!db) { log('Enter a database name.', 'err'); return; }
       const dumpPath = $('dumpPath').value.trim();
-      if (!dumpPath) { log('Indiquez le fichier dump.sql.', 'err'); return; }
+      if (!dumpPath) { log('Select the dump.sql file.', 'err'); return; }
 
       $('btnImportDump').disabled = true;
       clearLog();
-      log('--- Import du dump ---');
+      log('--- Importing dump ---');
 
       const body = {
         db,
@@ -2799,16 +2796,16 @@
         (d.log || []).forEach(line => log(line, line.startsWith('✗') ? 'err' : 'ok'));
         if (d.ok) {
           dumpImported = true;
-          $('dumpImportStatus').textContent = 'Dump importé';
+          $('dumpImportStatus').textContent = 'Dump imported';
           $('dumpImportStatus').className = 'status ok';
-          showToast(`Base ${db} importée depuis le dump : cliquez sur Créer`, 'success');
+          showToast(`Database ${db} imported from dump: click Create`, 'success');
           checkDbStatus();
           loadDatabases();
         } else {
-          $('dumpImportStatus').textContent = d.message || "Échec de l'import";
+          $('dumpImportStatus').textContent = d.message || 'Import failed';
           $('dumpImportStatus').className = 'status warn';
-          showToast(d.message || "Échec de l'import du dump", 'error');
-          log(d.message || 'Erreur', 'err');
+          showToast(d.message || 'Dump import failed', 'error');
+          log(d.message || 'Error', 'err');
         }
       } catch (e) {
         showToast(e.message, 'error');
@@ -2845,7 +2842,7 @@
         });
         const d = await r.json();
         log(d.message, d.ok ? 'ok' : 'err');
-        $('branchStatus').textContent = d.ok ? 'OK' : 'Erreur';
+        $('branchStatus').textContent = d.ok ? 'OK' : 'Error';
         $('branchStatus').className = 'status ' + (d.ok ? 'ok' : 'warn');
       } catch (e) { log(e.message, 'err'); }
     };
@@ -2862,7 +2859,7 @@
         $('branchStatusDb').textContent = d.message;
         $('branchStatusDb').className = 'status ' + (d.ok ? 'ok' : 'warn');
       } catch (e) {
-        $('branchStatusDb').textContent = e.message || 'Erreur';
+        $('branchStatusDb').textContent = e.message || 'Error';
         $('branchStatusDb').className = 'status warn';
       }
     };
@@ -2876,10 +2873,10 @@
           body: JSON.stringify({ branch })
         });
         const d = await r.json();
-        $('branchStatusDb').textContent = d.ok ? 'OK' : (d.message || 'Erreur');
+        $('branchStatusDb').textContent = d.ok ? 'OK' : (d.message || 'Error');
         $('branchStatusDb').className = 'status ' + (d.ok ? 'ok' : 'warn');
       } catch (e) {
-        $('branchStatusDb').textContent = e.message || 'Erreur';
+        $('branchStatusDb').textContent = e.message || 'Error';
         $('branchStatusDb').className = 'status warn';
       }
     };
@@ -2887,7 +2884,7 @@
     $('btnCheckUpdatesDb').onclick = async () => {
       const s = $('gitStatusDb');
       const a = $('gitAlertDb');
-      s.textContent = 'Vérification...';
+      s.textContent = 'Checking...';
       s.className = 'status';
       a.classList.remove('show');
       a.textContent = '';
@@ -2897,15 +2894,15 @@
         const core = (d.counts && Number(d.counts.core)) || 0;
         const enterprise = (d.counts && Number(d.counts.enterprise)) || 0;
         if (d.ok && core === 0 && enterprise === 0) {
-          s.textContent = 'Tout est à jour.';
+          s.textContent = 'Everything is up to date.';
           s.className = 'status ok';
           return;
         }
         s.textContent = '';
-        a.textContent = `Vous avez ${core} commits de retard dans core\nVous avez ${enterprise} commits de retard dans enterprise\n\nAppuyez sur pull pour mettre a jour`;
+        a.textContent = `You are ${core} commits behind in core\nYou are ${enterprise} commits behind in enterprise\n\nClick pull to update`;
         a.classList.add('show');
       } catch (e) {
-        s.textContent = e.message || 'Erreur';
+        s.textContent = e.message || 'Error';
         s.className = 'status warn';
       }
     };
@@ -2913,23 +2910,23 @@
     $('btnPullDb').onclick = async () => {
       const s = $('gitStatusDb');
       const a = $('gitAlertDb');
-      s.textContent = 'Pull en cours...';
+      s.textContent = 'Pulling...';
       s.className = 'status';
       a.classList.remove('show');
       try {
         const r = await fetch('/api/git/pull', { method: 'POST' });
         const d = await r.json();
-        s.textContent = d.message || (d.ok ? 'Pull terminé' : 'Erreur pull');
+        s.textContent = d.message || (d.ok ? 'Pull complete' : 'Pull error');
         s.className = 'status ' + (d.ok ? 'ok' : 'warn');
       } catch (e) {
-        s.textContent = e.message || 'Erreur';
+        s.textContent = e.message || 'Error';
         s.className = 'status warn';
       }
     };
 
     $('btnLocks').onclick = async () => {
       const db = $('dbName').value.trim();
-      if (!db) { log('Indiquez un nom de base.', 'err'); return; }
+      if (!db) { log('Enter a database name.', 'err'); return; }
       try {
         const r = await fetch('/api/locks', {
           method: 'POST',
@@ -2944,11 +2941,11 @@
 
     $('btnCreate').onclick = async () => {
       const db = $('dbName').value.trim();
-      if (!db) { log('Indiquez un nom de base.', 'err'); return; }
+      if (!db) { log('Enter a database name.', 'err'); return; }
 
       $('btnCreate').disabled = true;
       clearLog();
-      log('--- Lancement de la création ---');
+      log('--- Starting creation ---');
 
       const scriptsDirEl = $('scriptsDirSelect');
       const scriptsDir = scriptsDirEl ? scriptsDirEl.value.trim() : '';
@@ -2973,7 +2970,7 @@
         });
         const d = await r.json();
         if (d.ok) {
-          showToast(`Base ${db} créée / mise à jour`, 'success');
+          showToast(`Database ${db} created / updated`, 'success');
           $('dbName').value = '';
           $('modules').value = 'website,website_sale';
           $('updateModules').value = 'website,website_sale';
@@ -2990,7 +2987,7 @@
           document.querySelector('.tab[data-tab="databases"]').click();
           pollUntilRunning(db, { attempts: 30, intervalMs: 2000 });
         } else {
-          log(d.message || 'Erreur', 'err');
+          log(d.message || 'Error', 'err');
         }
       } catch (e) { log(e.message, 'err'); }
       finally { updateCreateLock(); }
@@ -3022,18 +3019,18 @@
           }
           if ($('versionDb')) $('versionDb').value = d.global_env || '';
         } else {
-          st.textContent = d.message || 'Erreur';
+          st.textContent = d.message || 'Error';
           st.className = 'status warn';
           if (stDb) {
-            stDb.textContent = d.message || 'Erreur';
+            stDb.textContent = d.message || 'Error';
             stDb.className = 'status warn';
           }
         }
       } catch (e) {
-        st.textContent = e.message || 'Erreur';
+        st.textContent = e.message || 'Error';
         st.className = 'status warn';
         if (stDb) {
-          stDb.textContent = e.message || 'Erreur';
+          stDb.textContent = e.message || 'Error';
           stDb.className = 'status warn';
         }
       }
@@ -3063,11 +3060,11 @@
           }
           if ($('version')) $('version').value = d.global_env || '';
         } else {
-          st.textContent = d.message || 'Erreur';
+          st.textContent = d.message || 'Error';
           st.className = 'status warn';
         }
       } catch (e) {
-        st.textContent = e.message || 'Erreur';
+        st.textContent = e.message || 'Error';
         st.className = 'status warn';
       }
     };
@@ -3115,12 +3112,12 @@
     async function loadDatabasesNow() {
       const el = $('dbList');
       const isFirstLoad = el.children.length === 0;
-      if (isFirstLoad) el.innerHTML = '<div class="empty-state">Chargement…</div>';
+      if (isFirstLoad) el.innerHTML = '<div class="empty-state">Loading…</div>';
       try {
         const r = await fetch(`/api/databases`);
         const d = await r.json();
         if (d.databases.length === 0) {
-          el.innerHTML = '<div class="empty-state">Aucune base de données</div>';
+          el.innerHTML = '<div class="empty-state">No databases</div>';
           return null;
         }
         const running = d.running || null;
@@ -3131,12 +3128,12 @@
           const ver = (d.versions && d.versions[db]) || null;
           const subdir = d.script_subdirs && d.script_subdirs[db];
           const verBadge = ver
-            ? `<span class="badge badge-version" title="Branche / version script">${escapeHtml(ver)}</span>`
-            : `<span class="badge badge-unknown" title="Script introuvable">?</span>`;
+            ? `<span class="badge badge-version" title="Script branch / version">${escapeHtml(ver)}</span>`
+            : `<span class="badge badge-unknown" title="Script not found">?</span>`;
           const subdirBadge = subdir
-            ? `<span class="badge badge-subdir" title="Sous-dossier scripts">${escapeHtml(subdir)}</span>`
+            ? `<span class="badge badge-subdir" title="Scripts subfolder">${escapeHtml(subdir)}</span>`
             : '';
-          const connectLabel = isRunning ? 'Ouvrir' : 'Connecter';
+          const connectLabel = isRunning ? 'Open' : 'Connect';
           const connectBtn = `<button class="btn btn-primary btn-sm btn-connect" data-db="${escapeHtml(db)}" data-running="${isRunning}">${connectLabel}</button>`;
           const menuItems = isRunning
             ? `<button type="button" class="btn-edit-script" data-db="${escapeHtml(db)}">
@@ -3154,7 +3151,7 @@
                <div class="db-manage-divider"></div>
                <button type="button" class="danger btn-disconnect" data-db="${escapeHtml(db)}">
                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" x2="12" y1="2" y2="12"/></svg>
-                 Déconnecter
+                 Disconnect
                </button>`
             : `<button type="button" class="btn-edit-script" data-db="${escapeHtml(db)}">
                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
@@ -3166,16 +3163,16 @@
                </button>
                <button type="button" class="btn-duplicate" data-db="${escapeHtml(db)}">
                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                 Dupliquer
+                 Duplicate
                </button>
                <div class="db-manage-divider"></div>
                <button type="button" class="danger btn-delete" data-db="${escapeHtml(db)}">
                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-                 Supprimer
+                 Delete
                </button>`;
           const manageDropdown = `
             <div class="db-manage">
-              <button type="button" class="db-manage-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Gérer">
+              <button type="button" class="db-manage-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Manage">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
               </button>
               <div class="db-manage-menu" role="menu">
@@ -3189,7 +3186,7 @@
                 <span class="db-name">${escapeHtml(db)}</span>
                 <div class="db-meta">
                   ${verBadge}${subdirBadge}
-                  ${isRunning ? '<span class="badge badge-running">En cours</span>' : ''}
+                  ${isRunning ? '<span class="badge badge-running">Running</span>' : ''}
                 </div>
               </div>
               <div class="db-actions">
@@ -3202,12 +3199,12 @@
 
         let html = '';
         if (runningDbs.length > 0) {
-          html += '<div class="db-block"><div class="db-block-title">En cours</div><div class="db-list">';
+          html += '<div class="db-block"><div class="db-block-title">Running</div><div class="db-list">';
           runningDbs.forEach(db => { html += renderDbRow(db, true); });
           html += '</div></div>';
         }
         html += '<div class="db-block">';
-        if (runningDbs.length > 0) html += '<div class="db-block-title">Autres</div>';
+        if (runningDbs.length > 0) html += '<div class="db-block-title">Others</div>';
         html += '<div class="db-list">';
         otherDbs.forEach(db => { html += renderDbRow(db, false); });
         html += '</div></div>';
@@ -3328,7 +3325,7 @@
     }
 
     async function deleteDb(db) {
-      if (!confirm(`Supprimer la base "${db}" ? (DB PostgreSQL + script .sh)`)) return;
+      if (!confirm(`Delete database "${db}"? (PostgreSQL DB + .sh script)`)) return;
       try {
         const r = await fetch('/api/delete', {
           method: 'POST',
@@ -3345,10 +3342,10 @@
       try {
         const r = await fetch(`/api/script-config?db=${encodeURIComponent(db)}`);
         const d = await r.json();
-        if (!d.ok) { alert(d.message || 'Script introuvable'); return; }
+        if (!d.ok) { alert(d.message || 'Script not found'); return; }
         openScriptModal({ db, ...d });
       } catch (e) {
-        alert(e.message || 'Erreur');
+        alert(e.message || 'Error');
       }
     }
 
@@ -3374,7 +3371,7 @@
       if (!hint) return;
       const folder = ver === '18' ? 'website_scaffold_18' : 'website_scaffold';
       const desc = scaffoldDefaults?.odoo_versions?.find(v => v.value === ver)?.description || '';
-      hint.textContent = `Template : ${folder} (Odoo ${ver})${desc ? ' — ' + desc : ''}`;
+      hint.textContent = `Template: ${folder} (Odoo ${ver})${desc ? ' — ' + desc : ''}`;
     }
 
     function updateScaffoldModulePreview() {
@@ -3446,17 +3443,17 @@
       list.innerHTML = scaffoldPages.map((p, idx) => `
         <div class="scaffold-page-row" data-page-id="${p.id}">
           <div class="scaffold-page-head">
-            <strong>Page ${idx + 1}${p.url === '/' ? ' (accueil)' : ''}</strong>
-            ${scaffoldPages.length > 1 ? `<button type="button" class="btn btn-secondary btn-sm scaffold-remove-page" data-id="${p.id}">Supprimer</button>` : ''}
+            <strong>Page ${idx + 1}${p.url === '/' ? ' (home)' : ''}</strong>
+            ${scaffoldPages.length > 1 ? `<button type="button" class="btn btn-secondary btn-sm scaffold-remove-page" data-id="${p.id}">Remove</button>` : ''}
           </div>
           <div class="field-row">
-            <div class="field"><label class="field-label">Nom</label>
+            <div class="field"><label class="field-label">Name</label>
               <input type="text" class="scaffold-page-name" data-id="${p.id}" value="${escapeHtml(p.name)}"></div>
             <div class="field"><label class="field-label">URL</label>
               <input type="text" class="scaffold-page-url" data-id="${p.id}" value="${escapeHtml(p.url)}" placeholder="/about"></div>
           </div>
           <div class="field-row">
-            <div class="field"><label class="field-label">Slug (fichier)</label>
+            <div class="field"><label class="field-label">Slug (file)</label>
               <input type="text" class="scaffold-page-slug" data-id="${p.id}" value="${escapeHtml(p.slug)}"></div>
             <div class="field"><label class="field-label">Meta title</label>
               <input type="text" class="scaffold-page-meta" data-id="${p.id}" value="${escapeHtml(p.meta_title)}"></div>
@@ -3464,11 +3461,11 @@
           <div class="field-row">
             <div class="field field-inline">
               <input type="checkbox" class="scaffold-page-menu" data-id="${p.id}" ${p.in_menu ? 'checked' : ''} id="menu_${p.id}">
-              <label for="menu_${p.id}">Ajouter au menu</label>
+              <label for="menu_${p.id}">Add to menu</label>
             </div>
-            <div class="field"><label class="field-label">Libellé menu</label>
+            <div class="field"><label class="field-label">Menu label</label>
               <input type="text" class="scaffold-page-menu-name" data-id="${p.id}" value="${escapeHtml(p.menu_name)}"></div>
-            <div class="field"><label class="field-label">Séquence</label>
+            <div class="field"><label class="field-label">Sequence</label>
               <input type="number" class="scaffold-page-seq" data-id="${p.id}" value="${p.sequence}" min="1"></div>
           </div>
         </div>
@@ -3509,7 +3506,7 @@
         panel.classList.toggle('active', parseInt(panel.dataset.step, 10) === scaffoldStep);
       });
       $('btnScaffoldPrev').disabled = scaffoldStep === 0;
-      $('btnScaffoldNext').textContent = scaffoldStep === 4 ? 'Terminé' : 'Suivant';
+      $('btnScaffoldNext').textContent = scaffoldStep === 4 ? 'Done' : 'Next';
       if (scaffoldStep === 4) updateScaffoldModulePreview();
     }
 
@@ -3579,7 +3576,7 @@
         scaffoldDefaults = await r.json();
         const templatesOk = scaffoldDefaults.templates_available || {};
         if (!templatesOk['19'] || !templatesOk['18']) {
-          $('scaffoldStatus').textContent = 'Templates scaffold manquants (19 et/ou 18).';
+          $('scaffoldStatus').textContent = 'Scaffold templates missing (19 and/or 18).';
           $('scaffoldStatus').className = 'status warn';
         }
         applyScaffoldFormDefaults();
@@ -3627,7 +3624,7 @@
         const r = await fetch('/api/browse-folder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: 'Choisir le dossier addons de destination' }),
+          body: JSON.stringify({ prompt: 'Choose the destination addons folder' }),
         });
         const d = await r.json();
         if (d.ok && d.path) {
@@ -3642,7 +3639,7 @@
         const r = await fetch('/api/browse-file', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: 'Choisir un favicon (PNG)' }),
+          body: JSON.stringify({ prompt: 'Choose a favicon (PNG)' }),
         });
         const d = await r.json();
         if (d.ok && d.path) $('scaffoldFaviconPath').value = d.path;
@@ -3653,14 +3650,14 @@
       const status = $('scaffoldStatus');
       const slug = slugifyScaffold($('scaffoldModuleSlug').value);
       if (!slug) {
-        status.textContent = 'Nom de module requis.';
+        status.textContent = 'Module name is required.';
         status.className = 'status warn';
         setScaffoldStep(0);
         return;
       }
       const output = ($('scaffoldOutputPath').value || '').trim();
       if (!output) {
-        status.textContent = 'Choisissez un dossier de destination.';
+        status.textContent = 'Choose a destination folder.';
         status.className = 'status warn';
         return;
       }
@@ -3702,7 +3699,7 @@
           footer: parseInt($('scaffoldFooterColor').value, 10),
         },
       };
-      status.textContent = 'Génération…';
+      status.textContent = 'Generating…';
       status.className = 'status';
       $('btnScaffoldGenerate').disabled = true;
       try {
@@ -3713,10 +3710,10 @@
         });
         const d = await r.json();
         if (d.ok) {
-          status.textContent = `Créé : ${d.path}`;
+          status.textContent = `Created: ${d.path}`;
           status.className = 'status ok';
         } else {
-          status.textContent = d.message || 'Erreur';
+          status.textContent = d.message || 'Error';
           status.className = 'status warn';
         }
       } catch (e) {

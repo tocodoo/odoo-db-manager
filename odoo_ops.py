@@ -149,7 +149,7 @@ def run_cmd(
     except subprocess.TimeoutExpired:
         return -1, "", "Timeout"
     except FileNotFoundError:
-        return -1, "", f"Commande non trouvée: {cmd[0]}"
+        return -1, "", f"Command not found: {cmd[0]}"
     except Exception as e:
         return -1, "", str(e)
 
@@ -172,7 +172,7 @@ def run_cmd_streaming(
             bufsize=1,
         )
     except FileNotFoundError:
-        msg = f"Commande non trouvée: {cmd[0]}"
+        msg = f"Command not found: {cmd[0]}"
         if on_output:
             on_output(msg)
         return -1, msg
@@ -237,8 +237,8 @@ def switch_branch(odoo_path: str, branch: str) -> tuple[bool, str]:
         if code != 0:
             errors.append(f"{name}: {err or out}")
     if errors:
-        return False, "Erreurs:\n" + "\n".join(errors)
-    return True, f"core et enterprise passés sur {branch}"
+        return False, "Errors:\n" + "\n".join(errors)
+    return True, f"core and enterprise switched to {branch}"
 
 
 def check_branches_match(odoo_path: str, expected_branch: str) -> tuple[bool, str]:
@@ -255,10 +255,10 @@ def check_branches_match(odoo_path: str, expected_branch: str) -> tuple[bool, st
             continue
         curr = get_current_branch(str(path))
         if curr != expected_branch:
-            errors.append(f"{name}: {curr or '?'} (attendu: {expected_branch})")
+            errors.append(f"{name}: {curr or '?'} (expected: {expected_branch})")
     if errors:
-        return False, "Branches incohérentes:\n" + "\n".join(errors)
-    return True, f"OK - core et enterprise sur {expected_branch}"
+        return False, "Branch mismatch:\n" + "\n".join(errors)
+    return True, f"OK - core and enterprise on {expected_branch}"
 
 
 def check_repos_up_to_date(odoo_path: str) -> tuple[bool, str]:
@@ -274,22 +274,22 @@ def check_repos_up_to_date(odoo_path: str) -> tuple[bool, str]:
         fetch_code, _, fetch_err = run_cmd(["git", "fetch", "origin"], cwd=str(path))
         if fetch_code != 0:
             all_ok = False
-            lines.append(f"{name}: fetch impossible ({fetch_err.strip() or 'erreur'})")
+            lines.append(f"{name}: fetch failed ({fetch_err.strip() or 'error'})")
             continue
         code, out, err = run_cmd(["git", "status", "-sb"], cwd=str(path))
         if code != 0:
             all_ok = False
-            lines.append(f"{name}: status impossible ({(err or out).strip()})")
+            lines.append(f"{name}: status failed ({(err or out).strip()})")
             continue
         status_line = (out.splitlines()[0] if out.splitlines() else "").strip()
         if "behind " in status_line:
             all_ok = False
-            lines.append(f"{name}: en retard ({status_line})")
+            lines.append(f"{name}: behind ({status_line})")
         elif "ahead " in status_line:
-            lines.append(f"{name}: en avance ({status_line})")
+            lines.append(f"{name}: ahead ({status_line})")
         else:
-            lines.append(f"{name}: à jour ({status_line or 'OK'})")
-    return all_ok, "\n".join(lines) if lines else "Aucun dépôt configuré"
+            lines.append(f"{name}: up to date ({status_line or 'OK'})")
+    return all_ok, "\n".join(lines) if lines else "No repository configured"
 
 
 def get_repos_behind_counts(odoo_path: str) -> tuple[bool, dict]:
@@ -342,11 +342,11 @@ def pull_core_enterprise(odoo_path: str) -> tuple[bool, str]:
         code, out, err = run_cmd(["git", "pull", "--ff-only"], cwd=str(path))
         if code != 0:
             all_ok = False
-            lines.append(f"{name}: échec pull ({(err or out).strip()})")
+            lines.append(f"{name}: pull failed ({(err or out).strip()})")
         else:
             result = (out or "").strip().splitlines()
             lines.append(f"{name}: {result[-1] if result else 'pull OK'}")
-    return all_ok, "\n".join(lines) if lines else "Aucun dépôt configuré"
+    return all_ok, "\n".join(lines) if lines else "No repository configured"
 
 
 def db_exists(db_name: str) -> bool:
@@ -460,8 +460,8 @@ def _run_command_via_applescript(command: str) -> tuple[bool, str]:
             timeout=5,
         )
         if res.returncode == 0:
-            return True, "Script lancé dans Terminal"
-        return False, res.stderr or "Échec osascript"
+            return True, "Script launched in Terminal"
+        return False, res.stderr or "osascript failed"
     except Exception as e:
         return False, str(e)
 
@@ -499,8 +499,8 @@ windows:
             timeout=5,
         )
         if res.returncode == 0:
-            return True, "Script lancé dans Warp"
-        return False, res.stderr.decode() or "Échec open warp://"
+            return True, "Script launched in Warp"
+        return False, res.stderr.decode() or "open warp:// failed"
     except Exception as e:
         return False, str(e)
 
@@ -536,8 +536,8 @@ end if
             timeout=5,
         )
         if res.returncode == 0 and (res.stdout or "").strip() == "ok":
-            return True, "Script lancé dans un onglet Warp"
-        return False, (res.stdout or res.stderr or "Warp non ouvert").strip()
+            return True, "Script launched in a Warp tab"
+        return False, (res.stdout or res.stderr or "Warp is not open").strip()
     except Exception as e:
         return False, str(e)
 
@@ -561,8 +561,8 @@ def _run_command_via_file(command: str, target: str = "Warp") -> tuple[bool, str
             timeout=5,
         )
         if res.returncode == 0:
-            return True, f"Script lancé dans {target}"
-        return False, res.stderr.decode() or f"Échec open -a {target}"
+            return True, f"Script launched in {target}"
+        return False, res.stderr.decode() or f"open -a {target} failed"
     except Exception as e:
         return False, str(e)
 
@@ -582,10 +582,10 @@ def _launch_in_terminal(inner: str | list[str], cwd: Optional[str], script_name:
         if not isinstance(inner, list):
             ok, _ = _run_command_via_warp_tab(inner)
             if ok:
-                return True, f"Script lancé dans un onglet Warp" + (f" : {script_name}" if script_name else "")
+                return True, f"Script launched in a Warp tab" + (f" : {script_name}" if script_name else "")
         ok, _ = _run_command_via_warp_launch(inner, cwd)
         if ok:
-            return True, f"Script lancé dans Warp" + (f" : {script_name}" if script_name else "")
+            return True, f"Script launched in Warp" + (f" : {script_name}" if script_name else "")
         # Warp récent peut ouvrir le .command comme un fichier au lieu de l'exécuter.
         # On évite donc ce fallback pour garantir un lancement de commande.
     elif "terminal" == app_l:
@@ -593,30 +593,30 @@ def _launch_in_terminal(inner: str | list[str], cwd: Optional[str], script_name:
         term_inner = " && ".join(inner) if isinstance(inner, list) else inner
         ok, _ = _run_command_via_applescript(term_inner)
         if ok:
-            return True, f"Script lancé dans Terminal" + (f" : {script_name}" if script_name else "")
+            return True, f"Script launched in Terminal" + (f" : {script_name}" if script_name else "")
         ok, _ = _run_command_via_file(term_inner, "Terminal")
         if ok:
-            return True, f"Script lancé dans Terminal" + (f" : {script_name}" if script_name else "")
+            return True, f"Script launched in Terminal" + (f" : {script_name}" if script_name else "")
     else:
         app = app_raw
         file_inner = " && ".join(inner) if isinstance(inner, list) else inner
         ok, _ = _run_command_via_file(file_inner, app)
         if ok:
-            return True, f"Script lancé dans {app}" + (f" : {script_name}" if script_name else "")
+            return True, f"Script launched in {app}" + (f" : {script_name}" if script_name else "")
     if app == "Warp":
         term_inner = " && ".join(inner) if isinstance(inner, list) else inner
         ok, _ = _run_command_via_applescript(term_inner)
         if ok:
-            return True, f"Script lancé dans Terminal (fallback)"
+            return True, f"Script launched in Terminal (fallback)"
     elif app == "Terminal":
         ok, _ = _run_command_via_warp_launch(inner, cwd)
         if ok:
-            return True, f"Script lancé dans Warp (fallback)"
+            return True, f"Script launched in Warp (fallback)"
     final_inner = " && ".join(inner) if isinstance(inner, list) else inner
     ok, _ = _run_command_via_file(final_inner, "Terminal")
     if ok:
-        return True, f"Script lancé dans Terminal (fallback)"
-    return False, f"Impossible de lancer dans {app}"
+        return True, f"Script launched in Terminal (fallback)"
+    return False, f"Could not launch in {app}"
 
 
 def run_script_for_db(
@@ -722,19 +722,19 @@ def build_prerequisites_script() -> Path:
 
     content = f"""#!/bin/bash
 echo "======================================"
-echo " Vérification des prérequis - Odoo DB Manager"
+echo " Prerequisites check - Odoo DB Manager"
 echo "======================================"
 echo
 
 check_cmd() {{
   if command -v "$1" >/dev/null 2>&1; then
-    echo "✓ $1 : $(command -v "$1")"
+    echo "✓ $1: $(command -v "$1")"
   else
-    echo "✗ $1 : introuvable"
+    echo "✗ $1: not found"
   fi
 }}
 
-echo "--- Outils en ligne de commande ---"
+echo "--- Command-line tools ---"
 check_cmd git
 check_cmd psql
 check_cmd createdb
@@ -746,36 +746,36 @@ echo
 echo "--- pyenv ---"
 PYENV_ROOT={shlex.quote(pyenv_root)}
 if [ -d "$PYENV_ROOT/versions" ]; then
-  echo "✓ Dossier pyenv versions trouvé: $PYENV_ROOT/versions"
+  echo "✓ pyenv versions folder found: $PYENV_ROOT/versions"
   ls "$PYENV_ROOT/versions" | sed 's/^/    - /'
 else
-  echo "✗ Dossier pyenv versions introuvable: $PYENV_ROOT/versions"
+  echo "✗ pyenv versions folder not found: $PYENV_ROOT/versions"
 fi
 echo
 
-echo "--- Chemins Odoo configurés ---"
+echo "--- Configured Odoo paths ---"
 COMMUNITY={shlex.quote(community)}
 ENTERPRISE={shlex.quote(enterprise)}
 if [ -n "$COMMUNITY" ] && [ -f "$COMMUNITY/odoo-bin" ]; then
-  echo "✓ Odoo Community: $COMMUNITY (odoo-bin trouvé)"
+  echo "✓ Odoo Community: $COMMUNITY (odoo-bin found)"
 elif [ -n "$COMMUNITY" ]; then
-  echo "✗ Odoo Community: $COMMUNITY (odoo-bin introuvable)"
+  echo "✗ Odoo Community: $COMMUNITY (odoo-bin not found)"
 else
-  echo "✗ Odoo Community: non configuré (voir Réglages)"
+  echo "✗ Odoo Community: not configured (see Settings)"
 fi
 if [ -n "$ENTERPRISE" ] && [ -d "$ENTERPRISE" ]; then
   echo "✓ Odoo Enterprise: $ENTERPRISE"
 else
-  echo "○ Odoo Enterprise: non configuré (optionnel)"
+  echo "○ Odoo Enterprise: not configured (optional)"
 fi
 echo
 
-echo "--- Applications Terminal ---"
+echo "--- Terminal apps ---"
 for app in "Warp" "Terminal" "iTerm"; do
   if [ -d "/Applications/$app.app" ]; then
-    echo "✓ $app.app installé"
+    echo "✓ $app.app installed"
   else
-    echo "✗ $app.app introuvable dans /Applications"
+    echo "✗ $app.app not found in /Applications"
   fi
 done
 echo
@@ -783,15 +783,15 @@ echo
 echo "--- PostgreSQL ---"
 if command -v psql >/dev/null 2>&1; then
   if psql -lqt >/dev/null 2>&1; then
-    echo "✓ Connexion à PostgreSQL OK"
+    echo "✓ PostgreSQL connection OK"
   else
-    echo "✗ Impossible de se connecter à PostgreSQL (le service est-il démarré ?)"
+    echo "✗ Could not connect to PostgreSQL (is the service running?)"
   fi
 fi
 echo
 
 echo "======================================"
-echo " Terminé. Appuyez sur Entrée pour fermer cette fenêtre."
+echo " Done. Press Enter to close this window."
 read -r _
 """
     tmp = Path(tempfile.gettempdir()) / "odoo_dbmanager_check_prereqs.sh"
@@ -811,7 +811,7 @@ def _open_in_terminal(content: str, cwd: Optional[str] = None) -> tuple[bool, st
     from config import get_terminal_app
     ok, _ = _launch_in_terminal(content, cwd)
     app = get_terminal_app() or "Warp"
-    return ok, f"Ouvert dans {app}" if ok else "Impossible de lancer"
+    return ok, f"Opened in {app}" if ok else "Could not launch"
 
 
 def run_odoo_create_in_terminal(
@@ -826,7 +826,7 @@ def run_odoo_create_in_terminal(
     core_path = _community_path(odoo_path)
     odoo_bin = core_path / "odoo-bin"
     if not odoo_bin.exists():
-        return False, f"odoo-bin introuvable: {odoo_bin}"
+        return False, f"odoo-bin not found: {odoo_bin}"
     python_exe = "python3"
     if pyenv_env:
         from config import get_pyenv_root
@@ -856,7 +856,7 @@ def run_odoo_in_terminal(
     core_path = _community_path(odoo_path)
     odoo_bin = core_path / "odoo-bin"
     if not odoo_bin.exists():
-        return False, f"odoo-bin introuvable: {odoo_bin}"
+        return False, f"odoo-bin not found: {odoo_bin}"
     python_exe = "python3"
     if pyenv_env:
         from config import get_pyenv_root
@@ -1070,7 +1070,7 @@ def stop_odoo_server(db_name: str) -> tuple[bool, str]:
     except (ImportError, PermissionError):
         code, out, _ = run_cmd(["/usr/bin/ps", "-A", "-o", "pid,command"])
         if code != 0:
-            return False, "Impossible de lister les processus"
+            return False, "Could not list processes"
         for line in out.split("\n"):
             if ("odoo-bin" not in line and "odoo.py" not in line) or db_name not in line:
                 continue
@@ -1080,14 +1080,14 @@ def stop_odoo_server(db_name: str) -> tuple[bool, str]:
                 if pid_m:
                     pids.append(int(pid_m.group(1)))
     if not pids:
-        return False, f"Aucun processus Odoo pour {db_name}"
+        return False, f"No Odoo process for {db_name}"
     import signal
     for pid in pids:
         try:
             os.kill(pid, signal.SIGTERM)
         except (ProcessLookupError, PermissionError) as e:
             return False, str(e)
-    return True, f"Odoo arrêté pour {db_name}"
+    return True, f"Odoo stopped for {db_name}"
 
 
 def restart_odoo_server(db_name: str, odoo_path: Optional[str] = None) -> tuple[bool, str]:
@@ -1099,7 +1099,7 @@ def restart_odoo_server(db_name: str, odoo_path: Optional[str] = None) -> tuple[
 
     root = odoo_path or get_odoo_community_path()
     ok_stop, msg_stop = stop_odoo_server(db_name)
-    if not ok_stop and not msg_stop.startswith("Aucun processus Odoo pour "):
+    if not ok_stop and not msg_stop.startswith("No Odoo process for "):
         return False, msg_stop
 
     script_path = get_script_path_for_db(db_name)
@@ -1107,7 +1107,7 @@ def restart_odoo_server(db_name: str, odoo_path: Optional[str] = None) -> tuple[
     if script_path:
         ok, msg = run_script_for_db(script_path, odoo_root=root, pyenv_env=forced_env)
         if ok:
-            return True, f"{db_name} relancée (script)"
+            return True, f"{db_name} restarted (script)"
         return False, msg
 
     version, branch = get_db_version_and_branch(db_name)
@@ -1122,7 +1122,7 @@ def restart_odoo_server(db_name: str, odoo_path: Optional[str] = None) -> tuple[
     addons = build_addons_path(root, [])
     ok_run, msg_run = run_odoo_in_terminal(root, db_name, addons, pyenv)
     if ok_run:
-        return True, f"{db_name} relancée"
+        return True, f"{db_name} restarted"
     return False, msg_run
 
 
@@ -1149,8 +1149,8 @@ def delete_db_complete(db_name: str) -> tuple[bool, str]:
         try:
             script_path.unlink()
         except OSError as e:
-            return False, f"Script non supprimé: {e}"
-    return True, f"{db_name} supprimée (DB + script)"
+            return False, f"Script not deleted: {e}"
+    return True, f"{db_name} deleted (DB + script)"
 
 
 def _find_createdb() -> str:
@@ -1179,9 +1179,9 @@ def duplicate_database(source_db: str, new_db: str) -> tuple[bool, str]:
     import time
 
     if not db_exists(source_db):
-        return False, f"La base {source_db} n'existe pas."
+        return False, f"Database {source_db} does not exist."
     if db_exists(new_db):
-        return False, f"La base {new_db} existe déjà."
+        return False, f"Database {new_db} already exists."
 
     stop_odoo_server(source_db)
     _terminate_db_connections(source_db)
@@ -1199,10 +1199,10 @@ def duplicate_database(source_db: str, new_db: str) -> tuple[bool, str]:
         if code != 0:
             combined = (out + " " + err).lower()
             if "being accessed by other users" in combined:
-                return False, f"Impossible de dupliquer {source_db}: fermez toute connexion active (Odoo, psql, pgAdmin…) puis réessayez."
+                return False, f"Could not duplicate {source_db}: close all active connections (Odoo, psql, pgAdmin…) and try again."
             return False, f"createdb: {err or out}"
 
-    messages = [f"✓ Base {new_db} créée (copie exacte de {source_db})"]
+    messages = [f"✓ Database {new_db} created (exact copy of {source_db})"]
 
     src_filestore = get_default_filestore_dir(source_db)
     if src_filestore.is_dir():
@@ -1210,11 +1210,11 @@ def duplicate_database(source_db: str, new_db: str) -> tuple[bool, str]:
         try:
             dest_filestore.parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(src_filestore, dest_filestore, dirs_exist_ok=True)
-            messages.append("✓ Filestore copié")
+            messages.append("✓ Filestore copied")
         except OSError as e:
-            messages.append(f"✗ Copie du filestore échouée: {e}")
+            messages.append(f"✗ Filestore copy failed: {e}")
     else:
-        messages.append("○ Pas de filestore trouvé pour la base source")
+        messages.append("○ No filestore found for the source database")
 
     src_script = get_script_path_for_db(source_db)
     if src_script and src_script.exists():
@@ -1223,14 +1223,14 @@ def duplicate_database(source_db: str, new_db: str) -> tuple[bool, str]:
             text = src_script.read_text(encoding="utf-8")
             text, n = re.subn(r"^DB=.*$", f"DB={new_db}", text, count=1, flags=re.MULTILINE)
             if n == 0:
-                messages.append("✗ Script copié mais variable DB non trouvée, à vérifier manuellement")
+                messages.append("✗ Script copied but DB variable not found; check it manually")
             new_script_path.write_text(text, encoding="utf-8")
             new_script_path.chmod(0o755)
-            messages.append(f"✓ Script dupliqué ({new_script_path.name})")
+            messages.append(f"✓ Script duplicated ({new_script_path.name})")
         except OSError as e:
-            messages.append(f"✗ Copie du script échouée: {e}")
+            messages.append(f"✗ Script copy failed: {e}")
     else:
-        messages.append("○ Pas de script trouvé pour la base source")
+        messages.append("○ No script found for the source database")
 
     return True, " • ".join(messages)
 
@@ -1248,18 +1248,18 @@ def get_default_filestore_dir(db_name: str) -> Path:
 
 # Commandes de "sanitize" (cf. procédure de nettoyage des dumps SaaS/Odoo.sh).
 SANITIZE_STATEMENTS: list[tuple[str, str]] = [
-    ("UUID base", "UPDATE ir_config_parameter SET value='trululu' WHERE key='database.uuid';"),
-    ("Serveurs mail supprimés", "DELETE FROM ir_mail_server;"),
-    ("Crons désactivés", "UPDATE ir_cron SET active='False';"),
-    ("Login/mot de passe admin", "UPDATE res_users SET login='admin', password='admin' WHERE id=2;"),
-    ("Date d'expiration", "UPDATE ir_config_parameter SET value='2200-12-12' WHERE key='database.expiration_date';"),
-    ("URL de rapport supprimée", "DELETE FROM ir_config_parameter WHERE key = 'report.url';"),
-    ("Code enterprise supprimé", "DELETE FROM ir_config_parameter WHERE key = 'database.enterprise_code';"),
-    ("Serveurs mail désactivés", "UPDATE ir_mail_server SET active = 'f';"),
-    ("Notifications push désactivées", "DELETE FROM ir_config_parameter WHERE key IN ('ocn.ocn_push_notification','odoo_ocn.project_id', 'ocn.uuid');"),
-    ("Modules SaaS désinstallés", "UPDATE ir_module_module SET state='uninstalled' WHERE name ilike '%saas%';"),
-    ("Vues SaaS supprimées", "DELETE FROM ir_ui_view WHERE name ilike '%saas%';"),
-    ("Admin réactivé", "UPDATE res_users SET active='t' WHERE id=2;"),
+    ("Database UUID", "UPDATE ir_config_parameter SET value='trululu' WHERE key='database.uuid';"),
+    ("Mail servers deleted", "DELETE FROM ir_mail_server;"),
+    ("Crons disabled", "UPDATE ir_cron SET active='False';"),
+    ("Admin login/password", "UPDATE res_users SET login='admin', password='admin' WHERE id=2;"),
+    ("Expiration date", "UPDATE ir_config_parameter SET value='2200-12-12' WHERE key='database.expiration_date';"),
+    ("Report URL deleted", "DELETE FROM ir_config_parameter WHERE key = 'report.url';"),
+    ("Enterprise code deleted", "DELETE FROM ir_config_parameter WHERE key = 'database.enterprise_code';"),
+    ("Mail servers disabled", "UPDATE ir_mail_server SET active = 'f';"),
+    ("Push notifications disabled", "DELETE FROM ir_config_parameter WHERE key IN ('ocn.ocn_push_notification','odoo_ocn.project_id', 'ocn.uuid');"),
+    ("SaaS modules uninstalled", "UPDATE ir_module_module SET state='uninstalled' WHERE name ilike '%saas%';"),
+    ("SaaS views deleted", "DELETE FROM ir_ui_view WHERE name ilike '%saas%';"),
+    ("Admin reactivated", "UPDATE res_users SET active='t' WHERE id=2;"),
 ]
 
 
@@ -1272,7 +1272,7 @@ def sanitize_database(db_name: str) -> list[str]:
         if code == 0:
             log_lines.append(f"✓ {label}")
         else:
-            log_lines.append(f"✗ {label}: {err.strip() or 'échec'}")
+            log_lines.append(f"✗ {label}: {err.strip() or 'failed'}")
     return log_lines
 
 
@@ -1289,13 +1289,13 @@ def create_db_from_dump(
     log_lines = []
     dump_file = Path(dump_path).expanduser()
     if not dump_file.is_file():
-        return False, f"Fichier dump introuvable: {dump_path}", log_lines
+        return False, f"Dump file not found: {dump_path}", log_lines
 
     if db_exists(db_name):
         if not drop_existing:
-            return False, f"La base {db_name} existe déjà.", log_lines
+            return False, f"Database {db_name} already exists.", log_lines
         ok_del, msg_del = delete_db_complete(db_name)
-        log_lines.append(msg_del if ok_del else f"✗ Suppression: {msg_del}")
+        log_lines.append(msg_del if ok_del else f"✗ Deletion: {msg_del}")
         if not ok_del:
             return False, msg_del, log_lines
 
@@ -1303,31 +1303,31 @@ def create_db_from_dump(
     code, out, err = run_cmd([createdb, db_name])
     if code != 0:
         return False, f"createdb: {err or out}", log_lines
-    log_lines.append(f"✓ Base {db_name} créée")
+    log_lines.append(f"✓ Database {db_name} created")
 
     psql = _find_psql()
     code, out, err = run_cmd([psql, "-d", db_name, "-f", str(dump_file)], timeout=3600)
     if code != 0:
-        return False, f"Import du dump échoué: {err or out}", log_lines
-    log_lines.append("✓ Dump importé")
+        return False, f"Dump import failed: {err or out}", log_lines
+    log_lines.append("✓ Dump imported")
 
     if filestore_path:
         src = Path(filestore_path).expanduser()
         if not src.is_dir():
-            log_lines.append(f"✗ Dossier filestore introuvable: {filestore_path}")
+            log_lines.append(f"✗ Filestore folder not found: {filestore_path}")
         else:
             dest = get_default_filestore_dir(db_name)
             try:
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copytree(src, dest, dirs_exist_ok=True)
-                log_lines.append(f"✓ Filestore copié vers {dest}")
+                log_lines.append(f"✓ Filestore copied to {dest}")
             except OSError as e:
-                log_lines.append(f"✗ Copie du filestore échouée: {e}")
+                log_lines.append(f"✗ Filestore copy failed: {e}")
 
     if sanitize:
         log_lines.extend(sanitize_database(db_name))
 
-    return True, f"{db_name} importée depuis le dump", log_lines
+    return True, f"{db_name} imported from dump", log_lines
 
 
 def stop_all_odoo_servers() -> tuple[int, str]:
@@ -1346,21 +1346,21 @@ def stop_all_odoo_servers() -> tuple[int, str]:
     except (ImportError, PermissionError):
         code, out, _ = run_cmd(["/usr/bin/ps", "-A", "-o", "pid,command"])
         if code != 0:
-            return 0, "Impossible de lister les processus"
+            return 0, "Could not list processes"
         for line in out.split("\n"):
             if "odoo-bin" in line or "odoo.py" in line:
                 pid_m = re.match(r"^\s*(\d+)", line)
                 if pid_m:
                     pids.append(int(pid_m.group(1)))
     if not pids:
-        return 0, "Aucun processus Odoo en cours"
+        return 0, "No running Odoo process"
     import signal
     for pid in pids:
         try:
             os.kill(pid, signal.SIGTERM)
         except (ProcessLookupError, PermissionError):
             pass
-    return len(pids), f"{len(pids)} processus Odoo arrêté(s)"
+    return len(pids), f"{len(pids)} Odoo process(es) stopped"
 
 
 def start_odoo_server(
@@ -1376,7 +1376,7 @@ def start_odoo_server(
     core_path = _community_path(odoo_path)
     odoo_bin = core_path / "odoo-bin"
     if not odoo_bin.exists():
-        return False, f"odoo-bin introuvable: {odoo_bin}"
+        return False, f"odoo-bin not found: {odoo_bin}"
 
     from config import get_odoo_http_port
     port = get_odoo_http_port()
@@ -1409,7 +1409,7 @@ def start_odoo_server(
             stderr=subprocess.DEVNULL,
             start_new_session=True,
         )
-        return True, f"Odoo démarré pour {db_name} → http://localhost:{port}"
+        return True, f"Odoo started for {db_name} → http://localhost:{port}"
     except Exception as e:
         return False, str(e)
 
@@ -1450,7 +1450,7 @@ def create_launch_script(
     core_path = _community_path(odoo_path)
     odoo_bin = core_path / "odoo-bin"
     if not odoo_bin.exists():
-        return False, f"odoo-bin introuvable: {odoo_bin}"
+        return False, f"odoo-bin not found: {odoo_bin}"
 
     script_name = f"odoo-{db_name}.sh"
     script_path = scripts_path / script_name
@@ -1531,9 +1531,9 @@ exec "$PYTHON" {odoo_bin_str} \\
         script_path.chmod(0o755)
         return True, str(script_path)
     except PermissionError as e:
-        return False, f"Permission refusée pour {script_path} : {e}"
+        return False, f"Permission denied for {script_path}: {e}"
     except OSError as e:
-        return False, f"Impossible d'écrire dans {script_path} : {e}"
+        return False, f"Could not write to {script_path}: {e}"
     except Exception as e:
         return False, str(e)
 
@@ -1635,13 +1635,13 @@ def set_script_http_port(script_path: Path, port: int) -> tuple[bool, str]:
         return False, str(e)
     new_text, n = re.subn(r"(--http-port[=\s]+)\d+", rf"\g<1>{int(port)}", text)
     if n == 0:
-        return False, "Option --http-port introuvable dans le script"
+        return False, "--http-port option not found in the script"
     try:
         script_path.write_text(new_text, encoding="utf-8")
         script_path.chmod(0o755)
     except OSError as e:
         return False, str(e)
-    return True, f"Port {port} appliqué au script de {script_path.stem}"
+    return True, f"Port {port} applied to the {script_path.stem} script"
 
 
 def get_effective_db_port(db_name: str) -> int:
@@ -1664,7 +1664,7 @@ def set_db_port(db_name: str, port: int) -> tuple[bool, str]:
     script_path = get_script_path_for_db(db_name)
     if script_path:
         return set_script_http_port(script_path, port)
-    return True, f"Port {port} enregistré pour {db_name}"
+    return True, f"Port {port} saved for {db_name}"
 
 
 def _module_exists_in_addons_root(addons_root: Path, module_name: str) -> bool:
@@ -1756,7 +1756,7 @@ def run_odoo(
     core_path = _community_path(odoo_path)
     odoo_bin = core_path / "odoo-bin"
     if not odoo_bin.exists():
-        return -1, f"odoo-bin introuvable: {odoo_bin}"
+        return -1, f"odoo-bin not found: {odoo_bin}"
 
     base_cmd = [
         "python3", str(odoo_bin),
@@ -1848,7 +1848,7 @@ def export_module_po(
     core_path = _community_path(odoo_path)
     odoo_bin = core_path / "odoo-bin"
     if not odoo_bin.exists():
-        return False, f"odoo-bin introuvable: {odoo_bin}"
+        return False, f"odoo-bin not found: {odoo_bin}"
 
     from config import get_odoo_enterprise_path, get_pyenv_for_branch, get_pyenv_root
     enterprise = get_odoo_enterprise_path()
@@ -1856,7 +1856,7 @@ def export_module_po(
         odoo_path or "", [enterprise] if enterprise else [], [module_name]
     )
     if missing:
-        return False, f"Module '{module_name}' introuvable dans les addons-path connus."
+        return False, f"Module '{module_name}' not found in the known addons paths."
 
     detected_version, branch = get_db_version_and_branch(db_name)
     version = (version or detected_version or "19").strip()
@@ -1884,7 +1884,7 @@ def export_module_po(
         on_output(f"$ {' '.join(preload_cmd)}")
     code, out = run_cmd_streaming(preload_cmd, cwd=str(core_path), on_output=on_output)
     if code != 0:
-        return False, (out or "Échec du chargement de la langue").strip()[-2000:]
+        return False, (out or "Failed to load the language").strip()[-2000:]
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="odev-i18n-"))
     po_path = tmp_dir / f"{module_name}_{lang}.po"
@@ -1912,7 +1912,7 @@ def export_module_po(
         on_output(f"$ {' '.join(cmd)}")
     code, out = run_cmd_streaming(cmd, cwd=str(core_path), on_output=on_output)
     if code != 0 or not po_path.exists():
-        return False, (out or "Échec de l'export .po").strip()[-2000:]
+        return False, (out or ".po export failed").strip()[-2000:]
     return True, str(po_path)
 
 

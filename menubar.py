@@ -67,19 +67,19 @@ class OdooMenubarApp(rumps.App):
         if running:
             for db in running:
                 sub = rumps.MenuItem(db)
-                sub.add(rumps.MenuItem("Ouvrir", callback=self._open_odoo))
+                sub.add(rumps.MenuItem("Open", callback=self._open_odoo))
                 sub.add(rumps.MenuItem("Restart", callback=lambda s, d=db: self._restart_db(d)))
-                sub.add(rumps.MenuItem("Déconnecter", callback=lambda s, d=db: self._stop_db(d)))
+                sub.add(rumps.MenuItem("Disconnect", callback=lambda s, d=db: self._stop_db(d)))
                 self.menu.add(sub)
         else:
-            self.menu.add(rumps.MenuItem("Aucune base en cours", callback=None))
+            self.menu.add(rumps.MenuItem("No running database", callback=None))
 
         self.menu.add(None)  # separator
-        self.menu.add(rumps.MenuItem("Ouvrir l'app", callback=self._open_app))
-        self.menu.add(rumps.MenuItem("Réglages", callback=self._open_settings))
-        self.menu.add(rumps.MenuItem("Vérifier les mises à jour…", callback=self._check_updates))
+        self.menu.add(rumps.MenuItem("Open app", callback=self._open_app))
+        self.menu.add(rumps.MenuItem("Settings", callback=self._open_settings))
+        self.menu.add(rumps.MenuItem("Check for updates…", callback=self._check_updates))
         self.menu.add(None)
-        self.menu.add(rumps.MenuItem("Quitter", callback=self._quit_all))
+        self.menu.add(rumps.MenuItem("Quit", callback=self._quit_all))
 
     def _open_odoo(self, _) -> None:
         webbrowser.open(self.odoo_url)
@@ -100,23 +100,23 @@ class OdooMenubarApp(rumps.App):
         if not info.get("ok"):
             rumps.notification(
                 "Odoo DB Manager",
-                f"Impossible de vérifier (v{current})",
-                info.get("error") or "Erreur réseau",
+                f"Could not check for updates (v{current})",
+                info.get("error") or "Network error",
             )
             return
         if not info.get("update_available"):
-            rumps.notification("Odoo DB Manager", f"À jour (v{current})", "Aucune mise à jour.")
+            rumps.notification("Odoo DB Manager", f"Up to date (v{current})", "No updates available.")
             return
         if rumps.alert(
-            "Mise à jour disponible",
-            "L'app va se mettre à jour puis redémarrer.",
-            ok="Mettre à jour",
-            cancel="Plus tard",
+            "Update available",
+            "The app will update and then restart.",
+            ok="Update",
+            cancel="Later",
         ) != 1:
             return
         result = apply_update()
         if not result.get("ok"):
-            rumps.notification("Odoo DB Manager", "La mise à jour a échoué", result.get("error") or "")
+            rumps.notification("Odoo DB Manager", "Update failed", result.get("error") or "")
 
     def _open_settings(self, _) -> None:
         """Ouvre l'app directement sur l'onglet Réglages."""
