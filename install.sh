@@ -112,6 +112,7 @@ ok "Dependencies installed"
 echo "… building the app"
 BUILD="$HERE/build/alias"
 rm -rf "$BUILD"
+mkdir -p "$BUILD"
 "$VENV/bin/python" setup.py py2app -A --dist-dir "$BUILD/dist" --bdist-base "$BUILD/py2app" >"$BUILD.log" 2>&1 \
   || { tail -20 "$BUILD.log"; fail "The app build failed. Full log: $BUILD.log"; }
 
