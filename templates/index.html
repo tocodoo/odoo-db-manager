@@ -4,1069 +4,904 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
   <title>Odoo DB Manager</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
-            mono: ['"SF Mono"', 'Menlo', 'ui-monospace', 'monospace'],
-          },
-          colors: {
-            primary: { 50:'#e8f4ff', 100:'#cce5ff', 200:'#99cbff', 300:'#66b0ff', 400:'#3396ff', 500:'#007AFF', 600:'#0066cc', 700:'#0051a2', 800:'#003d7a', 900:'#002952', 950:'#001a33' },
-          },
-        },
-      },
-    }
-  </script>
-  <!-- Preline UI JS -->
-  <script src="https://cdn.jsdelivr.net/npm/preline/dist/preline.min.js" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
   <style>
-    /* ─── Reset & base ─── */
+    /* ═══════════════════════════════════════════════════════════
+       Tocotools design system — tokens repris de tocotools.odoo.com
+       ═══════════════════════════════════════════════════════════ */
+    :root {
+      --tt-bg: #0a0507;
+      --tt-surface: #130a0c;
+      --tt-surface-2: #1b0e11;
+      --tt-surface-3: #241317;
+      --tt-line: rgba(255, 228, 228, .08);
+      --tt-line-2: rgba(255, 228, 228, .15);
+      --tt-line-3: rgba(255, 228, 228, .26);
+      --tt-text: #f7f0f0;
+      --tt-muted: #a8999b;
+      --tt-dim: #6d5f62;
+      --tt-red: #d61f26;
+      --tt-red-hot: #ff4a3d;
+      --tt-red-deep: #6b0d12;
+      --tt-live: #4ade80;
+      --tt-seg-1: #00ceb3;
+      --tt-seg-2: #fbb130;
+      --tt-seg-3: #1bb6f9;
+      --tt-seg-4: #fc787d;
+      --tt-font: 'Outfit', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      --tt-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+      --tt-ease: cubic-bezier(0.2, 0.7, 0.1, 1);
+      --tt-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --sidebar-w: 248px;
+
+      /* Alias utilisés par le JS existant */
+      --success: var(--tt-live);
+      --warn: var(--tt-seg-2);
+      --error: var(--tt-red-hot);
+    }
+
     *, *::before, *::after { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    html, body { margin: 0; min-height: 100%; }
     body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-      background: #f5f5f7;
-      color: #1d1d1f;
-      min-height: 100vh;
+      background: var(--tt-bg);
+      color: var(--tt-text);
+      font-family: var(--tt-font);
       font-size: 14px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
-
-    /* ─── CSS variables (Apple palette) ─── */
-    :root {
-      --bg: #f5f5f7;
-      --card: #ffffff;
-      --border: rgba(0,0,0,0.1);
-      --border-dark: rgba(0,0,0,0.18);
-      --text: #1d1d1f;
-      --text-muted: #6e6e73;
-      --text-light: #86868b;
-      --radius: 10px;
-      --radius-sm: 7px;
-      --primary: #007AFF;
-      --primary-hover: #0066cc;
-      --success: #34c759;
-      --error: #ff3b30;
-      --warn: #ff9f0a;
-      --accent: #007AFF;
-    }
-
-    /* ─── Sidebar (macOS frosted glass) ─── */
-    #sidebar {
-      position: fixed;
-      top: 0; left: 0;
-      width: 220px;
-      height: 100vh;
-      background: rgba(246,246,246,0.88);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border-right: 1px solid rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      z-index: 50;
-      -webkit-app-region: drag;
-    }
-
-    .sidebar-brand {
-      height: 52px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 0 16px;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      flex-shrink: 0;
-    }
-
-    .sidebar-brand-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #1d1d1f;
-      letter-spacing: -0.01em;
-    }
-
-    .sidebar-nav {
-      flex: 1;
-      padding: 8px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      -webkit-app-region: no-drag;
-    }
-
-    .sidebar-footer-area {
-      padding: 12px 16px;
-      border-top: 1px solid rgba(0,0,0,0.08);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      -webkit-app-region: no-drag;
-    }
-
-    /* ── Tab nav buttons (macOS sidebar style) ── */
-    .tab {
-      display: block;
-      width: 100%;
-      padding: 7px 12px;
-      font-size: 13px;
-      font-weight: 400;
-      border: none;
+    ::selection { background: rgba(255, 74, 61, .35); color: #fff; }
+    code {
+      font-family: var(--tt-mono);
+      font-size: .86em;
+      padding: 1px 6px;
       border-radius: 6px;
-      background: transparent;
-      color: #1d1d1f;
-      cursor: pointer;
-      transition: background 0.15s cubic-bezier(0.4,0,0.2,1), color 0.15s cubic-bezier(0.4,0,0.2,1);
-      text-align: left;
-      font-family: inherit;
-      margin-bottom: 1px;
-      -webkit-app-region: no-drag;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid var(--tt-line);
+      color: #ffd9d4;
     }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 228, 228, .12); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; }
+    ::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 228, 228, .22); }
+    ::-webkit-scrollbar-track { background: transparent; }
 
-    .tab:hover { background: rgba(0,0,0,0.05); }
-    .tab.active {
-      background: rgba(0,122,255,0.12);
-      color: #007AFF;
-      font-weight: 500;
+
+    /* ═══ SIDEBAR ═══ */
+    #sidebar {
+      position: fixed; top: 0; bottom: 0; left: 0; z-index: 50;
+      width: var(--sidebar-w);
+      display: flex; flex-direction: column;
+      padding: 22px 14px 18px;
+      background: var(--tt-bg);
+      border-right: 1px solid var(--tt-line);
     }
-
-    /* ── Sub-navigation (CSS-driven via adjacent sibling) ── */
-    .sidebar-sub-nav {
-      display: none;
-      padding: 2px 0 6px 14px;
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 12px;
+      padding: 4px 10px 22px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--tt-line);
     }
-
-    .tab.active + .sidebar-sub-nav { display: block; }
-
-    .sidebar-sub-item {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 3px 8px;
-      font-size: 11.5px;
-      color: #6e6e73;
-      border-radius: 4px;
-      line-height: 1.3;
+    .brand-mark {
+      position: relative;
+      width: 38px; height: 38px; flex-shrink: 0;
+      display: grid; place-items: center;
+      border-radius: 12px;
+      background: var(--tt-red);
     }
-
-    .sidebar-sub-item::before {
-      content: '';
-      width: 3px;
-      height: 3px;
-      border-radius: 50%;
-      background: #86868b;
-      flex-shrink: 0;
+    .brand-mark svg { width: 21px; height: auto; color: #fff; position: relative; z-index: 1; }
+    .sidebar-logo { display: block; width: 100%; max-width: 200px; height: auto; }
+    .sidebar-brand-text { display: flex; flex-direction: column; min-width: 0; }
+    .sidebar-brand-title { font-size: 17px; font-weight: 500; letter-spacing: -.02em; line-height: 1.15; }
+    .sidebar-brand-sub {
+      font-family: var(--tt-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--tt-dim);
     }
+    .sidebar-brand-sub em { font-style: normal; color: var(--tt-red-hot); }
 
-    /* ─── Main content ─── */
-    .app {
-      margin-left: 220px;
-      padding: 28px 28px 48px;
-      min-height: 100vh;
-    }
-
-    /* ─── Tab panels ─── */
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-
-    /* ——— Main content card ——— */
-    .main-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-    }
-
-    /* ——— Create panel: 50/50 + full log ——— */
-    .create-layout {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
-
-    .databases-layout {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .databases-layout .databases-list-card {
-      grid-column: 1 / -1;
-    }
-
-    .section {
-      padding: 24px 28px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .section:last-child {
-      border-bottom: none;
-    }
-
-    .section-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin: 0 0 16px 0;
-    }
-
-    .section-title-sm {
-      font-size: 11px;
-      margin-bottom: 10px;
-    }
-
-    /* ——— Form fields ——— */
-    .field {
-      margin-bottom: 16px;
-    }
-
-    .field:last-child {
-      margin-bottom: 0;
-    }
-
-    .field-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 6px;
-    }
-
-    .field-hint {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin: 0 0 4px 0;
-    }
-
-    .field-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .field-row .field {
-      margin-bottom: 0;
-    }
-
-    input[type="text"],
-    select,
-    textarea {
-      font-family: "SF Mono", Menlo, ui-monospace, monospace;
-      font-size: 13px;
-      width: 100%;
-      background: rgba(0,0,0,0.04);
-      border: 1px solid rgba(0,0,0,0.12);
-      border-radius: var(--radius-sm);
-      padding: 8px 12px;
-      color: var(--text);
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-
-    input:hover, select:hover, textarea:hover { border-color: rgba(0,0,0,0.22); }
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: #007AFF;
-      box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
-    }
-
-    select {
-      width: auto;
-      min-width: 100px;
-      cursor: pointer;
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
-
-    .field-inline {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .field-inline label {
-      font-size: 13px;
-      color: var(--text);
-      cursor: pointer;
-      margin: 0;
-    }
-
-    .field-inline input[type="checkbox"] {
-      width: auto;
-      accent-color: var(--primary);
-    }
-
-    .field-with-browse {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .field-with-browse input {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .field-with-browse .btn-browse {
-      flex-shrink: 0;
-    }
-
-    .addons-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    .addons-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      border: 1px solid rgba(0,0,0,0.08);
-      border-radius: var(--radius-sm);
-      padding: 7px 10px;
-      font-family: "SF Mono", Menlo, ui-monospace, monospace;
-      font-size: 12px;
-      color: var(--text-muted);
-      background: rgba(0,0,0,0.02);
-    }
-
-    /* ── Buttons (JS-rendered: renderDbRow) ── */
-    .btn {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-family: inherit; font-size: 12px; font-weight: 500;
-      padding: 6px 12px; border-radius: 6px;
-      border: none; cursor: pointer;
-      transition: background 0.15s cubic-bezier(0.4,0,0.2,1), opacity 0.15s;
-      white-space: nowrap;
-    }
-    .btn:disabled { opacity: .4; cursor: not-allowed; }
-    .btn-primary { background: #007AFF; color: #fff; }
-    .btn-primary:hover:not(:disabled) { background: #0066cc; }
-    .btn-secondary { background: rgba(0,0,0,0.06); color: #1d1d1f; }
-    .btn-secondary:hover:not(:disabled) { background: rgba(0,0,0,0.1); }
-    .btn-sm { padding: 4px 10px; font-size: 11.5px; }
-    .btn-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-    .branch-btns { display: flex; gap: 8px; margin-top: 12px; }
-    .branch-btns .btn { flex: 1; min-width: 0; justify-content: center; }
-
-    /* ——— Status ——— */
-    .status {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .status.ok {
-      color: var(--success);
-    }
-
-    .status.warn {
-      color: var(--warn);
-    }
-
-    .git-alert {
-      display: none;
-      margin-top: 12px;
-      padding: 12px 14px;
-      border-radius: 8px;
-      border: 1px solid rgba(0,122,255,0.2);
-      background: rgba(0,122,255,0.07);
-      color: #0051a2;
-      font-size: 13px;
-      line-height: 1.5;
-      white-space: pre-line;
-    }
-    .git-alert.show { display: block; }
-
-    .app-update-banner {
-      display: none;
-      position: fixed;
-      top: 0; left: 220px; right: 0;
-      z-index: 99;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 20px;
-      background: rgba(255,249,235,0.95);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255,159,10,0.25);
-      color: #78350f;
-      font-size: 13px;
-      line-height: 1.4;
-    }
-    .app-update-banner.show { display: flex; }
-    .app-update-banner strong { color: #92400e; }
-    .app-update-banner-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-    body.has-update-banner .app { padding-top: 76px; }
-
-    /* ——— Log output ——— */
-    .log-section {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .log-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .log-header .section-title {
-      margin: 0;
-    }
-
-    #log {
-      font-family: "SF Mono", Menlo, ui-monospace, monospace;
-      font-size: 12px;
-      line-height: 1.6;
-      background: rgba(0,0,0,0.03);
-      border-radius: 8px;
-      padding: 10px 12px;
-      height: 164px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      color: #6e6e73;
-    }
-    #log:empty::before { content: 'La sortie Odoo apparaîtra ici…'; color: #86868b; }
-
-    /* ——— Database list (JS-rendered rows) ——— */
-    .db-list { display: flex; flex-direction: column; }
-
-    .db-row {
-      display: flex; align-items: center;
-      justify-content: space-between; gap: 12px;
-      padding: 10px 8px;
-      border-bottom: 1px solid rgba(0,0,0,0.06);
-      transition: background 0.15s cubic-bezier(0.4,0,0.2,1);
-      border-radius: 7px;
-    }
-    .db-row:last-child { border-bottom: none; }
-    .db-row:hover { background: rgba(0,0,0,0.04); }
-
-    .db-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .db-name { font-size: 13px; font-weight: 600; color: #1d1d1f; }
-    .db-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-
-    /* ── Badges (JS-rendered) ── */
-    .badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 11px; font-weight: 500;
-      padding: 2px 8px; border-radius: 999px;
-    }
-    .badge-running { background: rgba(52,199,89,0.15); color: #1a7f3c; }
-    .badge-running::before {
-      content: '';
-      width: 5px; height: 5px; border-radius: 50%;
-      background: #34c759;
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    .badge-v18, .badge-v19, .badge-version { background: rgba(0,122,255,0.12); color: #0051a2; }
-    .badge-unknown { background: rgba(0,0,0,0.06); color: #6e6e73; }
-    .badge-subdir { background: rgba(255,159,10,0.15); color: #b45309; }
-    .scripts-subdir-empty { color: var(--warn); font-style: italic; }
-
-    /* ── DB list rows (JS-rendered) ── */
-    .db-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-
-    /* ── "Gérer" dropdown (JS-rendered: renderDbRow) ── */
-    .db-manage { position: relative; display: inline-flex; }
-    .db-manage-toggle {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 28px; height: 28px;
-      border: none; border-radius: 6px;
-      background: rgba(0,0,0,0.06); color: #1d1d1f;
-      cursor: pointer;
-      transition: background 0.15s cubic-bezier(0.4,0,0.2,1);
-    }
-    .db-manage-toggle:hover { background: rgba(0,0,0,0.1); }
-    .db-manage-toggle svg { width: 16px; height: 16px; pointer-events: none; }
-    .db-manage-menu {
-      display: none;
-      position: absolute; top: calc(100% + 4px); right: 0;
-      min-width: 168px;
-      background: #fff;
-      border: 1px solid rgba(0,0,0,0.08);
-      border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-      padding: 4px;
-      z-index: 20;
-    }
-    .db-manage.open .db-manage-menu { display: block; }
-    .db-manage-menu button {
-      display: flex; align-items: center; gap: 8px;
-      width: 100%;
-      font-family: inherit; font-size: 12.5px; font-weight: 500;
-      color: #1d1d1f; background: none; border: none;
-      padding: 7px 8px; border-radius: 7px;
-      cursor: pointer; text-align: left; white-space: nowrap;
-      transition: background 0.15s cubic-bezier(0.4,0,0.2,1);
-    }
-    .db-manage-menu button:hover { background: rgba(0,0,0,0.06); }
-    .db-manage-menu button svg { width: 14px; height: 14px; flex-shrink: 0; }
-    .db-manage-menu .db-manage-divider { margin: 4px 2px; border-top: 1px solid rgba(0,0,0,0.08); }
-    .db-manage-menu .danger { color: var(--error); }
-    .db-manage-menu .danger:hover { background: rgba(255,59,48,0.1); }
-
-    .toast-container {
-      position: fixed;
-      right: 16px;
-      bottom: 16px;
-      z-index: 200;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+    .sidebar-nav { position: relative; display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; padding-bottom: 12px; }
+    .sidebar-nav > * { flex-shrink: 0; }
+    .nav-indicator {
+      position: absolute; left: 0; right: 0; top: 0; height: 40px; z-index: 0;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .06);
+      transition: transform .55s var(--tt-ease), height .45s var(--tt-ease), opacity .3s;
       pointer-events: none;
     }
+    .nav-indicator::before {
+      content: ''; position: absolute; left: -1px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0;
+      background: var(--tt-red-hot);
+    }
+    .tab {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; gap: 11px;
+      width: 100%; height: 40px; padding: 0 12px;
+      border: 0; border-radius: 12px; background: transparent;
+      color: var(--tt-muted); font: inherit; font-size: 14px; text-align: left;
+      cursor: pointer;
+      transition: color .25s, background-color .25s;
+    }
+    .tab:hover { color: var(--tt-text); background: rgba(255, 255, 255, .035); }
+    .tab.active { color: #fff; background: transparent; }
+    .tab svg { width: 17px; height: 17px; flex-shrink: 0; opacity: .8; transition: transform .4s var(--tt-spring), opacity .25s; }
+    .tab:hover svg { transform: scale(1.12) rotate(-4deg); opacity: 1; }
+    .tab.active svg { opacity: 1; color: var(--tt-red-hot); }
+    .tab .tab-index { margin-left: auto; font-family: var(--tt-mono); font-size: 10px; color: var(--tt-dim); letter-spacing: .06em; }
+    .tab.active .tab-index { color: var(--tt-red-hot); }
+    .tab .tab-beta {
+      font-family: var(--tt-mono); font-size: 9px; letter-spacing: .08em; padding: 2px 6px; border-radius: 99px;
+      border: 1px solid rgba(251, 177, 48, .35); color: var(--tt-seg-2);
+    }
 
-    .toast {
-      pointer-events: auto;
-      min-width: 260px; max-width: 420px;
-      padding: 11px 14px;
-      border-radius: 10px;
-      font-size: 13px; font-weight: 500;
-      color: #fff;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    .sidebar-sub-nav {
+      display: grid; grid-template-rows: 0fr;
+      transition: grid-template-rows .45s var(--tt-ease), opacity .35s;
       opacity: 0;
-      transform: translateY(8px) scale(0.98);
-      transition: opacity 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
     }
-    .toast.show { opacity: 1; transform: translateY(0) scale(1); }
-    .toast.success { background: #34c759; }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 300;
-      padding: 18px;
+    .sidebar-sub-nav > .sub-inner { overflow: hidden; padding-left: 26px; }
+    .tab.active + .sidebar-sub-nav { grid-template-rows: 1fr; opacity: 1; }
+    .sidebar-sub-item {
+      position: relative; display: block; width: 100%;
+      padding: 6px 10px 6px 16px; margin: 1px 0;
+      border: 0; background: none; border-radius: 8px;
+      color: var(--tt-dim); font: inherit; font-size: 12.5px; text-align: left;
+      cursor: pointer; transition: color .2s, background-color .2s;
     }
-    .modal-backdrop.show { display: flex; }
-
-    .modal-card {
-      width: min(760px, 100%);
-      background: #fff;
-      border-radius: 12px;
-      border: none;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.25), 0 0 0 0.5px rgba(0,0,0,0.1);
-      overflow: hidden;
+    .sidebar-sub-item:first-child { margin-top: 4px; }
+    .sidebar-sub-item:last-child { margin-bottom: 8px; }
+    .sidebar-sub-item::before {
+      content: ''; position: absolute; left: 4px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px;
+      border-radius: 50%; background: var(--tt-line-3); transition: background-color .2s, box-shadow .2s;
     }
+    .sidebar-sub-item:hover { color: var(--tt-text); background: rgba(255, 255, 255, .03); }
+    .sidebar-sub-item:hover::before { background: var(--tt-red-hot); }
 
-    .modal-head {
-      padding: 16px 20px;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
+    .sidebar-footer-area {
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 14px 10px 0; border-top: 1px solid var(--tt-line);
     }
-
-    .modal-title { margin: 0; font-size: 15px; font-weight: 600; color: #1d1d1f; }
-    .modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
-    .modal-actions {
-      padding: 14px 20px;
-      border-top: 1px solid rgba(0,0,0,0.08);
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0.5;
-      }
-    }
-
-    /* ── Empty state ── */
-    .empty-state { text-align: center; padding: 40px 20px; color: #6e6e73; font-size: 13px; }
-
-    /* ── DB sections (JS-rendered) ── */
-    .db-block { margin-bottom: 16px; }
-    .db-block:last-child { margin-bottom: 0; }
-    .db-block-title {
-      font-size: 10.5px; font-weight: 600;
-      color: #86868b;
-      text-transform: uppercase; letter-spacing: .07em;
-      margin: 0 0 6px 4px;
-    }
-
-    /* ——— Responsive ——— */
-    @media (max-width: 600px) {
-      .menu-bar {
-        padding: 0 12px 0 16px;
-      }
-
-      .menu-bar .app-brand {
-        margin-right: 16px;
-      }
-
-      .menu-bar .app-logo {
-        height: 20px;
-      }
-
-      .menu-bar .app-title {
-        font-size: 14px;
-      }
-
-      .menu-bar .tab {
-        padding: 8px 12px;
-        font-size: 12px;
-      }
-
-      .app {
-        padding: 64px 16px 24px;
-      }
-
-      .section {
-        padding: 20px;
-      }
-
-      .field-row {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .db-row {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .db-actions {
-        width: 100%;
-      }
-
-      .create-layout,
-      .databases-layout {
-        grid-template-columns: 1fr;
-      }
-
-      .scaffold-color-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* ——— Scaffold wizard ——— */
-    .scaffold-stepper {
-      display: flex;
-      align-items: center;
-      margin-bottom: 24px;
-      background: #fff;
-      border: 1px solid rgba(0,0,0,0.1);
-      border-radius: 10px;
-      padding: 16px 20px;
-    }
-
-    .scaffold-step-connector {
-      flex: 1;
-      height: 1px;
-      background: rgba(0,0,0,0.1);
-      margin: 0 8px;
-      position: relative;
-      top: -10px;
-    }
-
-    .scaffold-step-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      min-width: 64px;
-    }
-
-    .scaffold-step-num {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      border: 1.5px solid rgba(0,0,0,0.15);
-      background: #fff;
-      color: #86868b;
-      font-size: 12px; font-weight: 600;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s cubic-bezier(0.4,0,0.2,1);
-    }
-
-    .scaffold-step-label {
-      font-size: 11px; font-weight: 400;
-      color: #86868b;
-      white-space: nowrap;
-      transition: color 0.15s;
-    }
-
-    .scaffold-step-btn.active .scaffold-step-num {
-      background: #007AFF;
-      border-color: #007AFF;
-      color: #fff;
-      box-shadow: 0 0 0 3px rgba(0,122,255,0.2);
-    }
-    .scaffold-step-btn.active .scaffold-step-label { color: #1d1d1f; font-weight: 500; }
-    .scaffold-step-btn.done .scaffold-step-num {
-      background: rgba(52,199,89,0.15);
-      border-color: #34c759;
-      color: #1a7f3c;
-    }
-    .scaffold-step-btn.done .scaffold-step-label { color: #1a7f3c; }
-
-    .scaffold-step-panel { display: none; }
-    .scaffold-step-panel.active { display: block; }
-
-    /* Theme step accordion summaries */
-    .scaffold-theme-summary {
-      list-style: none;
-      cursor: pointer;
-      padding: 14px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid transparent;
-      user-select: none;
-    }
-
-    details[open] > .scaffold-theme-summary { border-bottom-color: rgba(0,0,0,0.06); }
-
-    .scaffold-theme-summary::-webkit-details-marker { display: none; }
-
-    .scaffold-color-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .scaffold-color-field label {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 12px;
-      margin-bottom: 6px;
-      color: var(--text-muted);
-    }
-
-    .scaffold-color-field input[type="color"] {
-      width: 42px; height: 28px;
-      padding: 0;
-      border: 1px solid rgba(0,0,0,0.12);
-      border-radius: 4px;
-      cursor: pointer;
-      background: none;
-    }
-
-    .scaffold-color-text {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-family: "SF Mono", Menlo, ui-monospace, monospace;
-    }
-
-    .scaffold-pages-list { display: flex; flex-direction: column; gap: 10px; }
-
-    .scaffold-page-row {
-      border: 1px solid rgba(0,0,0,0.08);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      background: rgba(0,0,0,0.02);
-    }
-
-    .scaffold-page-row .field { margin-bottom: 10px; }
-    .scaffold-page-row .field:last-child { margin-bottom: 0; }
-
-    .scaffold-page-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-
-    .scaffold-page-head strong { font-size: 13px; }
-
-    .scaffold-preview-module {
-      font-family: "SF Mono", Menlo, ui-monospace, monospace;
-      font-size: 12px;
-      color: #007AFF;
-      background: rgba(0,122,255,0.07);
-      border: 1px solid rgba(0,122,255,0.2);
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      margin-top: 8px;
-    }
-
-    .scaffold-preview-module:empty { display: none; }
-
-    .scaffold-nav-actions {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid rgba(0,0,0,0.08);
-    }
-
-    /* ═══════════════════════════════════════ */
-    /* FORM INPUTS (Apple style)               */
-    /* ═══════════════════════════════════════ */
-    .hs-input {
-      font-family: inherit;
-      font-size: 13px;
-      width: 100%;
-      padding: 8px 12px;
-      background: rgba(0,0,0,0.04);
-      border: 1px solid rgba(0,0,0,0.12);
-      border-radius: 7px;
-      color: #1d1d1f;
-      transition: border-color 0.15s, box-shadow 0.15s;
-      outline: none;
-    }
-    .hs-input:hover { border-color: rgba(0,0,0,0.22); }
-    .hs-input:focus { border-color: #007AFF; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
-    .hs-input::placeholder { color: #86868b; }
-    .hs-input.mono { font-family: "SF Mono", Menlo, ui-monospace, monospace; font-size: 12.5px; }
-    .hs-input[readonly] { background: rgba(0,0,0,0.02); color: #6e6e73; cursor: default; }
-
-    .hs-select {
-      font-family: inherit;
-      font-size: 13px;
-      padding: 8px 32px 8px 12px;
-      background: rgba(0,0,0,0.04) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") right 8px center / 16px no-repeat;
-      border: 1px solid rgba(0,0,0,0.12);
-      border-radius: 7px;
-      color: #1d1d1f;
-      -webkit-appearance: none;
-      appearance: none;
-      outline: none;
-      cursor: pointer;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .hs-select:hover { border-color: rgba(0,0,0,0.22); }
-    .hs-select:focus { border-color: #007AFF; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
-    .hs-select.full { width: 100%; }
-
-    .hs-textarea {
-      font-family: "SF Mono", Menlo, ui-monospace, monospace;
-      font-size: 12.5px;
-      width: 100%;
-      padding: 8px 12px;
-      background: rgba(0,0,0,0.04);
-      border: 1px solid rgba(0,0,0,0.12);
-      border-radius: 7px;
-      color: #1d1d1f;
-      resize: vertical;
-      min-height: 72px;
-      outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .hs-textarea:hover { border-color: rgba(0,0,0,0.22); }
-    .hs-textarea:focus { border-color: #007AFF; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
-    .hs-textarea::placeholder { color: #86868b; }
-
-    /* ─── Buttons (Apple style) ─── */
-    .hs-btn {
+    .sidebar-footer-logo { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--tt-muted); text-decoration: none; }
+    .sidebar-footer-logo svg { height: 13px; width: auto; transition: color .3s; }
+    .sidebar-footer-logo:hover svg { color: #fff; }
+    .chip {
       display: inline-flex; align-items: center; gap: 6px;
-      font-family: inherit; font-size: 13px; font-weight: 500;
-      padding: 7px 16px; border-radius: 6px;
-      border: none; cursor: pointer;
-      transition: background 0.15s cubic-bezier(0.4,0,0.2,1), opacity 0.15s;
-      white-space: nowrap;
+      padding: 3px 9px; border: 1px solid var(--tt-line-2); border-radius: 999px;
+      font-family: var(--tt-mono); font-size: 10.5px; color: var(--tt-muted); white-space: nowrap;
     }
-    .hs-btn:disabled { opacity: .4; cursor: not-allowed; }
-    .hs-btn-primary { background: #007AFF; color: #fff; }
-    .hs-btn-primary:hover:not(:disabled) { background: #0066cc; }
-    .hs-btn-secondary { background: rgba(0,0,0,0.06); color: #1d1d1f; }
-    .hs-btn-secondary:hover:not(:disabled) { background: rgba(0,0,0,0.1); }
-    .hs-btn-ghost { background: transparent; color: #6e6e73; }
-    .hs-btn-ghost:hover:not(:disabled) { background: rgba(0,0,0,0.05); color: #1d1d1f; }
-    .hs-btn-sm { padding: 4px 11px; font-size: 12px; }
-    .hs-btn-danger { background: rgba(255,59,48,0.1); color: #ff3b30; }
-    .hs-btn-danger:hover:not(:disabled) { background: rgba(255,59,48,0.18); }
+    .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--tt-live); }
 
-    /* ─── Card panels ─── */
-    .hs-card { background: #fff; border-radius: 10px; }
+    /* ═══ MAIN ═══ */
+    .app {
+      position: relative; z-index: 1;
+      margin-left: var(--sidebar-w);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      padding: 28px clamp(24px, 4vw, 48px) 84px;
+      transition: padding-top .4s var(--tt-ease);
+    }
+    .tab-panel { display: none; width: 100%; max-width: 1180px; margin: 0 auto; }
+    .tab-panel.active { display: block; }
+    /* « Créer une base » : parcours centré verticalement */
+    #panel-create.active { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    #panel-create > * { width: 100%; }
+
+
+    /* Reveal en cascade des blocs à l'ouverture d'un onglet */
+    .reveal-run .reveal {
+      animation: tt-reveal .6s var(--tt-ease) both;
+      animation-delay: calc(var(--ri, 0) * 45ms);
+    }
+    @keyframes tt-reveal {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    /* ─── Grilles ─── */
+    .layout { display: grid; gap: 18px; align-items: start; }
+    .layout-main-aside { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); }
+    .layout-aside-main { grid-template-columns: minmax(280px, .85fr) minmax(0, 1.6fr); }
+    .layout-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stack { display: flex; flex-direction: column; gap: 18px; }
+    .sticky { position: sticky; top: 24px; }
+    .row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .row > .grow { flex: 1; min-width: 0; }
+    .env-global-row { margin-top: 12px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .fields { display: flex; flex-direction: column; gap: 18px; }
+    .divider { height: 1px; background: var(--tt-line); margin: 4px 0; border: 0; }
+    @media (max-width: 1080px) {
+      .layout-main-aside, .layout-aside-main, .layout-2 { grid-template-columns: minmax(0, 1fr); }
+      .sticky { position: static; }
+    }
+
+    /* ─── Cartes ─── */
+    .hs-card {
+      position: relative;
+      border: 1px solid var(--tt-line);
+      border-radius: 18px;
+      background: var(--tt-surface);
+      transition: border-color .3s;
+    }
+    .hs-card:hover { border-color: var(--tt-line-2); }
     .hs-card-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 13px 16px;
-      border-bottom: 1px solid rgba(0,0,0,0.06);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 18px 22px 16px;
+      border-bottom: 1px solid var(--tt-line);
     }
     .hs-card-title {
-      font-size: 11px; font-weight: 600;
-      color: #6e6e73;
-      text-transform: uppercase; letter-spacing: .06em;
-      margin: 0;
+      display: flex; align-items: center; gap: 10px;
+      margin: 0; font-size: 15px; font-weight: 500; letter-spacing: -.01em;
     }
-    .hs-card-body { padding: 16px; }
-
-    /* ─── Field label ─── */
-    .hs-label { display: block; font-size: 13px; font-weight: 500; color: #1d1d1f; margin-bottom: 5px; }
-    .hs-hint { font-size: 11.5px; color: #6e6e73; margin: 0 0 5px; }
-    .hs-field { margin-bottom: 14px; }
-    .hs-field:last-child { margin-bottom: 0; }
-    .hs-status { font-size: 11.5px; color: #6e6e73; margin-top: 4px; display: block; }
-    .hs-status.ok { color: var(--success); }
-    .hs-status.warn { color: var(--warn); }
-
-    /* ─── Page header ─── */
-    .page-header { margin-bottom: 22px; }
-    .page-header h1 { font-size: 22px; font-weight: 700; color: #1d1d1f; margin: 0 0 2px; letter-spacing: -0.02em; }
-    .page-header p { font-size: 13px; color: #6e6e73; margin: 0; }
-
-    /* ─── Badge (static) ─── */
-    .hs-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 999px;
+    .card-index {
+      font-family: var(--tt-mono); font-size: 11px; font-weight: 400; color: var(--tt-dim);
     }
-    .hs-badge-blue  { background: rgba(0,122,255,0.12); color: #0051a2; }
-    .hs-badge-green { background: rgba(52,199,89,0.15); color: #1a7f3c; }
-    .hs-badge-amber { background: rgba(255,159,10,0.15); color: #b45309; }
-    .hs-badge-gray  { background: rgba(0,0,0,0.06); color: #6e6e73; }
+    .hs-card-body { padding: 22px; }
+    .hs-card-footer {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 16px 22px; border-top: 1px solid var(--tt-line);
+      background: rgba(255, 255, 255, .015); border-radius: 0 0 18px 18px;
+    }
+    .card-cta { border-color: var(--tt-line-2); }
+
+    /* ─── Champs ─── */
+    .hs-field, .field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+    .hs-label, .field-label, .field label {
+      font-size: 13px; font-weight: 500; color: var(--tt-text); letter-spacing: -.005em;
+    }
+    .hs-hint {
+      margin: -3px 0 2px; font-size: 12.5px; color: var(--tt-dim); line-height: 1.45;
+    }
+    .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .label-row .hs-hint { margin: 0; }
+
+    .app input[type="text"], .app input[type="number"], .app input[type="password"], .app input:not([type]),
+    .modal-card input[type="text"], .modal-card input[type="number"],
+    .hs-input, .hs-select, .hs-textarea, .app select, .app textarea, .modal-card textarea {
+      width: 100%; min-width: 0;
+      height: 42px; padding: 0 14px;
+      border: 1px solid var(--tt-line-2); border-radius: 12px;
+      background: rgba(255, 255, 255, .03);
+      color: var(--tt-text); font: inherit; font-size: 14px;
+      outline: none;
+      transition: border-color .25s, background-color .25s, box-shadow .35s var(--tt-ease);
+    }
+    .app textarea, .hs-textarea, .modal-card textarea {
+      height: auto; min-height: 74px; padding: 11px 14px; line-height: 1.5; resize: vertical;
+    }
+    .hs-input.mono, .hs-textarea, .app textarea, .modal-card textarea, .mono { font-family: var(--tt-mono); font-size: 13px; }
+    .app input::placeholder, .app textarea::placeholder, .modal-card input::placeholder, .modal-card textarea::placeholder { color: var(--tt-dim); }
+    .app input:hover, .app select:hover, .app textarea:hover, .modal-card input:hover, .modal-card textarea:hover { border-color: var(--tt-line-3); }
+    .app input:focus, .app select:focus, .app textarea:focus, .modal-card input:focus, .modal-card textarea:focus {
+      border-color: var(--tt-red-hot);
+      background: rgba(255, 255, 255, .04);
+      box-shadow: 0 0 0 3px rgba(214, 31, 38, .14);
+    }
+    .app input[readonly], .modal-card input[readonly] { color: var(--tt-muted); background: rgba(255, 255, 255, .015); }
+    .app select, .hs-select {
+      appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 38px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8999b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 13px center; background-size: 15px;
+    }
+    .app select option { background: var(--tt-surface-2); color: var(--tt-text); }
+    .app input[type="number"]::-webkit-inner-spin-button { opacity: .4; }
+
+    /* Checkbox → interrupteur */
+    .app input[type="checkbox"] {
+      appearance: none; -webkit-appearance: none; flex-shrink: 0;
+      position: relative; width: 36px; height: 21px; margin: 0;
+      border-radius: 99px; border: 1px solid var(--tt-line-2); background: rgba(255, 255, 255, .06);
+      cursor: pointer; transition: background-color .3s, border-color .3s, box-shadow .3s;
+    }
+    .app input[type="checkbox"]::after {
+      content: ''; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%;
+      background: var(--tt-muted); transition: transform .4s var(--tt-spring), background-color .3s;
+    }
+    .app input[type="checkbox"]:checked { background: var(--tt-red); border-color: var(--tt-red-hot); }
+    .app input[type="checkbox"]:checked::after { transform: translateX(15px); background: #fff; }
+    .switch-row {
+      display: flex; align-items: flex-start; gap: 12px; cursor: pointer;
+      font-size: 13.5px; color: var(--tt-text); font-weight: 400;
+    }
+    .switch-row > span { display: flex; flex-direction: column; gap: 2px; }
+    .switch-row small { color: var(--tt-dim); font-size: 12.5px; }
+    .field-inline { flex-direction: row; align-items: center; gap: 10px; padding-top: 26px; }
+    .field-inline label { font-weight: 400; }
+
+    .field-with-browse { display: flex; gap: 8px; }
+    .field-with-browse > input { flex: 1; min-width: 0; }
+
+    /* ─── Boutons « scan » (croix / équerres aux coins) ───
+       .sb-scan  : bordure fine + croix rouges ; au survol aplat rouge + équerres blanches
+       .sb-frame : équerres blanches ; au survol croix + bordure
+       Les boutons d'action (primary, cta, danger) restent en aplat rouge, sans coins.
+       Les coins et l'aplat sont ajoutés par le JS en bas de page. */
+    .hs-btn, .btn {
+      position: relative; isolation: isolate;
+      display: inline-flex; align-items: center; justify-content: center; gap: .55em;
+      height: 40px; padding: 0 20px;
+      border: 1px solid transparent; border-radius: 0; background: transparent;
+      color: var(--tt-text); font: inherit; font-size: 14px; font-weight: 400; line-height: 1; white-space: nowrap;
+      cursor: pointer; user-select: none;
+      transition: border-color .3s, color .3s, opacity .3s;
+    }
+    .hs-btn svg, .btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .hs-btn:disabled, .btn:disabled { opacity: .35; cursor: not-allowed; }
+    .hs-btn:focus-visible, .btn:focus-visible { outline: 1px dashed var(--tt-red-hot); outline-offset: 5px; }
+    .hs-btn-sm, .btn-sm { height: 32px; padding: 0 14px; font-size: 13px; }
+    .hs-btn-sm svg, .btn-sm svg { width: 13px; height: 13px; }
+    .hs-btn-cta { height: 46px; padding: 0 26px; font-size: 15px; }
+    .hs-btn.block { width: 100%; }
+    .sb-label { display: inline-block; }
+
+    .sb-fill {
+      position: absolute; inset: 0; z-index: -1; background: var(--tt-red);
+      transform: scaleY(0); transform-origin: top;
+      transition: transform .38s var(--tt-ease), background-color .3s;
+    }
+    .sb-c {
+      position: absolute; width: 10px; height: 10px; pointer-events: none;
+      color: var(--tt-red-hot);
+      transition: transform .38s var(--tt-ease), color .3s;
+    }
+    .sb-c.tl { left: -5px; top: -5px; } .sb-c.tr { right: -5px; top: -5px; }
+    .sb-c.bl { left: -5px; bottom: -5px; } .sb-c.br { right: -5px; bottom: -5px; }
+    .sb-c::before, .sb-c::after {
+      content: ''; position: absolute; background: currentColor;
+      transition: top .38s var(--tt-ease), left .38s var(--tt-ease);
+    }
+    /* Croix (par défaut) */
+    .sb-c::before { width: 10px; height: 1px; left: 0; top: 4.5px; }
+    .sb-c::after { width: 1px; height: 10px; left: 4.5px; top: 0; }
+    /* Équerres */
+    .sb-scan:hover:not(:disabled) .sb-c::before, .sb-frame:not(:hover) .sb-c::before, .sb-frame:disabled .sb-c::before { left: 0; top: 0; }
+    .sb-scan:hover:not(:disabled) .sb-c::after, .sb-frame:not(:hover) .sb-c::after, .sb-frame:disabled .sb-c::after { left: 0; top: 0; }
+    .sb-scan:hover:not(:disabled) .sb-c.tr::after, .sb-frame:not(:hover) .sb-c.tr::after, .sb-frame:disabled .sb-c.tr::after,
+    .sb-scan:hover:not(:disabled) .sb-c.br::after, .sb-frame:not(:hover) .sb-c.br::after, .sb-frame:disabled .sb-c.br::after { left: 9px; }
+    .sb-scan:hover:not(:disabled) .sb-c.bl::before, .sb-frame:not(:hover) .sb-c.bl::before, .sb-frame:disabled .sb-c.bl::before,
+    .sb-scan:hover:not(:disabled) .sb-c.br::before, .sb-frame:not(:hover) .sb-c.br::before, .sb-frame:disabled .sb-c.br::before { top: 9px; }
+
+    /* scan */
+    .sb-scan { border-color: var(--tt-line-2); }
+    .sb-scan:hover:not(:disabled) { border-color: transparent; color: #fff; }
+    .sb-scan:hover:not(:disabled) .sb-fill { transform: scaleY(1); }
+    .sb-scan:hover:not(:disabled) .sb-c { color: #fff; }
+    .sb-scan:hover:not(:disabled) .sb-c.tl { transform: translate(-3px, -3px); }
+    .sb-scan:hover:not(:disabled) .sb-c.tr { transform: translate(3px, -3px); }
+    .sb-scan:hover:not(:disabled) .sb-c.bl { transform: translate(-3px, 3px); }
+    .sb-scan:hover:not(:disabled) .sb-c.br { transform: translate(3px, 3px); }
+    .sb-scan:active:not(:disabled) .sb-fill { background: #b5161c; }
+
+    /* frame */
+    .sb-frame .sb-c { color: rgba(255, 255, 255, .85); }
+    .sb-frame:hover:not(:disabled) { border-color: var(--tt-line-2); }
+    .sb-frame:hover:not(:disabled) .sb-c { color: #fff; }
+    .sb-frame:active:not(:disabled) { background: rgba(255, 255, 255, .05); }
+    .hs-btn-ghost.sb-frame { color: var(--tt-muted); }
+    .hs-btn-ghost.sb-frame .sb-c { color: var(--tt-dim); }
+    .hs-btn-ghost.sb-frame:hover:not(:disabled) { color: var(--tt-text); }
+
+
+    /* Boutons d'action : aplat rouge */
+    .hs-btn-primary, .btn-primary, .hs-btn-cta { background: var(--tt-red); color: #fff; transition: background-color .25s, opacity .3s; }
+    .hs-btn-primary:hover:not(:disabled), .btn-primary:hover:not(:disabled), .hs-btn-cta:hover:not(:disabled) { background: #e8262d; }
+    .hs-btn-primary:active:not(:disabled), .btn-primary:active:not(:disabled), .hs-btn-cta:active:not(:disabled) { background: #b5161c; }
+    .hs-btn-danger { border-color: rgba(255, 74, 61, .45); color: #ff8a80; }
+    .hs-btn-danger:hover:not(:disabled) { background: var(--tt-red); border-color: var(--tt-red); color: #fff; }
+
+    /* Champ + bouton côte à côte : on laisse la place aux coins */
+    .field-with-browse { gap: 16px; }
+
+    /* ─── Statuts / badges ─── */
+    .status, .hs-status { font-family: var(--tt-mono); font-size: 12px; color: var(--tt-muted); min-height: 1em; }
+    .status:empty, .hs-status:empty { display: none; }
+    .status.ok, .hs-status.ok { color: var(--tt-live); }
+    .status.warn, .hs-status.warn { color: var(--tt-seg-2); }
+    .status.ok:not(:empty)::before, .hs-status.ok:not(:empty)::before { content: '● '; font-size: 9px; vertical-align: 1px; }
+    .status.warn:not(:empty)::before, .hs-status.warn:not(:empty)::before { content: '▲ '; font-size: 9px; vertical-align: 1px; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 9px; border-radius: 99px; border: 1px solid var(--tt-line-2);
+      font-family: var(--tt-mono); font-size: 10.5px; color: var(--tt-muted); white-space: nowrap;
+    }
+    .badge-version { color: #9fe0ff; border-color: rgba(27, 182, 249, .3); background: rgba(27, 182, 249, .08); }
+    .badge-subdir { color: #ffd38a; border-color: rgba(251, 177, 48, .3); background: rgba(251, 177, 48, .08); }
+    .badge-unknown { color: var(--tt-dim); }
+    .badge-running { color: #9af5bb; border-color: rgba(74, 222, 128, .35); background: rgba(74, 222, 128, .08); }
+    .badge-running::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--tt-live);
+      box-shadow: 0 0 0 0 rgba(74, 222, 128, .7); animation: tt-pulse 1.8s infinite;
+    }
+    @keyframes tt-pulse { 0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, .6); } 70% { box-shadow: 0 0 0 7px rgba(74, 222, 128, 0); } 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); } }
+
+    .git-alert {
+      display: none; margin-top: 14px; padding: 12px 14px;
+      border: 1px solid rgba(251, 177, 48, .3); border-radius: 14px; background: rgba(251, 177, 48, .07);
+      color: #ffd38a; font-family: var(--tt-mono); font-size: 12px; line-height: 1.6; white-space: pre-line;
+    }
+    .git-alert.show { display: block; animation: tt-reveal .5s var(--tt-ease) both; }
+
+    /* ─── Stats ─── */
+    .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 18px; }
+    .stat {
+      position: relative; padding: 18px 20px; border: 1px solid var(--tt-line); border-radius: 18px;
+      background: var(--tt-surface);
+    }
+    .stat-label { font-family: var(--tt-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--tt-dim); }
+    .stat-value { margin-top: 6px; font-size: 34px; font-weight: 500; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+    .stat-value.small { font-size: 22px; font-family: var(--tt-mono); letter-spacing: -.02em; padding-top: 8px; }
+    @media (max-width: 760px) { .stats { grid-template-columns: 1fr; } }
+
+    /* ─── Recherche ─── */
+    .search {
+      position: relative;
+    }
+    .search svg { position: absolute; left: 14px; top: 50%; width: 15px; height: 15px; transform: translateY(-50%); color: var(--tt-dim); pointer-events: none; }
+    .app .search input { padding-left: 40px; border-radius: 999px; }
+    .search kbd {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      font-family: var(--tt-mono); font-size: 10.5px; color: var(--tt-dim);
+      padding: 2px 7px; border: 1px solid var(--tt-line-2); border-radius: 6px;
+    }
+
+    /* ─── Liste des bases ─── */
+    #dbList { padding: 10px 12px 14px; }
+    .db-block { margin-bottom: 14px; }
+    .db-block:last-child { margin-bottom: 0; }
+    .db-block-title {
+      display: flex; align-items: center; gap: 10px; padding: 8px 10px 6px;
+      font-family: var(--tt-mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--tt-dim);
+    }
+    .db-block-title::after { content: ''; flex: 1; height: 1px; background: var(--tt-line); }
+    .db-list { display: flex; flex-direction: column; gap: 2px; }
+    .db-row {
+      position: relative;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding: 11px 12px 11px 14px; border-radius: 14px;
+      border: 1px solid transparent;
+      transition: background-color .25s, border-color .25s, transform .4s var(--tt-ease);
+      animation: tt-row-in .55s var(--tt-ease) both;
+    }
+    .db-row:nth-child(1) { animation-delay: 0ms; } .db-row:nth-child(2) { animation-delay: 30ms; }
+    .db-row:nth-child(3) { animation-delay: 60ms; } .db-row:nth-child(4) { animation-delay: 90ms; }
+    .db-row:nth-child(5) { animation-delay: 120ms; } .db-row:nth-child(6) { animation-delay: 150ms; }
+    .db-row:nth-child(7) { animation-delay: 180ms; } .db-row:nth-child(8) { animation-delay: 210ms; }
+    .db-row:nth-child(n+9) { animation-delay: 240ms; }
+    #dbList.no-anim .db-row { animation: none; }
+    @keyframes tt-row-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .db-row:hover { background: rgba(255, 255, 255, .035); border-color: var(--tt-line); }
+    .db-row::before {
+      content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 2px; border-radius: 2px;
+      background: var(--tt-red-hot); opacity: 0; transform: scaleY(.3); transition: opacity .25s, transform .35s var(--tt-ease);
+    }
+    .db-row:hover::before { opacity: 1; transform: scaleY(1); }
+    .db-block:first-child .badge-running ~ * {}
+    .db-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .db-name { font-family: var(--tt-mono); font-size: 14px; color: var(--tt-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .db-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+    .db-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .empty-state { padding: 36px 16px; text-align: center; color: var(--tt-dim); font-size: 13px; }
+
+    .db-manage { position: relative; display: inline-flex; }
+    .db-manage-toggle {
+      width: 32px; height: 32px; display: grid; place-items: center;
+      border: 1px solid var(--tt-line-2); border-radius: 50%; background: rgba(255, 255, 255, .04);
+      color: var(--tt-muted); cursor: pointer; transition: background-color .25s, color .25s, transform .35s var(--tt-ease);
+    }
+    .db-manage-toggle:hover, .db-manage.open .db-manage-toggle { background: rgba(255, 255, 255, .1); color: #fff; }
+    .db-manage.open .db-manage-toggle { transform: rotate(90deg); }
+    .db-manage-toggle svg { width: 15px; height: 15px; pointer-events: none; }
+    .db-manage-menu {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; min-width: 190px;
+      padding: 6px; border: 1px solid var(--tt-line-2); border-radius: 16px;
+      background: var(--tt-surface-2);
+      box-shadow: 0 16px 40px -16px rgba(0, 0, 0, .8);
+      opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.96); transform-origin: top right;
+      transition: opacity .2s, transform .35s var(--tt-spring), visibility 0s .2s;
+    }
+    .db-manage.open .db-manage-menu { opacity: 1; visibility: visible; transform: none; transition: opacity .2s, transform .35s var(--tt-spring), visibility 0s; }
+    .db-manage-menu button {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 9px 10px; border: 0; border-radius: 10px; background: transparent;
+      color: var(--tt-text); font: inherit; font-size: 13px; text-align: left; cursor: pointer;
+      transition: background-color .2s, padding-left .25s var(--tt-ease);
+    }
+    .db-manage-menu button:hover { background: rgba(255, 255, 255, .07); padding-left: 13px; }
+    .db-manage-menu button svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--tt-muted); }
+    .db-manage-menu .db-manage-divider { margin: 5px 4px; border-top: 1px solid var(--tt-line); }
+    .db-manage-menu .danger, .db-manage-menu .danger svg { color: #ff8a80; }
+    .db-manage-menu .danger:hover { background: rgba(214, 31, 38, .16); }
+
+    /* ─── Addons custom ─── */
+    .addons-list { display: flex; flex-direction: column; gap: 6px; }
+    .addons-list:empty { display: none; }
+    .addons-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 7px 7px 7px 14px; border: 1px solid var(--tt-line); border-radius: 12px; background: rgba(255, 255, 255, .025);
+      font-family: var(--tt-mono); font-size: 12.5px; color: var(--tt-muted);
+      animation: tt-row-in .4s var(--tt-ease) both;
+    }
+    .addons-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ─── Parcours « Créer une base » ─── */
+    .wz-step-btn {
+      position: relative; z-index: 1; flex: 1;
+      display: flex; align-items: center; justify-content: center; gap: 9px;
+      height: 42px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent;
+      color: var(--tt-dim); font: inherit; font-size: 13.5px; cursor: pointer; transition: color .3s;
+    }
+    .wz-step-btn:hover { color: var(--tt-text); }
+    .wz-step-btn.active { color: var(--tt-bg); }
+    .wz-step-btn.active .scaffold-step-num { background: var(--tt-bg); color: #fff; border-color: transparent; }
+    .wz-step-btn.done { color: var(--tt-text); }
+    .wz-step-btn.done .scaffold-step-num { background: var(--tt-red); border-color: var(--tt-red-hot); color: #fff; }
+    .scaffold-stepper:not(.has-thumb) .wz-step-btn.active { background: #fff; }
+    .wz-panel { display: none; }
+    .wz-panel.active { display: block; animation: tt-step-in .45s var(--tt-ease) both; }
+    .wz-card { max-width: 820px; margin: 0 auto; }
+    .wz-nav { max-width: 820px; margin-left: auto; margin-right: auto; align-items: center; }
+    .wz-stepper { max-width: 820px; margin-left: auto; margin-right: auto; }
+
+    /* ─── Scaffold ─── */
+    .scaffold-stepper {
+      position: relative; display: flex; align-items: center; gap: 0;
+      padding: 8px; margin-bottom: 18px;
+      border: 1px solid var(--tt-line); border-radius: 999px; background: var(--tt-surface);
+    }
+    .scaffold-step-btn {
+      position: relative; z-index: 1; flex: 1;
+      display: flex; align-items: center; justify-content: center; gap: 9px;
+      height: 42px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent;
+      color: var(--tt-dim); font: inherit; font-size: 13.5px; cursor: pointer;
+      transition: color .3s;
+    }
+    .scaffold-step-btn:hover { color: var(--tt-text); }
+    .scaffold-step-num {
+      display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+      border: 1px solid var(--tt-line-2); font-family: var(--tt-mono); font-size: 11px;
+      transition: background-color .35s, color .35s, border-color .35s, transform .45s var(--tt-spring);
+    }
+    .scaffold-step-btn.active { color: var(--tt-bg); }
+    .scaffold-step-btn.active .scaffold-step-num { background: var(--tt-bg); color: #fff; border-color: transparent; transform: scale(1.06); }
+    .scaffold-step-btn.done { color: var(--tt-text); }
+    .scaffold-step-btn.done .scaffold-step-num { background: var(--tt-red); border-color: var(--tt-red-hot); color: #fff; }
+    .scaffold-step-connector { width: 14px; height: 1px; background: var(--tt-line-2); flex-shrink: 0; }
+    .stepper-thumb {
+      position: absolute; z-index: 0; top: 8px; bottom: 8px; left: 8px; border-radius: 999px; background: #fff;
+      transition: transform .6s var(--tt-ease), width .6s var(--tt-ease);
+    }
+    .stepper-progress {
+      position: absolute; left: 24px; right: 24px; bottom: -1px; height: 2px; border-radius: 2px; overflow: hidden;
+    }
+    .stepper-progress i {
+      display: block; height: 100%; width: 0; background: var(--tt-red-hot); transition: width .6s var(--tt-ease);
+    }
+    @media (max-width: 860px) { .scaffold-step-label { display: none; } }
+
+    .scaffold-step-panel { display: none; }
+    .scaffold-step-panel.active { display: block; animation: tt-step-in .55s var(--tt-ease) both; }
+    @keyframes tt-step-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+    .scaffold-nav-actions {
+      position: sticky; bottom: 72px; z-index: 5;
+      display: flex; justify-content: space-between; gap: 10px;
+      margin-top: 18px; padding: 14px 18px; border: 1px solid var(--tt-line-2); border-radius: 18px;
+      background: var(--tt-surface);
+    }
+    .scaffold-preview-module {
+      display: inline-flex; align-self: flex-start; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: 10px; border: 1px dashed rgba(255, 74, 61, .35); background: rgba(214, 31, 38, .07);
+      font-family: var(--tt-mono); font-size: 12.5px; color: #ffb3ab;
+    }
+    .scaffold-preview-module:empty { display: none; }
+    .scaffold-theme-summary {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 18px 22px; list-style: none; cursor: pointer; border-bottom: 1px solid transparent;
+      transition: border-color .3s;
+    }
+    .scaffold-theme-summary::-webkit-details-marker { display: none; }
+    details[open] > .scaffold-theme-summary { border-bottom-color: var(--tt-line); }
+    .scaffold-theme-summary svg { width: 15px; height: 15px; color: var(--tt-muted); transition: transform .45s var(--tt-spring); }
+    details[open] > .scaffold-theme-summary svg { transform: rotate(180deg); }
+    details[open] > .hs-card-body { animation: tt-reveal .45s var(--tt-ease) both; }
+    .scaffold-color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .scaffold-color-field {
+      display: flex; align-items: center; gap: 8px; padding: 6px; border: 1px solid var(--tt-line); border-radius: 14px;
+      background: rgba(255, 255, 255, .02); transition: border-color .25s;
+    }
+    .scaffold-color-field:hover { border-color: var(--tt-line-3); }
+    .scaffold-color-field label { display: flex; align-items: center; gap: 8px; font-family: var(--tt-mono); font-size: 11px; font-weight: 400; color: var(--tt-muted); }
+    .scaffold-color-field label span { order: 2; }
+    .scaffold-color-field input[type="color"] {
+      order: 1; width: 30px; height: 30px; padding: 0; border: 1px solid var(--tt-line-2); border-radius: 9px; background: none; cursor: pointer; flex-shrink: 0;
+    }
+    .scaffold-color-field input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    .scaffold-color-field input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 8px; }
+    .app .scaffold-color-field .scaffold-color-text { height: 30px; padding: 0 8px; border-radius: 8px; font-family: var(--tt-mono); font-size: 11.5px; margin-left: auto; width: 84px; flex-shrink: 0; }
+    .scaffold-pages-list { display: flex; flex-direction: column; gap: 12px; }
+    .scaffold-page-row {
+      padding: 16px; border: 1px solid var(--tt-line); border-radius: 16px; background: rgba(255, 255, 255, .02);
+      animation: tt-row-in .45s var(--tt-ease) both;
+    }
+    .scaffold-page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .scaffold-page-head strong { font-weight: 500; font-size: 14px; }
+    .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .field-row:last-child { margin-bottom: 0; }
+
+    /* ─── Terminal ─── */
+    .terminal {
+      margin: 0; max-height: 380px; overflow: auto; padding: 16px;
+      border: 1px solid var(--tt-line); border-radius: 14px; background: #070304;
+      color: #f2d9d6; font-family: var(--tt-mono); font-size: 12px; line-height: 1.6;
+      white-space: pre-wrap; word-break: break-word; user-select: text; -webkit-user-select: text; cursor: text;
+    }
+    .terminal-dots { display: inline-flex; gap: 6px; margin-right: 6px; }
+    .terminal-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--tt-line-3); }
+    .terminal-dots i:first-child { background: var(--tt-red-hot); }
+
+    /* ─── Réglages : sections ─── */
+    .settings-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start; }
+    .settings-toc { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 2px; }
+    .settings-toc button {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 0; border-radius: 10px; background: none;
+      color: var(--tt-dim); font: inherit; font-size: 13px; text-align: left; cursor: pointer; transition: color .2s, background-color .2s;
+    }
+    .settings-toc button span { font-family: var(--tt-mono); font-size: 10.5px; color: var(--tt-dim); }
+    .settings-toc button:hover, .settings-toc button.current { color: var(--tt-text); background: rgba(255, 255, 255, .04); }
+    .settings-toc button.current span { color: var(--tt-red-hot); }
+    @media (max-width: 1080px) { .settings-grid { grid-template-columns: minmax(0, 1fr); } .settings-toc { display: none; } }
+
+    .about-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+    .about-row strong { font-weight: 500; font-size: 15px; }
+
+    /* ─── Bannière de mise à jour ─── */
+    .app-update-banner {
+      position: fixed; top: 14px; left: calc(var(--sidebar-w) + 24px); right: 24px; z-index: 60;
+      display: none; align-items: center; justify-content: space-between; gap: 14px;
+      padding: 10px 10px 10px 18px; border-radius: 999px;
+      border: 1px solid rgba(255, 74, 61, .4);
+      background: var(--tt-surface-2);
+      font-size: 13.5px; color: var(--tt-text);
+    }
+    .app-update-banner.show { display: flex; animation: tt-drop .4s var(--tt-ease) both; }
+    .app-update-banner strong { font-weight: 500; color: #fff; }
+    .app-update-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    body.has-update-banner .app { padding-top: 96px; }
+    @keyframes tt-drop { from { opacity: 0; transform: translateY(-24px) scale(.96); } to { opacity: 1; transform: none; } }
+
+    /* ─── Toasts ─── */
+    .toast-container {
+      position: fixed; right: 22px; bottom: 22px; z-index: 2000;
+      display: flex; flex-direction: column; gap: 10px; align-items: flex-end; pointer-events: none;
+    }
+    .toast {
+      position: relative; max-width: 380px; padding: 12px 16px 12px 40px;
+      border: 1px solid var(--tt-line-2); border-radius: 16px;
+      background: var(--tt-surface-2);
+      box-shadow: 0 16px 40px -16px rgba(0, 0, 0, .8);
+      color: var(--tt-text); font-size: 13.5px; line-height: 1.45;
+      opacity: 0; transform: translateX(30px) scale(.96);
+      transition: opacity .25s, transform .5s var(--tt-spring);
+      pointer-events: auto;
+    }
+    .toast::before {
+      content: ''; position: absolute; left: 16px; top: 50%; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
+      background: var(--tt-live);
+    }
+    .toast.error::before, .toast.err::before { background: var(--tt-red-hot); }
+    .toast.warn::before, .toast.warning::before, .toast.info::before { background: var(--tt-seg-2); }
+    .toast.show { opacity: 1; transform: none; }
+
+    /* ─── Modales ─── */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 1500; display: none; align-items: center; justify-content: center; padding: 24px;
+      background: rgba(5, 2, 3, .7);
+    }
+    .modal-backdrop.show { display: flex; animation: tt-fade .25s ease both; }
+    .modal-card {
+      width: min(560px, 100%); border: 1px solid var(--tt-line-2); border-radius: 24px;
+      background: var(--tt-surface-2);
+      box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .95);
+    }
+    .modal-backdrop.show .modal-card { animation: tt-modal-in .3s var(--tt-ease) both; }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 14px 24px; border-bottom: 1px solid var(--tt-line); }
+    .modal-title { margin: 0; font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
+    .modal-body { display: flex; flex-direction: column; gap: 16px; padding: 22px 24px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 16px; padding: 14px 20px 18px; border-top: 1px solid var(--tt-line); }
+    @keyframes tt-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes tt-modal-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    /* ═══ Footer tocotools (bas de chaque page) ═══ */
+    .tt-footer {
+      position: fixed; left: var(--sidebar-w); right: 0; bottom: 0; z-index: 30;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 14px clamp(24px, 4vw, 48px);
+      border-top: 1px solid var(--tt-line); background: var(--tt-bg);
+    }
+    .tt-wordmark-wrap { display: block; width: 104px; }
+    .tt-footer-meta { display: flex; gap: 18px; font-family: var(--tt-mono); font-size: 11px; color: var(--tt-dim); }
+    .tt-wordmark {
+      aspect-ratio: 990.83 / 156.99;
+      background: var(--tt-dim);
+      -webkit-mask: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMiIgZGF0YS1uYW1lPSJMYXllciAyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5OTAuODMgMTU2Ljk5Ij4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLmNscy0xIHsKICAgICAgICBmaWxsOiAjZmZmOwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8ZyBpZD0iTGF5ZXJfMS0yIiBkYXRhLW5hbWU9IkxheWVyIDEiPgogICAgPGc+CiAgICAgIDxnPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTk3LjMyLDk5LjA0Yy0xMC4wNC0xNS4zNi0yNS40Mi0zOC44MS0zNC44MS01NC42OS0xLjA3LTIuMDEtMi43Mi00LjI5LTIuMTMtNi43Mi0uNjgtNC4yOSw0LjE2LTkuMTIsOC40MjAtNi41NywxLjI3LjcxLDIuNTUwLjgxLDMuODUwLjIyLDItLjc0LDMuOTQwLTIuMjcsNS45NDAtMy4xMSwyLjc1MC0xLjMyLDMuODAtNC4xOCwyLjQyMC02LjkzLTIuMzYtNC4yNy02LjYyLTE0LjE4LTkuNjYtMTcuOTktMy4zNy0zLjk5LTguNzMuMzktMTIuMjEsMS45LTQuNzcsMi0xLjQ1LDUuMzMtNC43MSw3LjI4LTIuMjMsMi4yNzAtNS44MywyLjY4LTguODMsMS41MS0xMS41OC0zLjY1LTMxLjcsMTcuMDktMzYuODYsMjYuNTZsLTIuNDIsNC42N2MtMi4yNyw0LjM4LTYuMDksMTcuNzgtMi4yNywxOS4yMS4zNi4xMywxLjAzLS4yNSwxLjM3LS42Nyw1LjUxLTYuNzcsMTUuMzItMTQuMDUsMjMuNDMtMTcuMjYsMy4zNy0xLjU3LDYuNTEsMS4zNCw4Ljg2LDMuMyw0Ljk2LDEuODUsNS4yNC0zLjY1LDguOCw0LjAyLDguMjYsMTUuNDgsMjguNCw1My4yMiwzNi41MSw2OC4yMywxLjYsMi45Nyw0Ljg5LDMuNzgsNy43MSwyLjE5LDE3LjUtOS41OSwxOC4zMS03Ljg3LDYuNTktMjUuMThaIi8+CiAgICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTUxLjgyLDU5LjA1Yy0xLjgtMi43MS00LjM5LTQuODktNy41My02LjJsLTMxLjkzLTEzLjI3Yy00LjEzLTEuNzItOC43OC0xLjcyLTEyLjkxLDBMMTAuMzYsNzYuNjJjLTYuMjcsMi42MTAtMTAuMzYsOC43NC0xMC4zNiwxNS41M3Y1My43NWMwLDUuMjMsNC4yNCw5LjQ2LDkuNDYsOS40NmgxMzUuNzNjNS4yMywwLDkuNDYtNC4yNCw5LjQ2LTkuNDZ2LTc3LjUyYzAtMy40LTEuMDItNi42My0yLjgzLTkuMzNaTTEyOS4xOCw4Ni4zNmMwLDMuNTUtMi44Nyw2LjQyLTYuNDIsNi40MmgtMzguNmMtMy41NSwwLTYuNDItMi44Ny02LjQyLTYuNDJ2LTEuNDFjMC0zLjU1LDIuODctNi40Miw2LjQyLTYuNDJoMzguNmMzLjU1LDAsNi40MiwyLjg3LDYuNDIsNi40MnYxLjQxWiIvPgogICAgICA8L2c+CiAgICAgIDxnPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTIzOC44NCwyMy44OHYzMS40aDI0LjF2MTcuMjVoLTI0LjF2NTMuMjljMCw2LjQxLDEuNzcsMTEuNzIsMTEuNSwxMS43MmgxNC44MXYxNy4yNWgtMjAuMTJjLTE4LjEzLDAtMjUuNjUtOS4wNy0yNS42NS0yNi4zMXYtNTUuOTRoLTEyLjZ2LTE3LjI1MGgxMi42di0zMS40aDE5LjQ2WiIvPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTI2OS43OSwxMDUuMDNjMC0zMS42MiwxOS45LTUxLjk2LDUwLjY0LTUxLjk2czUwLjYzLDIwLjM0LDUwLjYzLDUxLjk2LTE5LjksNTEuOTYtNTAuNjMsNTEuOTYtNTAuNjQtMjAuMzQtNTAuNjQtNTEuOTZaTTM1MS4xNiwxMDUuMDNjMC0xOS45LTExLjUtMzQuMjctMzAuNzQtMzQuMjdzLTMwLjc0LDE0LjM3LTMwLjc0LDM0LjI3LDExLjcyLDM0LjI3LDMwLjc0LDM0LjI3LDMwLjc0LTE0LjU5LDMwLjc0LTM0LjI3WiIvPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTQzMC41NCwxNTYuOTljLTMxLjE4LDAtNDkuNzUtMjAuNTYtNDkuNzUtNTEuOTZzMTguNTctNTEuOTYsNDkuMDktNTEuOTZjMjQuMzIsMCw0MS4zNSwxNC4xNSw0Ni44OCwzNi4wNGgtMjEuMjNjLTMuNzYtMTAuNjEtMTIuODItMTguMzUtMjUuNjUtMTguMzUtMTguNTcsMC0yOS4xOSwxNC4zNy0yOS4xOSwzNC4yN3MxMC42MSwzNC4yNywyOS44NSwzNC4yN2MxMi42LDAsMTkuOS02Ljg1LDI0Ljk5LTE2LjE0aDIxLjIzYy02LjQxLDIwLjU2LTIyLjMzLDMzLjgzLTQ2LjIxLDMzLjgzWiIvPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTQ4NS44MSwxMDUuMDNjMC0zMS42MiwxOS45LTUxLjk2LDUwLjY0LTUxLjk2czUwLjYzLDIwLjM0LDUwLjYzLDUxLjk2LTE5LjksNTEuOTYtNTAuNjMsNTEuOTYtNTAuNjQtMjAuMzQtNTAuNjQtNTEuOTZaTTU2Ny4xOCwxMDUuMDNjMC0xOS45LTExLjUtMzQuMjctMzAuNzMtMzQuMjdzLTMwLjc0LDE0LjM3LTMwLjc0LDM0LjI3LDExLjcyLDM0LjI3LDMwLjc0LDM0LjI3LDMwLjczLTE0LjU5LDMwLjczLTM0LjI3WiIvPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTYyNC4wMSwyMy44OHYzMS40aDI0LjF2MTcuMjVoLTI0LjF2NTMuMjljMCw2LjQxLDEuNzcsMTEuNzIsMTEuNSwxMS43MmgxNC44MXYxNy4yNWgtMjAuMTJjLTE4LjEzLDAtMjUuNjUtOS4wNy0yNS42NS0yNi4zMXYtNTUuOTRoLTEyLjZ2LTE3LjI1aDEyLjZ2LTMxLjRoMTkuNDZaIi8+CiAgICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNjU0Ljk3LDEwNS4wM2MwLTMxLjYyLDE5LjktNTEuOTYsNTAuNjQtNTEuOTZzNTAuNjMsMjAuMzQsNTAuNjMsNTEuOTYtMTkuOSw1MS45Ni01MC42Myw1MS45Ni01MC42NC0yMC4zNC01MC42NC01MS45NlpNNzM2LjM0LDEwNS4wM2MwLTE5LjktMTEuNS0zNC4yNy0zMC43NC0zNC4yN3MtMzAuNzQsMTQuMzctMzAuNzQsMzQuMjcsMTEuNzIsMzQuMjcsMzAuNzQsMzQuMjcsMzAuNzQtMTQuNTksMzAuNzQtMzQuMjdaIi8+CiAgICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNzY1Ljk2LDEwNS4wM2MwLTMxLjYyLDE5LjktNTEuOTYsNTAuNjQtNTEuOTZzNTAuNjMsMjAuMzQsNTAuNjMsNTEuOTYtMTkuOSw1MS45Ni01MC42Myw1MS45Ni01MC42NC0yMC4zNC01MC42NC01MS45NlpNODQ3LjMzLDEwNS4wM2MwLTE5LjktMTEuNS0zNC4yNy0zMC43NC0zNC4yN3MtMzAuNzQsMTQuMzctMzAuNzQsMzQuMjcsMTEuNzIsMzQuMjcsMzAuNzQsMzQuMjcsMzAuNzQtMTQuNTksMzAuNzQtMzQuMjdaIi8+CiAgICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNODk5Ljk1LDB2MTU0Ljc4aC0xOS40NlYwaDE5LjQ2WiIvPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTk5MC44MywxMjcuMzZjMCwxMi4zOC04LjE4LDI5LjYzLTM2LjA0LDI5LjYzLTIzLjg4LDAtNDAuMjQtMTIuNi00MC45MS0zNC45NGgyMC4xMmMuODgsMTEuOTQsOC42MiwxNy4yNSwyMC4xMiwxNy4yNSwxMy43MSwwLDE2LjgxLTcuNTIsMTYuODEtMTEuOTQsMC0xOC41Ny01NC4zOS05LjczLTU0LjM5LTQ0LDAtMTYuNTgsMTEuNS0zMC4yOSwzNC4yNy0zMC4yOSwyNS4yMSwwLDM2LjcsMTYuNTgsMzYuNywzNC40OWgtMTkuOWMtLjQ0LTkuMDctNC4yLTE2LjgtMTYuMzYtMTYuOC0xMC4xNywwLTE1LjA0LDUuNTMtMTUuMDQsMTEuNSwwLDE4LjM1LDU0LjYyLDEzLjA1LDU0LjYyLDQ1LjExWiIvPgogICAgICA8L2c+CiAgICA8L2c+CiAgPC9nPgo8L3N2Zz4K") center / contain no-repeat;
+      mask: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMiIgZGF0YS1uYW1lPSJMYXllciAyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5OTAuODMgMTU2Ljk5Ij4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLmNscy0xIHsKICAgICAgICBmaWxsOiAjZmZmOwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8ZyBpZD0iTGF5ZXJfMS0yIiBkYXRhLW5hbWU9IkxheWVyIDEiPgogICAgPGc+CiAgICAgIDxnPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTk3LjMyLDk5LjA0Yy0xMC4wNC0xNS4zNi0yNS40Mi0zOC44MS0zNC44MS01NC42OS0xLjA3LTIuMDEtMi43Mi00LjI5LTIuMTMtNi43Mi0uNjgtNC4yOSw0LjE2LTkuMTIsOC40MjAtNi41NywxLjI3LjcxLDIuNTUwLjgxLDMuODUwLjIyLDItLjc0LDMuOTQwLTIuMjcsNS45NDAtMy4xMSwyLjc1MC0xLjMyLDMuODAtNC4xOCwyLjQyMC02LjkzLTIuMzYtNC4yNy02LjYyLTE0LjE4LTkuNjYtMTcuOTktMy4zNy0zLjk5LTguNzMuMzktMTIuMjEsMS45LTQuNzcsMi0xLjQ1LDUuMzMtNC43MSw3LjI4LTIuMjMsMi4yNzAtNS44MywyLjY4LTguODMsMS41MS0xMS41OC0zLjY1LTMxLjcsMTcuMDktMzYuODYsMjYuNTZsLTIuNDIsNC42N2MtMi4yNyw0LjM4LTYuMDksMTcuNzgtMi4yNywxOS4yMS4zNi4xMywxLjAzLS4yNSwxLjM3LS42Nyw1LjUxLTYuNzcsMTUuMzItMTQuMDUsMjMuNDMtMTcuMjYsMy4zNy0xLjU3LDYuNTEsMS4zNCw4Ljg2LDMuMyw0Ljk2LDEuODUsNS4yNC0zLjY1LDguOCw0LjAyLDguMjYsMTUuNDgsMjguNCw1My4yMiwzNi41MSw2OC4yMywxLjYsMi45Nyw0Ljg5LDMuNzgsNy43MSwyLjE5LDE3LjUtOS41OSwxOC4zMS03Ljg3LDYuNTktMjUuMThaIi8+CiAgICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTUxLjgyLDU5LjA1Yy0xLjgtMi43MS00LjM5LTQuODktNy41My02LjJsLTMxLjkzLTEzLjI3Yy00LjEzLTEuNzItOC43OC0xLjcyLTEyLjkxLDBMMTAuMzYsNzYuNjJjLTYuMjcsMi42MTAtMTAuMzYsOC43NC0xMC4zNiwxNS41M3Y1My43NWMwLDUuMjMsNC4yNCw5LjQ2LDkuNDYsOS40NmgxMzUuNzNjNS4yMywwLDkuNDYtNC4yNCw5LjQ2LTkuNDZ2LTc3LjUyYzAtMy40LTEuMDItNi42My0yLjgzLTkuMzNaTTEyOS4xOCw4Ni4zNmMwLDMuNTUtMi44Nyw2LjQyLTYuNDIsNi40MmgtMzguNmMtMy41NSwwLTYuNDItMi44Ny02LjQyLTYuNDJ2LTEuNDFjMC0zLjU1LDIuODctNi40Miw2LjQyLTYuNDJoMzguNmMzLjU1LDAsNi40MiwyLjg3LDYuNDIsNi40MnYxLjQxWiIvPgogICAgICA8L2c+CiAgICAgIDxnPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTIzOC44NCwyMy44OHYzMS40aDI0LjF2MTcuMjVoLTI0LjF2NTMuMjljMCw2LjQxLDEuNzcsMTEuNzIsMTEuNSwxMS43MmgxNC44MXYxNy4yNWgtMjAuMTJjLTE4LjEzLDAtMjUuNjUtOS4wNy0yNS42NS0yNi4zMXYtNTUuOTRoLTEyLjZ2LTE3LjI1MGgxMi42di0zMS40aDE5LjQ2WiIvPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTI2OS43OSwxMDUuMDNjMC0zMS42MiwxOS45LTUxLjk2LDUwLjY0LTUxLjk2czUwLjYzLDIwLjM0LDUwLjYzLDUxLjk2LTE5LjksNTEuOTYtNTAuNjMsNTEuOTYtNTAuNjQtMjAuMzQtNTAuNjQtNTEuOTZaTTM1MS4xNiwxMDUuMDNjMC0xOS45LTExLjUtMzQuMjctMzAuNzQtMzQuMjdzLTMwLjc0LDE0LjM3LTMwLjc0LDM0LjI3LDExLjcyLDM0LjI3LDMwLjc0LDM0LjI3LDMwLjc0LTE0LjU5LDMwLjc0LTM0LjI3WiIvPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTQzMC41NCwxNTYuOTljLTMxLjE4LDAtNDkuNzUtMjAuNTYtNDkuNzUtNTEuOTZzMTguNTctNTEuOTYsNDkuMDktNTEuOTZjMjQuMzIsMCw0MS4zNSwxNC4xNSw0Ni44OCwzNi4wNGgtMjEuMjNjLTMuNzYtMTAuNjEtMTIuODItMTguMzUtMjUuNjUtMTguMzUtMTguNTcsMC0yOS4xOSwxNC4zNy0yOS4xOSwzNC4yN3MxMC42MSwzNC4yNywyOS44NSwzNC4yN2MxMi42LDAsMTkuOS02Ljg1LDI0Ljk5LTE2LjE0aDIxLjIzYy02LjQxLDIwLjU2LTIyLjMzLDMzLjgzLTQ2LjIxLDMzLjgzWiIvPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTQ4NS44MSwxMDUuMDNjMC0zMS42MiwxOS45LTUxLjk2LDUwLjY0LTUxLjk2czUwLjYzLDIwLjM0LDUwLjYzLDUxLjk2LTE5LjksNTEuOTYtNTAuNjMsNTEuOTYtNTAuNjQtMjAuMzQtNTAuNjQtNTEuOTZaTTU2Ny4xOCwxMDUuMDNjMC0xOS45LTExLjUtMzQuMjctMzAuNzMtMzQuMjdzLTMwLjc0LDE0LjM3LTMwLjc0LDM0LjI3LDExLjcyLDM0LjI3LDMwLjc0LDM0LjI3LDMwLjczLTE0LjU5LDMwLjczLTM0LjI3WiIvPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTYyNC4wMSwyMy44OHYzMS40aDI0LjF2MTcuMjVoLTI0LjF2NTMuMjljMCw2LjQxLDEuNzcsMTEuNzIsMTEuNSwxMS43MmgxNC44MXYxNy4yNWgtMjAuMTJjLTE4LjEzLDAtMjUuNjUtOS4wNy0yNS42NS0yNi4zMXYtNTUuOTRoLTEyLjZ2LTE3LjI1aDEyLjZ2LTMxLjRoMTkuNDZaIi8+CiAgICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNjU0Ljk3LDEwNS4wM2MwLTMxLjYyLDE5LjktNTEuOTYsNTAuNjQtNTEuOTZzNTAuNjMsMjAuMzQsNTAuNjMsNTEuOTYtMTkuOSw1MS45Ni01MC42Myw1MS45Ni01MC42NC0yMC4zNC01MC42NC01MS45NlpNNzM2LjM0LDEwNS4wM2MwLTE5LjktMTEuNS0zNC4yNy0zMC43NC0zNC4yN3MtMzAuNzQsMTQuMzctMzAuNzQsMzQuMjcsMTEuNzIsMzQuMjcsMzAuNzQsMzQuMjcsMzAuNzQtMTQuNTksMzAuNzQtMzQuMjdaIi8+CiAgICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNzY1Ljk2LDEwNS4wM2MwLTMxLjYyLDE5LjktNTEuOTYsNTAuNjQtNTEuOTZzNTAuNjMsMjAuMzQsNTAuNjMsNTEuOTYtMTkuOSw1MS45Ni01MC42Myw1MS45Ni01MC42NC0yMC4zNC01MC42NC01MS45NlpNODQ3LjMzLDEwNS4wM2MwLTE5LjktMTEuNS0zNC4yNy0zMC43NC0zNC4yN3MtMzAuNzQsMTQuMzctMzAuNzQsMzQuMjcsMTEuNzIsMzQuMjcsMzAuNzQsMzQuMjcsMzAuNzQtMTQuNTksMzAuNzQtMzQuMjdaIi8+CiAgICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNODk5Ljk1LDB2MTU0Ljc4aC0xOS40NlYwaDE5LjQ2WiIvPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTk5MC44MywxMjcuMzZjMCwxMi4zOC04LjE4LDI5LjYzLTM2LjA0LDI5LjYzLTIzLjg4LDAtNDAuMjQtMTIuNi00MC45MS0zNC45NGgyMC4xMmMuODgsMTEuOTQsOC42MiwxNy4yNSwyMC4xMiwxNy4yNSwxMy43MSwwLDE2LjgxLTcuNTIsMTYuODEtMTEuOTQsMC0xOC41Ny01NC4zOS05LjczLTU0LjM5LTQ0LDAtMTYuNTgsMTEuNS0zMC4yOSwzNC4yNy0zMC4yOSwyNS4yMSwwLDM2LjcsMTYuNTgsMzYuNywzNC40OWgtMTkuOWMtLjQ0LTkuMDctNC4yLTE2LjgtMTYuMzYtMTYuOC0xMC4xNywwLTE1LjA0LDUuNTMtMTUuMDQsMTEuNSwwLDE4LjM1LDU0LjYyLDEzLjA1LDU0LjYyLDQ1LjExWiIvPgogICAgICA8L2c+CiAgICA8L2c+CiAgPC9nPgo8L3N2Zz4K") center / contain no-repeat;
+      transition: background-color .6s var(--tt-ease);
+    }
+    .tt-wordmark-wrap:hover .tt-wordmark { background: var(--tt-red); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
   </style>
 </head>
 
-<body style="overflow-x:hidden;">
+<body>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="tt-logo" viewBox="0 0 990.83 156.99"><path fill="currentColor" d="M97.32,99.04c-10.04-15.36-25.42-38.81-34.81-54.69-1.07-2.01-2.72-4.29-2.13-6.72-.68-4.29,4.16-9.12,8.420-6.57,1.27.71,2.550.81,3.850.22,2-.74,3.940-2.27,5.940-3.11,2.750-1.32,3.80-4.18,2.420-6.93-2.36-4.27-6.62-14.18-9.66-17.99-3.37-3.99-8.73.39-12.21,1.9-4.77,2-1.45,5.33-4.71,7.28-2.23,2.270-5.83,2.68-8.83,1.51-11.58-3.65-31.7,17.09-36.86,26.56l-2.42,4.67c-2.27,4.38-6.09,17.78-2.27,19.21.36.13,1.03-.25,1.37-.67,5.51-6.77,15.32-14.05,23.43-17.26,3.37-1.57,6.51,1.34,8.86,3.3,4.96,1.85,5.24-3.65,8.8,4.02,8.26,15.48,28.4,53.22,36.51,68.23,1.6,2.97,4.89,3.78,7.71,2.19,17.5-9.59,18.31-7.87,6.59-25.18Z"/><path fill="currentColor" d="M151.82,59.05c-1.8-2.71-4.39-4.89-7.53-6.2l-31.93-13.27c-4.13-1.72-8.78-1.72-12.91,0L10.36,76.62c-6.27,2.610-10.36,8.74-10.36,15.53v53.75c0,5.23,4.24,9.46,9.46,9.46h135.73c5.23,0,9.46-4.24,9.46-9.46v-77.52c0-3.4-1.02-6.63-2.83-9.33ZM129.18,86.36c0,3.55-2.87,6.42-6.42,6.42h-38.6c-3.55,0-6.42-2.87-6.42-6.42v-1.41c0-3.55,2.87-6.42,6.42-6.42h38.6c3.55,0,6.42,2.87,6.42,6.42v1.41Z"/><path fill="currentColor" d="M238.84,23.88v31.4h24.1v17.25h-24.1v53.29c0,6.41,1.77,11.72,11.5,11.72h14.81v17.25h-20.12c-18.13,0-25.65-9.07-25.65-26.31v-55.94h-12.6v-17.250h12.6v-31.4h19.46Z"/><path fill="currentColor" d="M269.79,105.03c0-31.62,19.9-51.96,50.64-51.96s50.63,20.34,50.63,51.96-19.9,51.96-50.63,51.96-50.64-20.34-50.64-51.96ZM351.16,105.03c0-19.9-11.5-34.27-30.74-34.27s-30.74,14.37-30.74,34.27,11.72,34.27,30.74,34.27,30.74-14.59,30.74-34.27Z"/><path fill="currentColor" d="M430.54,156.99c-31.18,0-49.75-20.56-49.75-51.96s18.57-51.96,49.09-51.96c24.32,0,41.35,14.15,46.88,36.04h-21.23c-3.76-10.61-12.82-18.35-25.65-18.35-18.57,0-29.19,14.37-29.19,34.27s10.61,34.27,29.85,34.27c12.6,0,19.9-6.85,24.99-16.14h21.23c-6.41,20.56-22.33,33.83-46.21,33.83Z"/><path fill="currentColor" d="M485.81,105.03c0-31.62,19.9-51.96,50.64-51.96s50.63,20.34,50.63,51.96-19.9,51.96-50.63,51.96-50.64-20.34-50.64-51.96ZM567.18,105.03c0-19.9-11.5-34.27-30.73-34.27s-30.74,14.37-30.74,34.27,11.72,34.27,30.74,34.27,30.73-14.59,30.73-34.27Z"/><path fill="currentColor" d="M624.01,23.88v31.4h24.1v17.25h-24.1v53.29c0,6.41,1.77,11.72,11.5,11.72h14.81v17.25h-20.12c-18.13,0-25.65-9.07-25.65-26.31v-55.94h-12.6v-17.25h12.6v-31.4h19.46Z"/><path fill="currentColor" d="M654.97,105.03c0-31.62,19.9-51.96,50.64-51.96s50.63,20.34,50.63,51.96-19.9,51.96-50.63,51.96-50.64-20.34-50.64-51.96ZM736.34,105.03c0-19.9-11.5-34.27-30.74-34.27s-30.74,14.37-30.74,34.27,11.72,34.27,30.74,34.27,30.74-14.59,30.74-34.27Z"/><path fill="currentColor" d="M765.96,105.03c0-31.62,19.9-51.96,50.64-51.96s50.63,20.34,50.63,51.96-19.9,51.96-50.63,51.96-50.64-20.34-50.64-51.96ZM847.33,105.03c0-19.9-11.5-34.27-30.74-34.27s-30.74,14.37-30.74,34.27,11.72,34.27,30.74,34.27,30.74-14.59,30.74-34.27Z"/><path fill="currentColor" d="M899.95,0v154.78h-19.46V0h19.46Z"/><path fill="currentColor" d="M990.83,127.36c0,12.38-8.18,29.63-36.04,29.63-23.88,0-40.24-12.6-40.91-34.94h20.12c.88,11.94,8.62,17.25,20.12,17.25,13.71,0,16.81-7.52,16.81-11.94,0-18.57-54.39-9.73-54.39-44,0-16.58,11.5-30.29,34.27-30.29,25.21,0,36.7,16.58,36.7,34.49h-19.9c-.44-9.07-4.2-16.8-16.36-16.8-10.17,0-15.04,5.53-15.04,11.5,0,18.35,54.62,13.05,54.62,45.11Z"/></symbol>
+    <symbol id="tt-icon" viewBox="0 0 155 157"><path fill="currentColor" d="M97.32,99.04c-10.04-15.36-25.42-38.81-34.81-54.69-1.07-2.01-2.72-4.29-2.13-6.72-.68-4.29,4.16-9.12,8.420-6.57,1.27.71,2.550.81,3.850.22,2-.74,3.940-2.27,5.940-3.11,2.750-1.32,3.80-4.18,2.420-6.93-2.36-4.27-6.62-14.18-9.66-17.99-3.37-3.99-8.73.39-12.21,1.9-4.77,2-1.45,5.33-4.71,7.28-2.23,2.270-5.83,2.68-8.83,1.51-11.58-3.65-31.7,17.09-36.86,26.56l-2.42,4.67c-2.27,4.38-6.09,17.78-2.27,19.21.36.13,1.03-.25,1.37-.67,5.51-6.77,15.32-14.05,23.43-17.26,3.37-1.57,6.51,1.34,8.86,3.3,4.96,1.85,5.24-3.65,8.8,4.02,8.26,15.48,28.4,53.22,36.51,68.23,1.6,2.97,4.89,3.78,7.71,2.19,17.5-9.59,18.31-7.87,6.59-25.18Z"/><path fill="currentColor" d="M151.82,59.05c-1.8-2.71-4.39-4.89-7.53-6.2l-31.93-13.27c-4.13-1.72-8.78-1.72-12.91,0L10.36,76.62c-6.27,2.610-10.36,8.74-10.36,15.53v53.75c0,5.23,4.24,9.46,9.46,9.46h135.73c5.23,0,9.46-4.24,9.46-9.46v-77.52c0-3.4-1.02-6.63-2.83-9.33ZM129.18,86.36c0,3.55-2.87,6.42-6.42,6.42h-38.6c-3.55,0-6.42-2.87-6.42-6.42v-1.41c0-3.55,2.87-6.42,6.42-6.42h38.6c3.55,0,6.42,2.87,6.42,6.42v1.41Z"/></symbol>
+  </svg>
+
+
   <!-- ═══ SIDEBAR ═══ -->
   <aside id="sidebar">
     <div class="sidebar-brand">
-      <img style="height:20px;width:auto;" src="https://upload.wikimedia.org/wikipedia/commons/f/f7/Official_Odoo_logo.svg" alt="Odoo">
-      <span class="sidebar-brand-title">DB Manager</span>
+      <img class="sidebar-logo" src="../static/img/dbmanager.svg" alt="Database Manager">
     </div>
 
     <nav class="sidebar-nav">
-      <!-- Créer une base -->
-      <button class="tab active" data-tab="create">Créer une base</button>
-      <div class="sidebar-sub-nav">
-        <div class="sidebar-sub-item">Version &amp; Branche</div>
-        <div class="sidebar-sub-item">Nouvelle base de données</div>
-      </div>
+      <div class="nav-indicator" id="navIndicator"></div>
 
-      <!-- Mes bases -->
-      <button class="tab" data-tab="databases">Mes bases</button>
-      <div class="sidebar-sub-nav">
-        <div class="sidebar-sub-item">Version &amp; Branche</div>
-        <div class="sidebar-sub-item">Synchronisation Git</div>
-        <div class="sidebar-sub-item">Liste des bases</div>
-      </div>
+      <button class="tab active" data-tab="create">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        Créer une base <span class="tab-index">01</span>
+      </button>
+      <div class="sidebar-sub-nav"><div class="sub-inner">
+        <button type="button" class="sidebar-sub-item" data-wz-step="0">Environnement</button>
+        <button type="button" class="sidebar-sub-item" data-wz-step="1">Script de lancement</button>
+        <button type="button" class="sidebar-sub-item" data-wz-step="2">Nouvelle base</button>
+        <button type="button" class="sidebar-sub-item" data-wz-step="3">Addons &amp; dump</button>
+      </div></div>
 
-      <!-- Scaffold -->
-      <button class="tab" data-tab="scaffold">Scaffold</button>
-      <div class="sidebar-sub-nav">
-        <div class="sidebar-sub-item">Module</div>
-        <div class="sidebar-sub-item">Pages</div>
-        <div class="sidebar-sub-item">Site</div>
-        <div class="sidebar-sub-item">Thème</div>
-        <div class="sidebar-sub-item">Générer</div>
-      </div>
+      <button class="tab" data-tab="databases">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+        Mes bases <span class="tab-index">02</span>
+      </button>
+      <div class="sidebar-sub-nav"><div class="sub-inner">
+        <button type="button" class="sidebar-sub-item" data-jump="secDbList">Liste des bases</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secDbEnv">Version &amp; branche</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secDbGit">Synchronisation Git</button>
+      </div></div>
 
-      <!-- Traduction (IA) -->
-      <button class="tab" data-tab="translation" id="tabTranslation" hidden>Traduction (BETA)</button>
-      <div class="sidebar-sub-nav" id="tabTranslationSubNav" hidden>
-        <div class="sidebar-sub-item">Base &amp; Module</div>
-        <div class="sidebar-sub-item">Génération</div>
-      </div>
+      <button class="tab" data-tab="scaffold">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8l9 5 9-5Z"/><path d="m3 13 9 5 9-5"/><path d="m3 18 9 5 9-5" opacity=".5"/></svg>
+        Scaffold <span class="tab-index">03</span>
+      </button>
+      <div class="sidebar-sub-nav"><div class="sub-inner">
+        <button type="button" class="sidebar-sub-item" data-step="0">Module</button>
+        <button type="button" class="sidebar-sub-item" data-step="1">Pages</button>
+        <button type="button" class="sidebar-sub-item" data-step="2">Site</button>
+        <button type="button" class="sidebar-sub-item" data-step="3">Thème</button>
+        <button type="button" class="sidebar-sub-item" data-step="4">Générer</button>
+      </div></div>
 
-      <!-- Réglages -->
-      <button class="tab" data-tab="settings">Réglages</button>
-      <div class="sidebar-sub-nav">
-        <div class="sidebar-sub-item">Configuration</div>
-      </div>
+      <button class="tab" data-tab="translation" id="tabTranslation" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
+        Traduction <span class="tab-beta">BETA</span>
+      </button>
+      <div class="sidebar-sub-nav" id="tabTranslationSubNav" hidden><div class="sub-inner">
+        <button type="button" class="sidebar-sub-item" data-jump="secTranslateForm">Base &amp; module</button>
+        <button type="button" class="sidebar-sub-item" data-jump="translateTerminalCard">Terminal</button>
+      </div></div>
+
+      <button class="tab" data-tab="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.3a2 2 0 0 1-2 0l-.2-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.2.1a2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.8l-.2.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.2-.1a2 2 0 0 1 2 0l.4.3a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.3a2 2 0 0 1 2 0l.2.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.2-.1a2 2 0 0 1-1-1.8v-.5a2 2 0 0 1 1-1.7l.2-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.2.1a2 2 0 0 1-2 0l-.4-.3a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        Réglages <span class="tab-index">05</span>
+      </button>
+      <div class="sidebar-sub-nav"><div class="sub-inner">
+        <button type="button" class="sidebar-sub-item" data-jump="secSetPaths">Chemins</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secSetAi">Intelligence artificielle</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secSetPerms">Permissions macOS</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secSetDiag">Diagnostic</button>
+        <button type="button" class="sidebar-sub-item" data-jump="secSetAbout">À propos</button>
+      </div></div>
     </nav>
 
     <div class="sidebar-footer-area">
-      <span style="font-size:11px;color:oklch(73% 0.018 230);">Odoo DB Manager</span>
+      <a class="sidebar-footer-logo" href="https://tocotools.odoo.com" target="_blank" rel="noopener" title="tocotools.odoo.com">
+        <svg viewBox="0 0 990.83 156.99"><use href="#tt-logo"/></svg>
+        <span class="chip"><span class="dot"></span>v{{ app_version }}</span>
+      </a>
     </div>
   </aside>
 
-  <div id="appUpdateBanner"
-       class="app-update-banner"
-       role="status"
-       aria-live="polite">
+  <div id="appUpdateBanner" class="app-update-banner" role="status" aria-live="polite">
     <div id="appUpdateBannerText"></div>
     <div class="app-update-banner-actions">
-      <button type="button" id="btnApplyAppUpdate"
-              style="padding:5px 12px;font-size:12px;font-weight:500;border-radius:6px;border:none;background:#92400e;color:#fff;cursor:pointer;">Mettre à jour</button>
+      <button type="button" id="btnApplyAppUpdate" class="hs-btn hs-btn-primary hs-btn-sm">Mettre à jour</button>
     </div>
   </div>
 
-  <div class="app">
-    <div id="panel-create" class="tab-panel active">
-      <div class="page-header">
-        <h1>Créer une base</h1>
-        <p>Initialise ou met à jour une base de données Odoo locale</p>
+  <main class="app">
+
+    <!-- ═══════════════ 01 · CRÉER UNE BASE ═══════════════ -->
+    <section id="panel-create" class="tab-panel active">
+      <div class="scaffold-stepper wz-stepper reveal" id="createStepsNav">
+        <div class="stepper-thumb"></div>
+        <button type="button" class="wz-step-btn active" data-step="0">
+          <span class="scaffold-step-num">1</span>
+          <span class="scaffold-step-label">Environnement</span>
+        </button>
+        <div class="scaffold-step-connector"></div>
+        <button type="button" class="wz-step-btn" data-step="1">
+          <span class="scaffold-step-num">2</span>
+          <span class="scaffold-step-label">Script</span>
+        </button>
+        <div class="scaffold-step-connector"></div>
+        <button type="button" class="wz-step-btn" data-step="2">
+          <span class="scaffold-step-num">3</span>
+          <span class="scaffold-step-label">Base</span>
+        </button>
+        <div class="scaffold-step-connector"></div>
+        <button type="button" class="wz-step-btn" data-step="3">
+          <span class="scaffold-step-num">4</span>
+          <span class="scaffold-step-label">Addons &amp; dump</span>
+        </button>
+        <div class="stepper-progress"><i></i></div>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:16px;">
-
-        <!-- Version & Branche -->
-        <div class="hs-card">
+      <!-- Étape 1 : version, branche, environnement -->
+      <div class="wz-panel active reveal" data-step="0">
+        <div class="hs-card wz-card" id="secCreateEnv">
           <div class="hs-card-header">
-            <h2 class="hs-card-title">Version &amp; Branche</h2>
+            <h2 class="hs-card-title"><span class="card-index">01</span>Version &amp; branche</h2>
           </div>
-          <div class="hs-card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
-
-            <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="hs-card-body fields">
+            <div class="grid-2">
               <div class="hs-field">
-                <label class="hs-label">Environnement Python</label>
+                <label class="hs-label" for="version">Environnement Python</label>
                 <select id="version" class="hs-select full">
                   <option value="">Auto</option>
                 </select>
               </div>
-              <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnSetGlobalPyenv">
-                Définir comme env global
-              </button>
-              <span class="hs-status" id="pyenvGlobalStatus"></span>
-            </div>
-
-            <div style="display:flex;flex-direction:column;gap:10px;">
               <div class="hs-field">
-                <label class="hs-label">Branche</label>
+                <label class="hs-label" for="branch">Branche</label>
                 <select id="branch" class="hs-select full"></select>
-                <span class="hs-status" id="branchStatus"></span>
               </div>
-              <div style="display:flex;gap:8px;">
-                <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnCheck">
-                  <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+            </div>
+            <div class="grid-2">
+              <div class="row env-global-row">
+                <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnSetGlobalPyenv">Définir comme env global</button>
+                <span class="hs-status" id="pyenvGlobalStatus"></span>
+              </div>
+              <div class="row">
+                <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnCheck">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"/></svg>
                   Vérifier
                 </button>
-                <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnBranch">
-                  <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+                <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnBranch">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
                   Changer
                 </button>
               </div>
             </div>
-
+            <span class="hs-status" id="branchStatus"></span>
           </div>
         </div>
+      </div>
 
-        <!-- ── Colonne droite (span 2 lignes) : Nouvelle base ── -->
-        <div class="hs-card">
+      <!-- Étape 2 : script de lancement -->
+      <div class="wz-panel" data-step="1">
+        <div class="hs-card wz-card" id="secCreateScript">
           <div class="hs-card-header">
-            <h2 class="hs-card-title">Nouvelle base de données</h2>
+            <h2 class="hs-card-title"><span class="card-index">02</span>Script de lancement</h2>
           </div>
-          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:14px;">
-
-            <div class="hs-field">
-              <label class="hs-label" for="dbName">Nom de la base</label>
-              <input type="text" id="dbName" class="hs-input mono" placeholder="ma_base">
-              <span class="hs-status" id="dbStatus"></span>
-            </div>
-
-            <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="hs-card-body fields">
+            <div class="grid-2">
               <div class="hs-field">
                 <label class="hs-label" for="scriptsDirSelect">Dossier scripts</label>
                 <p class="hs-hint">Où créer le script .sh</p>
@@ -1076,228 +911,261 @@
               </div>
               <div class="hs-field">
                 <label class="hs-label" for="scriptsSubdirSelect">Sous-dossier</label>
-                <p class="hs-hint">Ranger dans un sous-dossier</p>
+                <p class="hs-hint">Pour ranger le script</p>
                 <select id="scriptsSubdirSelect" class="hs-select full">
                   <option value="">Racine du dossier</option>
                 </select>
-                <p class="hs-hint" id="scriptsSubdirEmpty" hidden style="font-style:italic;color:var(--warn);">
-                  Aucun sous-dossier — créez-en un dans Réglages.
-                </p>
               </div>
             </div>
+            <p class="hs-hint" id="scriptsSubdirEmpty" hidden style="color:var(--warn);margin:0;">Aucun sous-dossier — créez-en un dans Réglages.</p>
+          </div>
+        </div>
+      </div>
 
+      <!-- Étape 3 : nouvelle base -->
+      <div class="wz-panel" data-step="2">
+        <div class="hs-card wz-card" id="secCreateDb">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title"><span class="card-index">03</span>Nouvelle base de données</h2>
+          </div>
+          <div class="hs-card-body fields">
             <div class="hs-field">
-              <label class="hs-label" for="modules">Modules à installer</label>
+              <label class="hs-label" for="dbName">Nom de la base</label>
+              <input type="text" id="dbName" class="hs-input mono" placeholder="ma_base" autocomplete="off" spellcheck="false">
+              <span class="hs-status" id="dbStatus"></span>
+            </div>
+            <div class="hs-field">
+              <div class="label-row">
+                <label class="hs-label" for="modules">Modules à installer</label>
+                <span class="hs-hint">séparés par une virgule</span>
+              </div>
               <textarea id="modules" class="hs-textarea" placeholder="website, website_sale">website,website_sale</textarea>
             </div>
-
-            <div style="display:flex;flex-direction:column;gap:10px;">
+            <hr class="divider">
+            <div class="grid-2">
               <div class="hs-field">
                 <label class="hs-label" for="updateMode">Mode update</label>
-                  <p class="hs-hint">-u ou --reinit</p>
+                <p class="hs-hint">Si la base existe déjà</p>
                 <select id="updateMode" class="hs-select">
                   <option value="reinit">--reinit</option>
                   <option value="update">-u</option>
                 </select>
               </div>
               <div class="hs-field">
-                <label class="hs-label" for="updateModules">Modules update/reinit</label>
-                <p class="hs-hint">Si la DB existe déjà</p>
-                <textarea id="updateModules" class="hs-textarea" placeholder="website, website_sale" style="min-height:56px;">website,website_sale</textarea>
+                <label class="hs-label" for="updateModules">Modules update / reinit</label>
+                <p class="hs-hint">Appliqués au relancement</p>
+                <textarea id="updateModules" class="hs-textarea" placeholder="website, website_sale" style="min-height:42px;">website,website_sale</textarea>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div class="hs-field">
-              <label class="hs-label" for="customAddonInput">Addons paths custom</label>
-              <p class="hs-hint">Dossiers addons supplémentaires (optionnel)</p>
-              <div style="display:flex;gap:6px;">
-                <input type="text" id="customAddonInput" class="hs-input mono" style="flex:1;min-width:0;" placeholder="/Users/odoo/odoo/psbe-client">
-                <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnAddCustomAddon">Ajouter</button>
-                <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnBrowseCustomAddon">
-                  <svg style="width:13px;height:13px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"/></svg>
+      <!-- Étape 4 : addons paths + dump -->
+      <div class="wz-panel" data-step="3">
+        <div class="stack wz-card">
+          <div class="hs-card" id="secCreateAddons">
+            <div class="hs-card-header">
+              <h2 class="hs-card-title"><span class="card-index">04</span>Addons paths custom</h2>
+              <span class="hs-hint" style="margin:0;">optionnel</span>
+            </div>
+            <div class="hs-card-body fields">
+              <div class="field-with-browse">
+                <input type="text" id="customAddonInput" class="hs-input mono" placeholder="/Users/odoo/odoo/psbe-client" spellcheck="false">
+                <button type="button" class="hs-btn hs-btn-secondary" id="btnAddCustomAddon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                  Ajouter
+                </button>
+                <button type="button" class="hs-btn hs-btn-secondary" id="btnBrowseCustomAddon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
                   Parcourir
                 </button>
               </div>
-              <div id="customAddonsList" class="addons-list" style="margin-top:8px;"></div>
+              <div id="customAddonsList" class="addons-list"></div>
             </div>
+          </div>
 
-            <div class="hs-field" style="padding-top:4px;border-top:1px solid oklch(95.5% 0.004 230);">
-              <label class="hs-label" style="display:flex;align-items:center;gap:8px;">
+          <div class="hs-card" id="secCreateDump">
+            <div class="hs-card-header">
+              <h2 class="hs-card-title"><span class="card-index">05</span>Depuis un dump</h2>
+              <span class="hs-hint" style="margin:0;">SaaS / Odoo.sh</span>
+            </div>
+            <div class="hs-card-body fields">
+              <label class="switch-row" for="importFromDump">
                 <input type="checkbox" id="importFromDump">
-                Créer à partir d'un dump (SaaS / Odoo.sh)
+                <span>Créer à partir d'un dump
+                  <small>Restaure un dump.sql (+ filestore) et sanitize la base. Importez le dump, puis cliquez sur Créer.</small>
+                </span>
               </label>
-              <p class="hs-hint">Restaure un dump.sql (+ filestore), puis sanitize la base (admin/admin, crons/mails désactivés, etc.)</p>
 
-              <div id="dumpImportFields" style="display:none;flex-direction:column;gap:10px;margin-top:10px;">
+              <div id="dumpImportFields" style="display:none;flex-direction:column;gap:16px;">
+                <hr class="divider">
                 <div class="hs-field">
                   <label class="hs-label" for="dumpPath">Fichier dump.sql</label>
-                  <div style="display:flex;gap:6px;">
-                    <input type="text" id="dumpPath" class="hs-input mono" style="flex:1;min-width:0;" placeholder="/Users/odoo/Downloads/dump.sql">
-                    <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnBrowseDump">Parcourir</button>
+                  <div class="field-with-browse">
+                    <input type="text" id="dumpPath" class="hs-input mono" placeholder="/Users/odoo/Downloads/dump.sql" spellcheck="false">
+                    <button type="button" class="hs-btn hs-btn-secondary" id="btnBrowseDump">Parcourir</button>
                   </div>
                 </div>
                 <div class="hs-field">
-                  <label class="hs-label" for="filestorePath">Dossier filestore</label>
-                  <p class="hs-hint">Dossier "filestore" du zip téléchargé (optionnel)</p>
-                  <div style="display:flex;gap:6px;">
-                    <input type="text" id="filestorePath" class="hs-input mono" style="flex:1;min-width:0;" placeholder="/Users/odoo/Downloads/filestore">
-                    <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnBrowseFilestore">Parcourir</button>
+                  <div class="label-row">
+                    <label class="hs-label" for="filestorePath">Dossier filestore</label>
+                    <span class="hs-hint">optionnel</span>
+                  </div>
+                  <div class="field-with-browse">
+                    <input type="text" id="filestorePath" class="hs-input mono" placeholder="/Users/odoo/Downloads/filestore" spellcheck="false">
+                    <button type="button" class="hs-btn hs-btn-secondary" id="btnBrowseFilestore">Parcourir</button>
                   </div>
                 </div>
-                <label class="hs-label" style="display:flex;align-items:center;gap:8px;font-weight:400;">
+                <label class="switch-row" for="dropExistingDb">
                   <input type="checkbox" id="dropExistingDb">
-                  Supprimer la base existante si elle existe déjà
+                  <span>Supprimer la base existante si elle existe déjà</span>
                 </label>
-                <label class="hs-label" style="display:flex;align-items:center;gap:8px;font-weight:400;">
+                <label class="switch-row" for="sanitizeDump">
                   <input type="checkbox" id="sanitizeDump" checked>
-                  Sanitizer après import (admin/admin, désactive crons/mails/SaaS)
+                  <span>Sanitizer après import <small>admin/admin, désactive crons, mails et SaaS</small></span>
                 </label>
-                <button class="hs-btn hs-btn-primary" id="btnImportDump" type="button">
-                  Importer le dump
+                <div class="row">
+                  <button class="hs-btn hs-btn-primary" id="btnImportDump" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    Importer le dump
+                  </button>
+                  <span class="status" id="dumpImportStatus"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log masqué — le JS y écrit toujours -->
+      <div id="log" style="display:none;"></div>
+
+      <div class="scaffold-nav-actions wz-nav">
+        <button type="button" class="hs-btn hs-btn-secondary" id="btnCreatePrev" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+          Précédent
+        </button>
+        <div class="row">
+          <span class="hs-hint" id="createHint" style="margin:0;"></span>
+          <button class="hs-btn hs-btn-ghost" id="btnLocks" hidden>Nettoyer les verrous</button>
+          <button type="button" class="hs-btn hs-btn-primary" id="btnCreateNext">
+            Suivant
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+          </button>
+          <button class="hs-btn hs-btn-cta" id="btnCreate" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"/></svg>
+            Créer / Mettre à jour
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 02 · MES BASES ═══════════════ -->
+    <section id="panel-databases" class="tab-panel">
+
+      <div class="stats">
+        <div class="stat reveal" style="--seg:var(--tt-seg-3)">
+          <div class="stat-label">Bases</div>
+          <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="stat reveal" style="--seg:var(--tt-live)">
+          <div class="stat-label">En cours</div>
+          <div class="stat-value" id="statRunning">0</div>
+        </div>
+        <div class="stat reveal" style="--seg:var(--tt-red-hot)">
+          <div class="stat-label">Branche</div>
+          <div class="stat-value small" id="statBranch">—</div>
+        </div>
+      </div>
+
+      <div class="layout layout-main-aside">
+        <div class="hs-card reveal" id="secDbList">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title"><span class="card-index">01</span>Bases de données</h2>
+            <div class="row">
+              <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnDisconnectAll" title="Arrêter tous les processus Odoo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                Vider les processus
+              </button>
+              <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnRefreshDb">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                Actualiser
+              </button>
+            </div>
+          </div>
+          <div style="padding:16px 22px 6px;">
+            <div class="search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z"/></svg>
+              <input type="text" id="dbSearch" class="hs-input" placeholder="Rechercher une base…" autocomplete="off" spellcheck="false">
+              <kbd>⌘K</kbd>
+            </div>
+          </div>
+          <div id="dbList">
+            <div class="empty-state">Chargement…</div>
+          </div>
+        </div>
+
+        <aside class="stack sticky">
+          <div class="hs-card reveal" id="secDbEnv">
+            <div class="hs-card-header">
+              <h2 class="hs-card-title"><span class="card-index">02</span>Version &amp; branche</h2>
+            </div>
+            <div class="hs-card-body fields">
+              <div class="hs-field">
+                <label class="hs-label" for="versionDb">Environnement Python</label>
+                <select id="versionDb" class="hs-select full">
+                  <option value="">Auto</option>
+                </select>
+                <div class="row env-global-row">
+                  <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnSetGlobalPyenvDb">Définir comme env global</button>
+                  <span class="hs-status" id="pyenvGlobalStatusDb"></span>
+                </div>
+              </div>
+              <div class="hs-field">
+                <label class="hs-label" for="branchDb">Branche</label>
+                <select id="branchDb" class="hs-select full"></select>
+                <span class="hs-status" id="branchStatusDb"></span>
+              </div>
+              <div class="grid-2" style="gap:16px;">
+                <button class="hs-btn hs-btn-secondary" id="btnCheckDb">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"/></svg>
+                  Vérifier
+                </button>
+                <button class="hs-btn hs-btn-secondary" id="btnBranchDb">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+                  Changer
                 </button>
               </div>
             </div>
-
-            <div style="display:flex;gap:8px;padding-top:4px;border-top:1px solid oklch(95.5% 0.004 230);">
-              <button class="hs-btn hs-btn-primary" id="btnCreate">
-                <svg style="width:15px;height:15px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"/></svg>
-                Créer / Mettre à jour
-              </button>
-              <button class="hs-btn hs-btn-secondary" id="btnLocks">
-                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
-                Nettoyer les verrous
-              </button>
-            </div>
-
           </div>
-        </div>
 
-        <!-- Log hidden — JS still writes to it -->
-        <div id="log" style="display:none;"></div>
-
-      </div>
-    </div>
-
-    <div id="panel-databases" class="tab-panel">
-      <div class="page-header">
-        <h1>Mes bases</h1>
-        <p>Gérez et connectez vos bases de données Odoo locales</p>
-      </div>
-
-      <!-- Ligne du haut : Version & Branche  |  Sync Git -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-
-        <!-- Version & Branche -->
-        <div class="hs-card">
-          <div class="hs-card-header">
-            <h2 class="hs-card-title">Version &amp; Branche</h2>
-          </div>
-          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:14px;">
-
-            <div class="hs-field">
-              <label class="hs-label">Environnement Python</label>
-              <select id="versionDb" class="hs-select full">
-                <option value="">Auto</option>
-              </select>
+          <div class="hs-card reveal" id="secDbGit">
+            <div class="hs-card-header">
+              <h2 class="hs-card-title"><span class="card-index">03</span>Synchronisation Git</h2>
             </div>
-
-            <div style="display:flex;align-items:center;gap:10px;">
-              <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnSetGlobalPyenvDb">
-                Définir comme env global
-              </button>
-              <span class="hs-status" id="pyenvGlobalStatusDb"></span>
-            </div>
-
-            <div class="hs-field">
-              <label class="hs-label">Branche</label>
-              <select id="branchDb" class="hs-select full"></select>
-              <span class="hs-status" id="branchStatusDb"></span>
-            </div>
-
-            <div style="display:flex;gap:8px;">
-              <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnCheckDb">
-                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
-                Vérifier
-              </button>
-              <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnBranchDb">
-                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
-                Changer
-              </button>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Synchronisation Git -->
-        <div class="hs-card">
-          <div class="hs-card-header">
-            <h2 class="hs-card-title">Synchronisation Git</h2>
-          </div>
-          <div class="hs-card-body" style="display:block;gap:14px;">
-
-            <div style="display:block;gap:8px;margin-bottom:4px;">
-              <button class="hs-btn hs-btn-secondary" style="margin-bottom:10px;" id="btnCheckUpdatesDb">
-                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+            <div class="hs-card-body fields" style="gap:10px;">
+              <button class="hs-btn hs-btn-secondary block" id="btnCheckUpdatesDb">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
                 Vérifier si à jour
               </button>
-              <button class="hs-btn hs-btn-secondary" style="flex:1;" id="btnPullDb">
-                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+              <button class="hs-btn hs-btn-primary block" id="btnPullDb">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
                 Pull core &amp; enterprise
               </button>
+              <span class="hs-status" id="gitStatusDb"></span>
+              <div id="gitAlertDb" class="git-alert"></div>
             </div>
-
-            <span class="hs-status" id="gitStatusDb"></span>
-
-            <div id="gitAlertDb" class="git-alert"></div>
-
           </div>
-        </div>
-
+        </aside>
       </div>
+    </section>
 
-      <!-- Ligne du bas : Liste des bases (pleine largeur) -->
-      <div class="hs-card">
-        <div class="hs-card-header">
-          <h2 class="hs-card-title">Bases de données</h2>
-          <div style="display:flex;gap:6px;">
-            <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnDisconnectAll" title="Arrêter tous les processus Odoo">
-              <svg style="width:13px;height:13px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 7.5A2.25 2.25 0 0 1 7.5 5.25h9a2.25 2.25 0 0 1 2.25 2.25v9a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9Z"/></svg>
-              Vider les processus
-            </button>
-            <button class="hs-btn hs-btn-secondary hs-btn-sm" id="btnRefreshDb">
-              <svg style="width:13px;height:13px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-              Actualiser
-            </button>
-          </div>
-        </div>
+    <!-- ═══════════════ 03 · SCAFFOLD ═══════════════ -->
+    <section id="panel-scaffold" class="tab-panel">
 
-        <!-- Barre de recherche -->
-        <div style="padding:12px 18px;border-bottom:1px solid oklch(95.5% 0.004 230);">
-          <div style="position:relative;">
-            <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:oklch(62.5% 0.020 230);pointer-events:none;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z"/></svg>
-            <input type="text" id="dbSearch"
-                   class="hs-input"
-                   style="padding-left:34px;"
-                   placeholder="Rechercher une base…">
-          </div>
-        </div>
-
-        <!-- Liste -->
-        <div style="padding:8px 14px 12px;" id="dbList">
-          <div class="empty-state">Chargement…</div>
-        </div>
-      </div>
-
-    </div>
-
-    <div id="panel-scaffold" class="tab-panel">
-      <div class="page-header">
-        <h1>Scaffold</h1>
-        <p>Génère un module <code style="font-family:'JetBrains Mono',monospace;background:oklch(95.5% 0.004 230);padding:1px 6px;border-radius:4px;font-size:12px;">website_*</code> personnalisé à partir du scaffold Odoo</p>
-      </div>
-
-      <!-- Stepper nav -->
-      <div class="scaffold-stepper" id="scaffoldStepsNav">
+      <div class="scaffold-stepper reveal" id="scaffoldStepsNav">
+        <div class="stepper-thumb" id="stepperThumb"></div>
         <button type="button" class="scaffold-step-btn active" data-step="0">
           <span class="scaffold-step-num">1</span>
           <span class="scaffold-step-label">Module</span>
@@ -1322,102 +1190,115 @@
           <span class="scaffold-step-num">5</span>
           <span class="scaffold-step-label">Générer</span>
         </button>
+        <div class="stepper-progress"><i id="stepperProgress"></i></div>
       </div>
 
-      <!-- Step 1: Module -->
-      <div class="scaffold-step-panel active" data-step="0">
-        <div class="hs-card">
-          <div class="hs-card-header">
-            <h2 class="hs-card-title">Informations du module</h2>
+      <!-- Étape 1 : Module -->
+      <div class="scaffold-step-panel active reveal" data-step="0">
+        <div class="layout layout-main-aside">
+          <div class="hs-card">
+            <div class="hs-card-header">
+              <h2 class="hs-card-title"><span class="card-index">01</span>Informations du module</h2>
+            </div>
+            <div class="hs-card-body fields">
+              <div class="hs-field">
+                <label class="hs-label" for="scaffoldOdooVersion">Version Odoo</label>
+                <select id="scaffoldOdooVersion" class="hs-select full">
+                  <option value="19">Odoo 19 — html_builder / Interaction</option>
+                  <option value="18">Odoo 18 — publicWidget / we-button</option>
+                </select>
+                <span class="hs-status" id="scaffoldVersionHint">Template : website_scaffold (Odoo 19)</span>
+              </div>
+              <div class="hs-field">
+                <label class="hs-label" for="scaffoldModuleSlug">Nom du module</label>
+                <p class="hs-hint">Sans le préfixe <code>website_</code> — ex. <code>acme</code> → <code>website_acme</code></p>
+                <input type="text" id="scaffoldModuleSlug" class="hs-input mono" placeholder="acme" pattern="[a-z0-9_]+" spellcheck="false">
+                <div class="scaffold-preview-module" id="scaffoldModulePreview">website_…</div>
+              </div>
+              <div class="grid-2">
+                <div class="hs-field">
+                  <label class="hs-label" for="scaffoldModuleTitle">Titre du module</label>
+                  <input type="text" id="scaffoldModuleTitle" class="hs-input" placeholder="ACME Website">
+                </div>
+                <div class="hs-field">
+                  <label class="hs-label" for="scaffoldAuthor">Auteur</label>
+                  <input type="text" id="scaffoldAuthor" class="hs-input" placeholder="Odoo PSBE">
+                </div>
+              </div>
+              <div class="hs-field">
+                <label class="hs-label" for="scaffoldThemeLabel">Nom du thème</label>
+                <p class="hs-hint">Header, footer et palette : utilisé dans primary_variables et les options du builder</p>
+                <input type="text" id="scaffoldThemeLabel" class="hs-input" placeholder="Acme">
+              </div>
+            </div>
           </div>
-          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:14px;max-width:560px;">
-            <div class="hs-field">
-              <label class="hs-label" for="scaffoldOdooVersion">Version Odoo</label>
-              <select id="scaffoldOdooVersion" class="hs-select full">
-                <option value="19">Odoo 19 — html_builder / Interaction</option>
-                <option value="18">Odoo 18 — publicWidget / we-button</option>
-              </select>
-              <span class="hs-status" id="scaffoldVersionHint">Template : website_scaffold (Odoo 19)</span>
-            </div>
-            <div class="hs-field">
-              <label class="hs-label" for="scaffoldModuleSlug">Nom du module</label>
-              <p class="hs-hint">Sans le préfixe <code style="font-family:inherit;background:oklch(95.5% 0.004 230);padding:1px 5px;border-radius:4px;">website_</code> — ex. <code style="font-family:inherit;background:oklch(95.5% 0.004 230);padding:1px 5px;border-radius:4px;">acme</code> → <code style="font-family:inherit;background:oklch(95.5% 0.004 230);padding:1px 5px;border-radius:4px;">website_acme</code></p>
-              <input type="text" id="scaffoldModuleSlug" class="hs-input mono" placeholder="acme" pattern="[a-z0-9_]+">
-              <div class="scaffold-preview-module" id="scaffoldModulePreview">website_…</div>
-            </div>
-            <div class="hs-field">
-              <label class="hs-label" for="scaffoldModuleTitle">Titre du module (manifest)</label>
-              <input type="text" id="scaffoldModuleTitle" class="hs-input" placeholder="ACME Website">
-            </div>
-            <div class="hs-field">
-              <label class="hs-label" for="scaffoldAuthor">Auteur</label>
-              <input type="text" id="scaffoldAuthor" class="hs-input" placeholder="Odoo PSBE">
-            </div>
-            <div class="hs-field">
-              <label class="hs-label" for="scaffoldThemeLabel">Nom du thème (header/footer/palette)</label>
-              <p class="hs-hint">Utilisé dans primary_variables et les options builder</p>
-              <input type="text" id="scaffoldThemeLabel" class="hs-input" placeholder="Acme">
+          <div class="hs-card card-cta">
+            <div class="hs-card-body fields" style="gap:10px;">
+              <div class="hs-hint mono" style="margin:0;">Étape 1 / 5</div>
+              <p style="margin:0;font-size:15px;line-height:1.5;">Le module est généré depuis <code>website_scaffold</code> (Odoo 19) ou <code>website_scaffold_18</code>.</p>
+              <p class="hs-hint" style="margin:0;">Pages, branding, couleurs et typo se règlent dans les étapes suivantes, puis tout est écrit d'un coup à l'étape 5.</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Step 2: Pages -->
+      <!-- Étape 2 : Pages -->
       <div class="scaffold-step-panel" data-step="1">
         <div class="hs-card">
           <div class="hs-card-header">
-            <h2 class="hs-card-title">Pages du module</h2>
+            <h2 class="hs-card-title"><span class="card-index">02</span>Pages du module</h2>
             <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnScaffoldAddPage">
-              <svg style="width:13px;height:13px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
               Ajouter une page
             </button>
           </div>
           <div class="hs-card-body">
-            <p class="hs-hint" style="margin-bottom:14px;">Chaque page est créée vide (<code style="font-family:'JetBrains Mono',monospace;background:oklch(95.5% 0.004 230);padding:1px 5px;border-radius:4px;">oe_structure oe_empty</code>), comme la home du scaffold.</p>
+            <p class="hs-hint" style="margin:0 0 16px;">Chaque page est créée vide (<code>oe_structure oe_empty</code>), comme la home du scaffold.</p>
             <div id="scaffoldPagesList" class="scaffold-pages-list"></div>
           </div>
         </div>
       </div>
 
-      <!-- Step 3: Site branding -->
+      <!-- Étape 3 : Site -->
       <div class="scaffold-step-panel" data-step="2">
         <div class="hs-card">
           <div class="hs-card-header">
-            <h2 class="hs-card-title">Branding du site</h2>
+            <h2 class="hs-card-title"><span class="card-index">03</span>Branding du site</h2>
           </div>
-          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:14px;max-width:560px;">
-            <div class="hs-field">
-              <label class="hs-label" for="scaffoldWebsiteName">Nom du site</label>
-              <input type="text" id="scaffoldWebsiteName" class="hs-input" placeholder="ACME Corp">
+          <div class="hs-card-body fields">
+            <div class="grid-2">
+              <div class="hs-field">
+                <label class="hs-label" for="scaffoldWebsiteName">Nom du site</label>
+                <input type="text" id="scaffoldWebsiteName" class="hs-input" placeholder="ACME Corp">
+              </div>
+              <div class="hs-field">
+                <label class="hs-label" for="scaffoldMetaTitle">Meta title par défaut</label>
+                <input type="text" id="scaffoldMetaTitle" class="hs-input" placeholder="ACME — Official website">
+              </div>
             </div>
             <div class="hs-field">
-              <label class="hs-label" for="scaffoldMetaTitle">Meta title par défaut</label>
-              <p class="hs-hint">Titre SEO affiché sur les pages (additional_title)</p>
-              <input type="text" id="scaffoldMetaTitle" class="hs-input" placeholder="ACME — Official website">
-            </div>
-            <div class="hs-field">
-              <label class="hs-label" for="scaffoldFaviconPath">Favicon</label>
-              <p class="hs-hint">PNG recommandé — copié dans static/description/favicon.png</p>
+              <div class="label-row">
+                <label class="hs-label" for="scaffoldFaviconPath">Favicon</label>
+                <span class="hs-hint">PNG — copié dans static/description/favicon.png</span>
+              </div>
               <div class="field-with-browse">
-                <input type="text" id="scaffoldFaviconPath" class="hs-input" placeholder="Optionnel">
-                <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnScaffoldBrowseFavicon">Parcourir</button>
+                <input type="text" id="scaffoldFaviconPath" class="hs-input mono" placeholder="Optionnel" spellcheck="false">
+                <button type="button" class="hs-btn hs-btn-secondary" id="btnScaffoldBrowseFavicon">Parcourir</button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Step 4: Theme -->
+      <!-- Étape 4 : Thème -->
       <div class="scaffold-step-panel" data-step="3">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
-
-          <!-- Couleurs -->
-          <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="layout layout-2">
+          <div class="stack">
             <div class="hs-card">
               <details open>
                 <summary class="scaffold-theme-summary">
-                  <h2 class="hs-card-title">Couleurs principales (o-color-1 → 5)</h2>
-                  <svg style="width:14px;height:14px;flex-shrink:0;color:oklch(62.5% 0.020 230);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                  <h2 class="hs-card-title"><span class="card-index">A</span>Couleurs principales <code>o-color-1 → 5</code></h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="hs-card-body">
                   <div class="scaffold-color-grid" id="scaffoldMainColors"></div>
@@ -1427,8 +1308,8 @@
             <div class="hs-card">
               <details>
                 <summary class="scaffold-theme-summary">
-                  <h2 class="hs-card-title">Couleurs sémantiques (success, danger…)</h2>
-                  <svg style="width:14px;height:14px;flex-shrink:0;color:oklch(62.5% 0.020 230);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                  <h2 class="hs-card-title"><span class="card-index">B</span>Couleurs sémantiques</h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="hs-card-body">
                   <div class="scaffold-color-grid" id="scaffoldThemeColors"></div>
@@ -1438,8 +1319,8 @@
             <div class="hs-card">
               <details>
                 <summary class="scaffold-theme-summary">
-                  <h2 class="hs-card-title">Gris (palette gray)</h2>
-                  <svg style="width:14px;height:14px;flex-shrink:0;color:oklch(62.5% 0.020 230);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                  <h2 class="hs-card-title"><span class="card-index">C</span>Gris</h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="hs-card-body">
                   <div class="scaffold-color-grid" id="scaffoldGrayColors"></div>
@@ -1448,30 +1329,31 @@
             </div>
           </div>
 
-          <!-- Typographie + Layout -->
-          <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="stack">
             <div class="hs-card">
               <details open>
                 <summary class="scaffold-theme-summary">
-                  <h2 class="hs-card-title">Typographie</h2>
-                  <svg style="width:14px;height:14px;flex-shrink:0;color:oklch(62.5% 0.020 230);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                  <h2 class="hs-card-title"><span class="card-index">D</span>Typographie</h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
-                <div class="hs-card-body" style="display:flex;flex-direction:column;gap:12px;">
-                  <div class="hs-field">
-                    <label class="hs-label" for="scaffoldFont">Police de base</label>
-                    <select id="scaffoldFont" class="hs-select full"></select>
-                  </div>
-                  <div class="hs-field">
-                    <label class="hs-label" for="scaffoldHeadingsFont">Titres</label>
-                    <select id="scaffoldHeadingsFont" class="hs-select full"></select>
-                  </div>
-                  <div class="hs-field">
-                    <label class="hs-label" for="scaffoldNavbarFont">Navbar</label>
-                    <select id="scaffoldNavbarFont" class="hs-select full"></select>
-                  </div>
-                  <div class="hs-field">
-                    <label class="hs-label" for="scaffoldButtonsFont">Boutons</label>
-                    <select id="scaffoldButtonsFont" class="hs-select full"></select>
+                <div class="hs-card-body">
+                  <div class="grid-2">
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldFont">Police de base</label>
+                      <select id="scaffoldFont" class="hs-select full"></select>
+                    </div>
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldHeadingsFont">Titres</label>
+                      <select id="scaffoldHeadingsFont" class="hs-select full"></select>
+                    </div>
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldNavbarFont">Navbar</label>
+                      <select id="scaffoldNavbarFont" class="hs-select full"></select>
+                    </div>
+                    <div class="hs-field">
+                      <label class="hs-label" for="scaffoldButtonsFont">Boutons</label>
+                      <select id="scaffoldButtonsFont" class="hs-select full"></select>
+                    </div>
                   </div>
                 </div>
               </details>
@@ -1479,11 +1361,11 @@
             <div class="hs-card">
               <details>
                 <summary class="scaffold-theme-summary">
-                  <h2 class="hs-card-title">Layout, boutons &amp; header</h2>
-                  <svg style="width:14px;height:14px;flex-shrink:0;color:oklch(62.5% 0.020 230);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                  <h2 class="hs-card-title"><span class="card-index">E</span>Layout, boutons &amp; header</h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
-                <div class="hs-card-body" style="display:flex;flex-direction:column;gap:12px;">
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="hs-card-body">
+                  <div class="grid-2">
                     <div class="hs-field">
                       <label class="hs-label" for="scaffoldLayout">Layout</label>
                       <select id="scaffoldLayout" class="hs-select full">
@@ -1501,8 +1383,6 @@
                         <option value="always">Toujours</option>
                       </select>
                     </div>
-                  </div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     <div class="hs-field">
                       <label class="hs-label" for="scaffoldHeaderLinksStyle">Style liens header</label>
                       <select id="scaffoldHeaderLinksStyle" class="hs-select full">
@@ -1518,27 +1398,23 @@
                     </div>
                     <div class="hs-field">
                       <label class="hs-label" for="scaffoldHeaderFontSize">Taille header</label>
-                      <input type="text" id="scaffoldHeaderFontSize" class="hs-input" placeholder="1rem">
+                      <input type="text" id="scaffoldHeaderFontSize" class="hs-input mono" placeholder="1rem">
                     </div>
-                  </div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     <div class="hs-field">
                       <label class="hs-label" for="scaffoldLogoHeight">Hauteur logo</label>
-                      <input type="text" id="scaffoldLogoHeight" class="hs-input" placeholder="1.5rem">
+                      <input type="text" id="scaffoldLogoHeight" class="hs-input mono" placeholder="1.5rem">
                     </div>
                     <div class="hs-field">
                       <label class="hs-label" for="scaffoldBtnRadiusLg">Radius bouton LG</label>
-                      <input type="text" id="scaffoldBtnRadiusLg" class="hs-input" placeholder="2rem">
+                      <input type="text" id="scaffoldBtnRadiusLg" class="hs-input mono" placeholder="2rem">
                     </div>
-                  </div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     <div class="hs-field">
                       <label class="hs-label" for="scaffoldMenuColor">Menu (o_cc n°)</label>
-                      <input type="number" id="scaffoldMenuColor" class="hs-input" min="1" max="5" value="2">
+                      <input type="number" id="scaffoldMenuColor" class="hs-input mono" min="1" max="5" value="2">
                     </div>
                     <div class="hs-field">
                       <label class="hs-label" for="scaffoldFooterColor">Footer (o_cc n°)</label>
-                      <input type="number" id="scaffoldFooterColor" class="hs-input" min="1" max="5" value="5">
+                      <input type="number" id="scaffoldFooterColor" class="hs-input mono" min="1" max="5" value="5">
                     </div>
                   </div>
                 </div>
@@ -1548,25 +1424,25 @@
         </div>
       </div>
 
-      <!-- Step 5: Output -->
+      <!-- Étape 5 : Générer -->
       <div class="scaffold-step-panel" data-step="4">
-        <div class="hs-card">
+        <div class="hs-card card-cta">
           <div class="hs-card-header">
-            <h2 class="hs-card-title">Générer le module</h2>
+            <h2 class="hs-card-title"><span class="card-index">05</span>Générer le module</h2>
           </div>
-          <div class="hs-card-body" style="display:flex;flex-direction:column;gap:16px;max-width:560px;">
+          <div class="hs-card-body fields">
             <div class="hs-field">
               <label class="hs-label" for="scaffoldOutputPath">Dossier de destination</label>
               <p class="hs-hint">Le module sera créé dans ce dossier (ex. votre addons_path client)</p>
               <div class="field-with-browse">
-                <input type="text" id="scaffoldOutputPath" class="hs-input mono" placeholder="/Users/odoo/odoo/psbe-acme">
-                <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnScaffoldBrowseOutput">Parcourir</button>
+                <input type="text" id="scaffoldOutputPath" class="hs-input mono" placeholder="/Users/odoo/odoo/psbe-acme" spellcheck="false">
+                <button type="button" class="hs-btn hs-btn-secondary" id="btnScaffoldBrowseOutput">Parcourir</button>
               </div>
             </div>
             <div class="scaffold-preview-module" id="scaffoldFinalPreview"></div>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <button type="button" class="hs-btn hs-btn-primary" id="btnScaffoldGenerate">
-                <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/></svg>
+            <div class="row">
+              <button type="button" class="hs-btn hs-btn-cta" id="btnScaffoldGenerate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/></svg>
                 Créer le module
               </button>
               <span class="status" id="scaffoldStatus"></span>
@@ -1575,256 +1451,298 @@
         </div>
       </div>
 
-      <!-- Nav buttons -->
       <div class="scaffold-nav-actions">
         <button type="button" class="hs-btn hs-btn-secondary" id="btnScaffoldPrev" disabled>
-          <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
           Précédent
         </button>
         <button type="button" class="hs-btn hs-btn-primary" id="btnScaffoldNext">
           Suivant
-          <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
         </button>
       </div>
-    </div>
+    </section>
 
-    <div id="panel-translation" class="tab-panel">
-      <div class="page-header">
-        <h1>Traduction</h1>
-        <p>Exporte le .po d'un module et le traduit via l'IA configurée dans les Réglages.</p>
-      </div>
+    <!-- ═══════════════ 04 · TRADUCTION ═══════════════ -->
+    <section id="panel-translation" class="tab-panel">
 
-      <div class="hs-card" style="max-width:600px;">
-        <div class="hs-card-header">
-          <h2 class="hs-card-title">Génération</h2>
-        </div>
-        <div class="hs-card-body" style="display:flex;flex-direction:column;gap:16px;">
-
-          <div class="hs-field">
-            <label class="hs-label" for="translateDatabase">Base de données</label>
-            <select id="translateDatabase" class="hs-select full"></select>
+      <div class="layout layout-aside-main">
+        <div class="hs-card reveal" id="secTranslateForm">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title"><span class="card-index">01</span>Génération</h2>
           </div>
-
-          <div class="hs-field">
-            <label class="hs-label" for="translateModule">Module</label>
-            <select id="translateModule" class="hs-select full"></select>
-          </div>
-
-          <div class="hs-field">
-            <label class="hs-label" for="translateVersion">Version Odoo</label>
-            <select id="translateVersion" class="hs-select full">
-              <option value="18">18</option>
-              <option value="19">19</option>
-            </select>
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="hs-card-body fields">
             <div class="hs-field">
-              <label class="hs-label" for="translateLang">Langue cible (code ISO)</label>
-              <input type="text" id="translateLang" class="hs-input mono" placeholder="fr_FR">
+              <label class="hs-label" for="translateDatabase">Base de données</label>
+              <select id="translateDatabase" class="hs-select full"></select>
+            </div>
+            <div class="hs-field">
+              <label class="hs-label" for="translateModule">Module</label>
+              <select id="translateModule" class="hs-select full"></select>
+            </div>
+            <div class="grid-2">
+              <div class="hs-field">
+                <label class="hs-label" for="translateVersion">Version Odoo</label>
+                <select id="translateVersion" class="hs-select full">
+                  <option value="18">18</option>
+                  <option value="19">19</option>
+                </select>
+              </div>
+              <div class="hs-field">
+                <label class="hs-label" for="translateLang">Langue cible</label>
+                <input type="text" id="translateLang" class="hs-input mono" placeholder="fr_FR" spellcheck="false">
+              </div>
             </div>
             <div class="hs-field">
               <label class="hs-label" for="translateOutputPath">Dossier de sortie</label>
               <div class="field-with-browse">
-                <input type="text" id="translateOutputPath" class="hs-input mono" placeholder="~/Desktop">
-                <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="translateOutputPath" data-type="folder" data-prompt="Choisir le dossier de sortie">Parcourir</button>
+                <input type="text" id="translateOutputPath" class="hs-input mono" placeholder="~/Desktop" spellcheck="false">
+                <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="translateOutputPath" data-type="folder" data-prompt="Choisir le dossier de sortie">Parcourir</button>
+              </div>
+            </div>
+          </div>
+          <div class="hs-card-footer">
+            <button class="hs-btn hs-btn-cta" id="btnGenerateTranslation">Générer la traduction</button>
+            <span class="status" id="translateStatus"></span>
+            <span class="hs-hint" id="translateElapsed" style="margin:0;"></span>
+          </div>
+        </div>
+
+        <div class="hs-card reveal" id="translateTerminalCard" style="display:none;">
+          <div class="hs-card-header">
+            <h2 class="hs-card-title"><span class="terminal-dots"><i></i><i></i><i></i></span>Terminal</h2>
+            <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnCopyTranslateTerminal">Copier</button>
+          </div>
+          <div class="hs-card-body">
+            <pre id="translateTerminal" class="terminal"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 05 · RÉGLAGES ═══════════════ -->
+    <section id="panel-settings" class="tab-panel">
+
+      <div class="settings-grid">
+        <nav class="settings-toc reveal" id="settingsToc">
+          <button type="button" data-jump="secSetPaths"><span>01</span>Chemins &amp; terminal</button>
+          <button type="button" data-jump="secSetAi"><span>02</span>Intelligence artificielle</button>
+          <button type="button" data-jump="secSetPerms"><span>03</span>Permissions macOS</button>
+          <button type="button" data-jump="secSetDiag"><span>04</span>Diagnostic</button>
+          <button type="button" data-jump="secSetAbout"><span>05</span>À propos</button>
+        </nav>
+
+        <div class="stack">
+          <div class="hs-card reveal" id="secSetPaths">
+            <div class="hs-card-header">
+              <h2 class="hs-card-title"><span class="card-index">01</span>Chemins &amp; terminal</h2>
+            </div>
+            <div class="hs-card-body fields">
+              <div class="grid-2">
+                <div class="hs-field">
+                  <label class="hs-label" for="odooCommunityPath">Odoo Community</label>
+                  <p class="hs-hint">Dossier contenant odoo-bin</p>
+                  <div class="field-with-browse">
+                    <input type="text" id="odooCommunityPath" class="hs-input mono" placeholder="~/odoo/core" spellcheck="false">
+                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="odooCommunityPath" data-type="folder" data-prompt="Choisir le dossier Odoo Community" title="Parcourir">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="hs-field">
+                  <label class="hs-label" for="odooEnterprisePath">Odoo Enterprise</label>
+                  <p class="hs-hint">Dossier enterprise</p>
+                  <div class="field-with-browse">
+                    <input type="text" id="odooEnterprisePath" class="hs-input mono" placeholder="~/odoo/enterprise" spellcheck="false">
+                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="odooEnterprisePath" data-type="folder" data-prompt="Choisir le dossier Odoo Enterprise" title="Parcourir">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="hs-field">
+                <label class="hs-label" for="scriptsPath">Dossier des scripts</label>
+                <p class="hs-hint">Un ou plusieurs chemins, séparés par une virgule</p>
+                <div class="field-with-browse">
+                  <input type="text" id="scriptsPath" class="hs-input mono" placeholder="~/Scripts ou /chemin/vers/scripts" spellcheck="false">
+                  <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="scriptsPath" data-type="folder" data-prompt="Choisir le dossier des scripts" title="Parcourir">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="hs-field">
+                  <label class="hs-label" for="pyenvRoot">Racine pyenv</label>
+                  <p class="hs-hint">Contient versions/ (odoo-18, odoo-19…)</p>
+                  <div class="field-with-browse">
+                    <input type="text" id="pyenvRoot" class="hs-input mono" placeholder="~/.pyenv" spellcheck="false">
+                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="pyenvRoot" data-type="folder" data-prompt="Choisir la racine pyenv" title="Parcourir">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="hs-field">
+                  <label class="hs-label" for="psqlPath">Chemin psql</label>
+                  <p class="hs-hint">Vide = auto-détection</p>
+                  <div class="field-with-browse">
+                    <input type="text" id="psqlPath" class="hs-input mono" placeholder="auto" spellcheck="false">
+                    <button type="button" class="hs-btn hs-btn-secondary btn-browse" data-target="psqlPath" data-type="file" data-prompt="Choisir le fichier psql" title="Parcourir">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <hr class="divider">
+
+              <div class="grid-2">
+                <div class="hs-field">
+                  <label class="hs-label" for="terminalApp">Terminal</label>
+                  <p class="hs-hint">Pour lancer Odoo et les scripts</p>
+                  <select id="terminalApp" class="hs-select full">
+                    <option value="Warp">Warp</option>
+                    <option value="Terminal">Terminal</option>
+                    <option value="iTerm2">iTerm2</option>
+                  </select>
+                </div>
+                <div class="hs-field">
+                  <label class="hs-label" for="odooHttpPort">Port HTTP Odoo</label>
+                  <p class="hs-hint">8069 par défaut</p>
+                  <input type="number" id="odooHttpPort" class="hs-input mono" min="1024" max="65535" placeholder="8069">
+                </div>
+              </div>
+            </div>
+            <div class="hs-card-footer">
+              <button class="hs-btn hs-btn-primary" id="btnSaveConfig">Enregistrer</button>
+              <span class="status" id="configStatus"></span>
+            </div>
+          </div>
+
+          <div class="hs-card reveal" id="secSetAi">
+            <div class="hs-card-header">
+              <h2 class="hs-card-title"><span class="card-index">02</span>Intelligence artificielle</h2>
+            </div>
+            <div class="hs-card-body fields">
+              <p class="hs-hint" style="margin:0;">Comment l'app appelle une IA (ex. pour l'onglet Traduction).</p>
+              <div class="hs-field">
+                <label class="hs-label" for="aiMode">Mode</label>
+                <select id="aiMode" class="hs-select full">
+                  <option value="api_key">Clé API (Anthropic, OpenAI, Gemini)</option>
+                  <option value="claude_cli">Claude Code (CLI déjà connecté)</option>
+                </select>
+              </div>
+
+              <div id="aiApiKeyFields" style="display:flex;flex-direction:column;gap:16px;">
+                <div class="grid-2">
+                  <div class="hs-field">
+                    <label class="hs-label" for="aiApiProvider">Provider</label>
+                    <select id="aiApiProvider" class="hs-select full"></select>
+                  </div>
+                  <div class="hs-field">
+                    <label class="hs-label" for="aiApiKey">Clé API</label>
+                    <input type="password" id="aiApiKey" class="hs-input mono" placeholder="sk-...">
+                  </div>
+                </div>
+                <p class="hs-hint" style="margin:-6px 0 0;">Stockée dans le Trousseau macOS, jamais en clair sur le disque.</p>
+                <div class="row">
+                  <button type="button" class="hs-btn hs-btn-primary" id="btnValidateApiKey">Valider</button>
+                  <span class="status" id="aiApiKeyStatus"></span>
+                </div>
+              </div>
+
+              <div id="aiClaudeCliFields" style="display:none;flex-direction:column;gap:14px;">
+                <p class="hs-hint" id="aiClaudeCliInfo" style="margin:0;">Vérification en cours…</p>
+                <div class="row">
+                  <button type="button" class="hs-btn hs-btn-secondary" id="btnInstallClaudeCli" style="display:none;">Installer Claude Code</button>
+                  <button type="button" class="hs-btn hs-btn-primary" id="btnValidateClaudeCli">Vérifier / Valider</button>
+                  <span class="status" id="aiClaudeCliStatus"></span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div style="display:flex;align-items:center;gap:12px;">
-            <button class="hs-btn hs-btn-primary" id="btnGenerateTranslation">Générer la traduction</button>
-            <span class="status" id="translateStatus"></span>
-            <span class="hs-hint" id="translateElapsed"></span>
-          </div>
-
-        </div>
-      </div>
-
-      <div class="hs-card" id="translateTerminalCard" style="max-width:600px;display:none;">
-        <div class="hs-card-header" style="display:flex;align-items:center;justify-content:space-between;">
-          <h2 class="hs-card-title">Terminal</h2>
-          <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm" id="btnCopyTranslateTerminal">Copier</button>
-        </div>
-        <div class="hs-card-body">
-          <pre id="translateTerminal" style="background:#111;color:#eee;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.5;padding:12px;border-radius:8px;max-height:360px;overflow:auto;white-space:pre-wrap;word-break:break-word;margin:0;user-select:text;-webkit-user-select:text;cursor:text;"></pre>
-        </div>
-      </div>
-    </div>
-
-    <div id="panel-settings" class="tab-panel">
-      <div class="page-header">
-        <h1>Réglages</h1>
-        <p>Configurez les chemins selon votre machine.</p>
-      </div>
-
-      <div class="hs-card" style="max-width:600px;">
-        <div class="hs-card-header">
-          <h2 class="hs-card-title">Configuration</h2>
-          <span class="hs-hint" style="margin:0;">Version {{ app_version }}</span>
-        </div>
-        <div class="hs-card-body" style="display:flex;flex-direction:column;gap:16px;">
-
-          <div class="hs-field">
-            <label class="hs-label" for="odooCommunityPath">Chemin Odoo Community</label>
-            <p class="hs-hint">Chemin exact du dossier community (contenant odoo-bin)</p>
-            <div class="field-with-browse">
-              <input type="text" id="odooCommunityPath" class="hs-input mono" placeholder="~/odoo/core">
-              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="odooCommunityPath" data-type="folder" data-prompt="Choisir le dossier Odoo Community">Parcourir</button>
+          <div class="hs-card reveal" id="secSetPerms">
+            <div class="hs-card-header">
+              <h2 class="hs-card-title"><span class="card-index">03</span>Permissions macOS <code>Warp</code></h2>
+            </div>
+            <div class="hs-card-body fields">
+              <p class="hs-hint" style="margin:0;">
+                Si Warp s'ouvre mais qu'aucune commande ne se lance à la création d'une base, il manque probablement une de ces deux permissions.
+                Cliquez sur le bouton, puis cochez la case dans les Réglages Système (relancez l'app si besoin).
+              </p>
+              <div class="row">
+                <button type="button" class="hs-btn hs-btn-secondary" id="btnOpenAccessibility">Vérifier Accessibilité</button>
+                <button type="button" class="hs-btn hs-btn-secondary" id="btnOpenAutomation">Vérifier Automatisation</button>
+                <span class="status" id="permissionsStatus"></span>
+              </div>
             </div>
           </div>
 
-          <div class="hs-field">
-            <label class="hs-label" for="odooEnterprisePath">Chemin Odoo Enterprise</label>
-            <p class="hs-hint">Chemin exact du dossier enterprise</p>
-            <div class="field-with-browse">
-              <input type="text" id="odooEnterprisePath" class="hs-input mono" placeholder="~/odoo/enterprise">
-              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="odooEnterprisePath" data-type="folder" data-prompt="Choisir le dossier Odoo Enterprise">Parcourir</button>
+          <div class="hs-card reveal" id="secSetDiag">
+            <div class="hs-card-header">
+              <h2 class="hs-card-title"><span class="card-index">04</span>Diagnostic</h2>
+            </div>
+            <div class="hs-card-body fields">
+              <div class="fields" style="gap:10px;">
+                <p class="hs-hint" style="margin:0;">
+                  Ouvre le terminal choisi et vérifie tous les prérequis : git, psql, createdb/dropdb, pyenv, environnements pyenv, chemins Odoo, PostgreSQL.
+                </p>
+                <div class="row">
+                  <button type="button" class="hs-btn hs-btn-primary" id="btnCheckPrereqs">Vérifier les prérequis</button>
+                  <span class="status" id="prereqsStatus"></span>
+                </div>
+              </div>
+              <hr class="divider">
+              <div class="fields" style="gap:10px;">
+                <p class="hs-hint" style="margin:0;">
+                  Si le « global env » pyenv n'a aucun effet dans un terminal classique, l'init de pyenv (<code>eval "$(pyenv init -)"</code>) manque souvent dans le profil shell. Ce bouton l'ajoute si besoin.
+                </p>
+                <div class="row">
+                  <button type="button" class="hs-btn hs-btn-secondary" id="btnFixPyenvInit">Réparer l'init pyenv du shell</button>
+                  <span class="status" id="pyenvInitFixStatus"></span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="hs-field">
-            <label class="hs-label" for="scriptsPath">Dossier des scripts</label>
-            <p class="hs-hint">Un ou plusieurs chemins (séparés par une virgule)</p>
-            <div class="field-with-browse">
-              <input type="text" id="scriptsPath" class="hs-input mono" placeholder="~/Scripts ou /chemin/vers/scripts">
-              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="scriptsPath" data-type="folder" data-prompt="Choisir le dossier des scripts">Parcourir</button>
-            </div>
-          </div>
-
-          <div class="hs-field">
-            <label class="hs-label" for="pyenvRoot">Racine pyenv</label>
-            <p class="hs-hint">Dossier contenant versions/ (odoo-18, odoo-19…)</p>
-            <div class="field-with-browse">
-              <input type="text" id="pyenvRoot" class="hs-input mono" placeholder="~/.pyenv">
-              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="pyenvRoot" data-type="folder" data-prompt="Choisir la racine pyenv">Parcourir</button>
-            </div>
-          </div>
-
-          <div class="hs-field">
-            <label class="hs-label" for="psqlPath">Chemin psql</label>
-            <p class="hs-hint">Laissez vide pour auto-détection (Homebrew, Postgres.app…)</p>
-            <div class="field-with-browse">
-              <input type="text" id="psqlPath" class="hs-input mono" placeholder="">
-              <button type="button" class="hs-btn hs-btn-secondary hs-btn-sm btn-browse" data-target="psqlPath" data-type="file" data-prompt="Choisir le fichier psql">Parcourir</button>
-            </div>
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
-            <div class="hs-field">
-              <label class="hs-label" for="terminalApp">Terminal</label>
-              <p class="hs-hint">Application pour lancer Odoo et les scripts</p>
-              <select id="terminalApp" class="hs-select full">
-                <option value="Warp">Warp</option>
-                <option value="Terminal">Terminal</option>
-                <option value="iTerm2">iTerm2</option>
-              </select>
-            </div>
-            <div class="hs-field">
-              <label class="hs-label" for="odooHttpPort">Port HTTP Odoo</label>
-              <p class="hs-hint">Port sur lequel Odoo écoute (défaut 8069)</p>
-              <input type="number" id="odooHttpPort" class="hs-input" min="1024" max="65535" placeholder="8069">
-            </div>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:12px;padding-top:4px;">
-            <button class="hs-btn hs-btn-primary" id="btnSaveConfig">Enregistrer</button>
-            <span class="status" id="configStatus"></span>
-          </div>
-
-        </div>
-      </div>
-
-      <div class="hs-card" style="max-width:600px;margin-top:16px;">
-        <div class="hs-card-header">
-          <h2 class="hs-card-title">Intelligence Artificielle</h2>
-        </div>
-        <div class="hs-card-body" style="display:flex;flex-direction:column;gap:16px;">
-          <p class="hs-hint">Choisissez comment l'app doit appeler une IA (ex: pour l'onglet Traduction).</p>
-
-          <div class="hs-field">
-            <label class="hs-label" for="aiMode">Mode</label>
-            <select id="aiMode" class="hs-select full">
-              <option value="api_key">Clé API (Anthropic, OpenAI, Gemini)</option>
-              <option value="claude_cli">Claude Code (CLI déjà connecté)</option>
-            </select>
-          </div>
-
-          <div id="aiApiKeyFields" style="display:flex;flex-direction:column;gap:12px;">
-            <div class="hs-field">
-              <label class="hs-label" for="aiApiProvider">Provider</label>
-              <select id="aiApiProvider" class="hs-select full"></select>
-            </div>
-            <div class="hs-field">
-              <label class="hs-label" for="aiApiKey">Clé API</label>
-              <p class="hs-hint">Stockée dans le Keychain macOS, jamais en clair sur disque.</p>
-              <input type="password" id="aiApiKey" class="hs-input mono" placeholder="sk-...">
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <button type="button" class="hs-btn hs-btn-primary" id="btnValidateApiKey">Valider</button>
-              <span class="status" id="aiApiKeyStatus"></span>
-            </div>
-          </div>
-
-          <div id="aiClaudeCliFields" style="display:none;flex-direction:column;gap:12px;">
-            <p class="hs-hint" id="aiClaudeCliInfo">Vérification en cours…</p>
-            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-              <button type="button" class="hs-btn hs-btn-secondary" id="btnInstallClaudeCli" style="display:none;">Installer Claude Code</button>
-              <button type="button" class="hs-btn hs-btn-primary" id="btnValidateClaudeCli">Vérifier / Valider</button>
-              <span class="status" id="aiClaudeCliStatus"></span>
+          <div class="hs-card card-cta reveal" id="secSetAbout">
+            <div class="hs-card-body">
+              <div class="about-row">
+                <div class="row" style="gap:14px;">
+                  <div class="brand-mark"><svg viewBox="0 0 155 157"><use href="#tt-icon"/></svg></div>
+                  <div>
+                    <strong>Odoo DB Manager</strong>
+                    <div class="hs-hint" style="margin:2px 0 0;">Un outil <a href="https://tocotools.odoo.com" target="_blank" rel="noopener" style="color:var(--tt-red-hot);text-decoration:none;">tocotools</a> · mises à jour en un clic</div>
+                  </div>
+                </div>
+                <span class="chip"><span class="dot"></span>Version {{ app_version }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <div class="hs-card" style="max-width:600px;margin-top:16px;">
-        <div class="hs-card-header">
-          <h2 class="hs-card-title">Permissions macOS (Warp)</h2>
-        </div>
-        <div class="hs-card-body" style="display:flex;flex-direction:column;gap:12px;">
-          <p class="hs-hint">
-            Si Warp s'ouvre mais qu'aucune commande ne se lance à la création d'une base, il manque probablement une de ces deux permissions.
-            Cliquez sur le bouton, puis cochez la case correspondante dans les Réglages Système (relancez l'app si besoin).
-          </p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <button type="button" class="hs-btn hs-btn-secondary" id="btnOpenAccessibility">Vérifier Accessibilité</button>
-            <button type="button" class="hs-btn hs-btn-secondary" id="btnOpenAutomation">Vérifier Automatisation</button>
-            <span class="status" id="permissionsStatus"></span>
-          </div>
-        </div>
+    </section>
+    <footer class="tt-footer">
+      <a class="tt-wordmark-wrap" href="https://tocotools.odoo.com" target="_blank" rel="noopener" aria-label="tocotools">
+        <div class="tt-wordmark"></div>
+      </a>
+      <div class="tt-footer-meta">
+        <span>Odoo DB Manager · v{{ app_version }}</span>
+        <span>Made by TOCO</span>
       </div>
+    </footer>
+  </main>
 
-      <div class="hs-card" style="max-width:600px;margin-top:16px;">
-        <div class="hs-card-header">
-          <h2 class="hs-card-title">Diagnostic</h2>
-        </div>
-        <div class="hs-card-body" style="display:flex;flex-direction:column;gap:12px;">
-          <p class="hs-hint">
-            Ouvre le terminal sélectionné ci-dessus et vérifie que tous les prérequis (git, psql, createdb/dropdb, pyenv, environnements pyenv, chemins Odoo, PostgreSQL) sont bien installés sur cette machine.
-          </p>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <button type="button" class="hs-btn hs-btn-primary" id="btnCheckPrereqs">Vérifier les prérequis</button>
-            <span class="status" id="prereqsStatus"></span>
-          </div>
-          <p class="hs-hint">
-            Si le "Global env" pyenv choisi ci-dessus n'a aucun effet dans un terminal classique, c'est souvent parce que l'init de pyenv (<code>eval "$(pyenv init -)"</code>) manque dans le profil shell. Ce bouton l'ajoute automatiquement si besoin.
-          </p>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <button type="button" class="hs-btn hs-btn-secondary" id="btnFixPyenvInit">Réparer l'init pyenv du shell</button>
-            <span class="status" id="pyenvInitFixStatus"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div id="toastContainer"
-       class="toast-container"></div>
+  <div id="toastContainer" class="toast-container"></div>
+
   <div id="scriptModal" class="modal-backdrop">
     <div class="modal-card">
       <div class="modal-head">
         <h3 class="modal-title" id="scriptModalTitle">Script DB</h3>
-        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnCloseScriptModal" style="padding:4px 8px;">
-          <svg style="width:16px;height:16px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnCloseScriptModal" style="width:32px;padding:0;" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 18 18 6M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="modal-body">
@@ -1852,14 +1770,14 @@
     <div class="modal-card">
       <div class="modal-head">
         <h3 class="modal-title" id="duplicateModalTitle">Dupliquer une base</h3>
-        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnCloseDuplicateModal" style="padding:4px 8px;">
-          <svg style="width:16px;height:16px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnCloseDuplicateModal" style="width:32px;padding:0;" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 18 18 6M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="modal-body">
         <div class="hs-field">
           <label class="hs-label" for="duplicateNewName">Nom de la nouvelle base</label>
-          <input type="text" id="duplicateNewName" class="hs-input mono" placeholder="ma_base_copie">
+          <input type="text" id="duplicateNewName" class="hs-input mono" placeholder="ma_base_copie" spellcheck="false">
           <span class="hs-status" id="duplicateStatus"></span>
         </div>
       </div>
@@ -1874,8 +1792,8 @@
     <div class="modal-card">
       <div class="modal-head">
         <h3 class="modal-title" id="portModalTitle">Modifier le port</h3>
-        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnClosePortModal" style="padding:4px 8px;">
-          <svg style="width:16px;height:16px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+        <button class="hs-btn hs-btn-ghost hs-btn-sm" id="btnClosePortModal" style="width:32px;padding:0;" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 18 18 6M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="modal-body">
@@ -2773,11 +2691,57 @@
       }
     };
 
+    // Avec un dump : « Créer » reste désactivé tant que le dump n'est pas importé.
+    let dumpImported = false;
+    function updateCreateLock() {
+      const waitingDump = $('importFromDump').checked && !dumpImported;
+      $('btnCreate').disabled = waitingDump;
+      $('createHint').textContent = waitingDump ? "Importez d'abord le dump" : '';
+    }
+
     $('importFromDump').onchange = () => {
       const checked = $('importFromDump').checked;
       $('dumpImportFields').style.display = checked ? 'flex' : 'none';
-      $('btnCreate').disabled = checked;
+      dumpImported = false;
+      $('dumpImportStatus').textContent = '';
+      updateCreateLock();
     };
+
+    // ── Parcours « Créer une base » en 4 étapes ──
+    let createStep = 0;
+    const CREATE_LAST_STEP = 3;
+    function setCreateStep(step) {
+      if (step > 2 && createStep <= 2 && !$('dbName').value.trim()) {
+        setCreateStep(2);
+        showToast('Indiquez un nom de base.', 'error');
+        $('dbName').focus();
+        return;
+      }
+      createStep = Math.max(0, Math.min(CREATE_LAST_STEP, step));
+      document.querySelectorAll('.wz-step-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === createStep);
+        btn.classList.toggle('done', i < createStep);
+      });
+      document.querySelectorAll('.wz-panel').forEach(panel => {
+        panel.classList.toggle('active', parseInt(panel.dataset.step, 10) === createStep);
+      });
+      const last = createStep === CREATE_LAST_STEP;
+      $('btnCreatePrev').disabled = createStep === 0;
+      $('btnCreateNext').hidden = last;
+      $('btnCreate').hidden = !last;
+      $('btnLocks').hidden = !last;
+      $('createHint').hidden = !last;
+      if (createStep === 2) setTimeout(() => $('dbName').focus(), 50);
+    }
+    document.querySelectorAll('.wz-step-btn').forEach(btn => {
+      btn.onclick = () => setCreateStep(parseInt(btn.dataset.step, 10));
+    });
+    $('btnCreatePrev').onclick = () => setCreateStep(createStep - 1);
+    $('btnCreateNext').onclick = () => setCreateStep(createStep + 1);
+    $('dbName').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); setCreateStep(createStep + 1); }
+    });
+    setCreateStep(0);
 
     $('btnBrowseDump').onclick = async () => {
       try {
@@ -2834,16 +2798,25 @@
         const d = await r.json();
         (d.log || []).forEach(line => log(line, line.startsWith('✗') ? 'err' : 'ok'));
         if (d.ok) {
-          showToast(`Base ${db} importée depuis le dump`, 'success');
+          dumpImported = true;
+          $('dumpImportStatus').textContent = 'Dump importé';
+          $('dumpImportStatus').className = 'status ok';
+          showToast(`Base ${db} importée depuis le dump : cliquez sur Créer`, 'success');
           checkDbStatus();
           loadDatabases();
         } else {
+          $('dumpImportStatus').textContent = d.message || "Échec de l'import";
+          $('dumpImportStatus').className = 'status warn';
+          showToast(d.message || "Échec de l'import du dump", 'error');
           log(d.message || 'Erreur', 'err');
         }
-      } catch (e) { log(e.message, 'err'); }
+      } catch (e) {
+        showToast(e.message, 'error');
+        log(e.message, 'err');
+      }
       finally {
         $('btnImportDump').disabled = false;
-        $('btnCreate').disabled = false;
+        updateCreateLock();
       }
     };
 
@@ -3007,6 +2980,9 @@
           $('updateMode').value = 'reinit';
           if ($('scriptsSubdirSelect')) $('scriptsSubdirSelect').value = '';
           renderCustomAddons([]);
+          $('importFromDump').checked = false;
+          $('importFromDump').onchange();
+          setCreateStep(0);
           $('dbStatus').textContent = '';
           $('dbStatus').className = 'status';
           checkDbStatus();
@@ -3017,7 +2993,7 @@
           log(d.message || 'Erreur', 'err');
         }
       } catch (e) { log(e.message, 'err'); }
-      finally { $('btnCreate').disabled = false; }
+      finally { updateCreateLock(); }
     };
 
     $('btnRefreshDb').onclick = () => loadDatabases();
@@ -3752,6 +3728,241 @@
     };
   </script>
 
-</body>
+  <style>
+    [id^="sec"], #translateTerminalCard { scroll-margin-top: 28px; }
+    .hs-card.flash { animation: tt-flash 1.3s var(--tt-ease); }
+    @keyframes tt-flash { 0%, 100% { border-color: var(--tt-line); } 20% { border-color: var(--tt-red-hot); } }
+    .scaffold-stepper:not(.has-thumb) .scaffold-step-btn.active { background: #fff; }
+    .scaffold-stepper:not(.has-thumb) .stepper-thumb { display: none; }
+  </style>
 
+  <script>
+    /* Animations (apparition des blocs, compteurs), étapes et navigation de la sidebar. */
+    (() => {
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const nav = document.querySelector('.sidebar-nav');
+      const indicator = document.getElementById('navIndicator');
+
+      // ── Indicateur de l'onglet actif, qui glisse d'un onglet à l'autre ──
+      function placeIndicator() {
+        const active = nav.querySelector('.tab.active');
+        if (!active || active.hidden) { indicator.style.opacity = '0'; return; }
+        indicator.style.opacity = '1';
+        indicator.style.height = active.offsetHeight + 'px';
+        indicator.style.transform = `translateY(${active.offsetTop}px)`;
+      }
+      function followIndicator(ms = 600) {
+        const end = performance.now() + ms;
+        const step = () => { placeIndicator(); if (performance.now() < end) requestAnimationFrame(step); };
+        requestAnimationFrame(step);
+      }
+
+
+      // ── Entrée en cascade des blocs du panneau ──
+      function enterPanel(panel) {
+        if (!panel || reduceMotion) return;
+        panel.querySelectorAll('.reveal').forEach((el, i) => el.style.setProperty('--ri', i));
+        panel.classList.remove('reveal-run');
+        void panel.offsetWidth;
+        panel.classList.add('reveal-run');
+        dbListAnimate();
+      }
+
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          followIndicator();
+          enterPanel(document.querySelector('.tab-panel.active'));
+          window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+        });
+      });
+      // L'onglet Traduction apparaît plus tard (quand l'IA est configurée)
+      new MutationObserver(() => placeIndicator())
+        .observe(nav, { attributes: true, subtree: true, attributeFilter: ['hidden', 'class'] });
+      window.addEventListener('resize', placeIndicator);
+
+      // ── Liens de la sidebar et du sommaire des Réglages ──
+      function flash(el) {
+        const card = el.closest('.hs-card') || el;
+        card.classList.remove('flash');
+        void card.offsetWidth;
+        card.classList.add('flash');
+      }
+      function jumpTo(id) {
+        const target = document.getElementById(id);
+        if (!target) return;
+        const panel = target.closest('.tab-panel');
+        const tab = panel && document.querySelector(`.tab[data-tab="${Object.keys(tabIds).find(k => tabIds[k] === panel.id)}"]`);
+        const delay = tab && !tab.classList.contains('active') ? (tab.click(), 380) : 0;
+        setTimeout(() => {
+          target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+          flash(target);
+        }, delay);
+      }
+      document.querySelectorAll('[data-jump]').forEach(btn => {
+        btn.addEventListener('click', () => jumpTo(btn.dataset.jump));
+      });
+      document.querySelectorAll('.sidebar-sub-item[data-wz-step]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = document.querySelector('.tab[data-tab="create"]');
+          if (!tab.classList.contains('active')) tab.click();
+          if (typeof setCreateStep === 'function') setCreateStep(parseInt(btn.dataset.wzStep, 10));
+        });
+      });
+      document.querySelectorAll('.sidebar-sub-item[data-step]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = document.querySelector('.tab[data-tab="scaffold"]');
+          if (!tab.classList.contains('active')) tab.click();
+          if (typeof setScaffoldStep === 'function') setScaffoldStep(parseInt(btn.dataset.step, 10));
+        });
+      });
+
+      // Sommaire des Réglages : surligne la section visible
+      const toc = document.getElementById('settingsToc');
+      if (toc && 'IntersectionObserver' in window) {
+        const io = new IntersectionObserver(entries => {
+          entries.forEach(e => {
+            if (!e.isIntersecting) return;
+            toc.querySelectorAll('button').forEach(b => b.classList.toggle('current', b.dataset.jump === e.target.id));
+          });
+        }, { rootMargin: '-30% 0px -60% 0px' });
+        toc.querySelectorAll('button').forEach(b => {
+          const sec = document.getElementById(b.dataset.jump);
+          if (sec) io.observe(sec);
+        });
+      }
+
+
+
+
+      // ── CountUp : compteurs de « Mes bases » ──
+      function countUp(el, to) {
+        const from = parseInt(el.textContent, 10) || 0;
+        if (from === to) return;
+        if (reduceMotion) { el.textContent = to; return; }
+        const t0 = performance.now(), dur = 700;
+        const tick = now => {
+          const p = Math.min(1, (now - t0) / dur);
+          const eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(from + (to - from) * eased);
+          if (p < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }
+      const dbList = document.getElementById('dbList');
+      let dbAnimTimer = null;
+      function dbListAnimate() {
+        // Les lignes s'animent à l'ouverture de l'onglet, pas à chaque rafraîchissement
+        dbList.classList.remove('no-anim');
+        clearTimeout(dbAnimTimer);
+        dbAnimTimer = setTimeout(() => dbList.classList.add('no-anim'), 1200);
+      }
+      new MutationObserver(() => {
+        countUp(document.getElementById('statTotal'), dbList.querySelectorAll('.db-row').length);
+        countUp(document.getElementById('statRunning'), dbList.querySelectorAll('.badge-running').length);
+      }).observe(dbList, { childList: true, subtree: true });
+
+      const branchDb = document.getElementById('branchDb');
+      const statBranch = document.getElementById('statBranch');
+      const showBranch = () => { statBranch.textContent = branchDb.value || '—'; };
+      branchDb.addEventListener('change', showBranch);
+      new MutationObserver(showBranch).observe(branchDb, { childList: true });
+
+      // ── Steppers (Créer une base, Scaffold) : pastille blanche + barre de progression ──
+      function bindStepper(stepper, btnSelector, tabName) {
+        const thumb = stepper.querySelector('.stepper-thumb');
+        const progress = stepper.querySelector('.stepper-progress i');
+        const place = () => {
+          const btns = [...stepper.querySelectorAll(btnSelector)];
+          const idx = btns.findIndex(b => b.classList.contains('active'));
+          const active = btns[idx];
+          if (!active || !active.offsetWidth) return;
+          if (!stepper.classList.contains('has-thumb')) stepper.classList.add('has-thumb');
+          thumb.style.width = active.offsetWidth + 'px';
+          thumb.style.transform = `translateX(${active.offsetLeft - 8}px)`;
+          progress.style.width = `${(idx / (btns.length - 1)) * 100}%`;
+        };
+        const observer = new MutationObserver(place);
+        stepper.querySelectorAll(btnSelector).forEach(b => observer.observe(b, { attributes: true, attributeFilter: ['class'] }));
+        document.querySelector(`.tab[data-tab="${tabName}"]`).addEventListener('click', () => requestAnimationFrame(place));
+        window.addEventListener('resize', place);
+        return place;
+      }
+      const placeThumb = bindStepper(document.getElementById('scaffoldStepsNav'), '.scaffold-step-btn', 'scaffold');
+      const placeCreateThumb = bindStepper(document.getElementById('createStepsNav'), '.wz-step-btn', 'create');
+
+      // ── ⌘K : chercher une base ──
+      document.addEventListener('keydown', e => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          const tab = document.querySelector('.tab[data-tab="databases"]');
+          if (!tab.classList.contains('active')) tab.click();
+          setTimeout(() => document.getElementById('dbSearch').focus(), 120);
+        }
+      });
+
+      // ── Boutons « scan » : coins, aplat et texte brouillé au survol ──
+      const BTN = '.hs-btn, .btn';
+      const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_/<>#';
+      function scramble(label) {
+        if (reduceMotion || label.dataset.scrambling) return;
+        const text = label.textContent;
+        label.dataset.scrambling = '1';
+        label.style.width = label.getBoundingClientRect().width + 'px';
+        const t0 = performance.now(), dur = 380;
+        const tick = now => {
+          const p = Math.min(1, (now - t0) / dur);
+          label.textContent = [...text].map((ch, i) =>
+            ch === ' ' || i / text.length < p ? ch : GLYPHS[Math.floor(Math.random() * GLYPHS.length)]
+          ).join('');
+          if (p < 1) return requestAnimationFrame(tick);
+          label.textContent = text;
+          label.style.width = '';
+          delete label.dataset.scrambling;
+        };
+        requestAnimationFrame(tick);
+      }
+      function decorateButton(btn) {
+        if (btn.querySelector(':scope > .sb-c')) return;
+        if (btn.matches('.hs-btn-primary, .btn-primary, .hs-btn-cta, .hs-btn-danger')) return;
+        const kind = btn.matches('.hs-btn-ghost') ? 'sb-frame' : 'sb-scan';
+        btn.classList.add(kind);
+        [...btn.childNodes].forEach(n => {
+          if (n.nodeType === 3 && n.textContent.trim()) {
+            const span = document.createElement('span');
+            span.className = 'sb-label';
+            span.textContent = n.textContent.trim();
+            n.replaceWith(span);
+          }
+        });
+        btn.insertAdjacentHTML('afterbegin', '<span class="sb-fill" aria-hidden="true"></span>');
+        btn.insertAdjacentHTML('beforeend', ['tl', 'tr', 'bl', 'br'].map(c => `<span class="sb-c ${c}" aria-hidden="true"></span>`).join(''));
+        if (!btn.dataset.sb) {
+          btn.dataset.sb = '1';
+          btn.addEventListener('mouseenter', () => {
+            const label = btn.querySelector(':scope > .sb-label');
+            if (label && !btn.disabled && !btn.classList.contains('sb-frame')) scramble(label);
+          });
+        }
+      }
+      document.querySelectorAll(BTN).forEach(decorateButton);
+      // Boutons ajoutés ou réécrits par le JS (liste des bases, « Copié ! »…)
+      new MutationObserver(muts => {
+        muts.forEach(m => {
+          if (m.target.matches && m.target.matches(BTN)) decorateButton(m.target);
+          m.addedNodes.forEach(n => {
+            if (n.nodeType !== 1) return;
+            if (n.matches(BTN)) decorateButton(n);
+            n.querySelectorAll(BTN).forEach(decorateButton);
+          });
+        });
+      }).observe(document.body, { childList: true, subtree: true });
+
+      // Premier affichage
+      placeIndicator();
+      enterPanel(document.querySelector('.tab-panel.active'));
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeIndicator(); placeThumb(); placeCreateThumb(); });
+    })();
+  </script>
+
+</body>
 </html>
