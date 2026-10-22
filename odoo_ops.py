@@ -59,6 +59,10 @@ def _env_with_path() -> dict:
     # les sous-processus (ex: python3 d'un venv pyenv lancé pour odoo-bin).
     e.pop("PYTHONHOME", None)
     e.pop("PYTHONPATH", None)
+    # Variables propres au bundle py2app : transmises au terminal ouvert par `open -a`,
+    # elles le cassent (ex: curl qui cherche ses certificats dans l'app).
+    for var in ("SSL_CERT_FILE", "SSL_CERT_DIR", "RESOURCEPATH", "EXECUTABLEPATH", "ARGVZERO"):
+        e.pop(var, None)
     # Les apps GUI macOS n'ont pas de locale UTF-8 par défaut (contrairement à un
     # shell) : sans ça, `subprocess` en mode texte encode en ASCII et plante sur
     # tout caractère accentué (ex: prompt IA, sortie psql avec des noms accentués).
