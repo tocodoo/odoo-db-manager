@@ -158,16 +158,50 @@ def cmd_branches(args):
     return 0
 
 
+WINDOW_BACKGROUND = "#0a0507"
+
+
+def _dark_title_bar(win) -> None:
+    """Barre de titre noire, sans titre, boutons fermer/réduire/agrandir conservés."""
+    try:
+        import AppKit
+        from PyObjCTools import AppHelper
+    except Exception:
+        return
+
+    def apply():
+        try:
+            ns_window = win.native
+            color = AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(10 / 255, 5 / 255, 7 / 255, 1.0)
+            ns_window.setAppearance_(AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameDarkAqua))
+            ns_window.setTitlebarAppearsTransparent_(True)
+            ns_window.setTitleVisibility_(AppKit.NSWindowTitleHidden)
+            ns_window.setBackgroundColor_(color)
+            # pywebview peint la vue de la barre de titre avec la couleur système : on la remplace.
+            titlebar = ns_window.contentView().superview().subviews().lastObject()
+            if titlebar is not None and titlebar.respondsToSelector_("setBackgroundColor:"):
+                titlebar.setBackgroundColor_(color)
+        except Exception:
+            pass
+
+    # Les appels AppKit doivent se faire sur le thread principal.
+    AppHelper.callAfter(apply)
+
+
 def main():
     # --window-only : fenêtre seule (subprocess)
     if "--window-only" in sys.argv:
         _set_activation_policy(window_only=True)
         url = next((a for a in sys.argv[1:] if a.startswith("http")), "http://127.0.0.1:5151")
         import webview
-        win = webview.create_window("Odoo Database Manager", url, width=960, height=820, min_size=(700, 550))
+        win = webview.create_window(
+            "Odoo Database Manager", url, width=960, height=820, min_size=(700, 550),
+            background_color=WINDOW_BACKGROUND,
+        )
         try:
             # Fermer la fenetre GUI doit aussi fermer la menubar.
             win.events.closed += lambda: _quit_entire_app()
+            win.events.shown += lambda: _dark_title_bar(win)
         except Exception:
             pass
         webview.start()
