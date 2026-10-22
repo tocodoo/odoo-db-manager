@@ -93,11 +93,11 @@ from odoo_ops import (
 )
 
 # Chemin templates (py2app bundle ou dev)
-if getattr(sys, "frozen", False):
-    _base = os.path.dirname(sys.executable)
-    _template = os.path.join(_base, "..", "Resources", "templates")
-else:
-    _template = os.path.join(os.path.dirname(__file__), "templates")
+# L'app (py2app alias) exécute le code du clone : les templates sont à côté de ce fichier.
+# sys.executable n'est pas fiable ici (il pointe vers le python du venv).
+_template = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+if not os.path.isdir(_template) and os.environ.get("RESOURCEPATH"):
+    _template = os.path.join(os.environ["RESOURCEPATH"], "templates")
 
 app = Flask(__name__, template_folder=_template)
 
