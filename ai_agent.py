@@ -256,8 +256,21 @@ def tool(name: str, kind: str, summary: str, params: dict[str, str],
 
 
 def _odoo_path() -> str:
-    from config import get_odoo_path
-    return get_odoo_path()
+    """Chemin community (dossier contenant odoo-bin) tel que défini dans les réglages.
+
+    C'est ce que l'UI passe à odoo_ops : jamais de nom de dossier supposé (core/…).
+    """
+    from config import get_odoo_community_path
+    return get_odoo_community_path()
+
+
+def _community_dir() -> Path:
+    return Path(_odoo_path()).expanduser().resolve()
+
+
+def _enterprise_dir() -> Optional[Path]:
+    from odoo_ops import _effective_enterprise_path
+    return _effective_enterprise_path()
 
 
 # ── Lecture ───────────────────────────────────────────────────────────────────
@@ -307,13 +320,13 @@ def _t_database_info(db: str = "") -> tuple[bool, str, Any]:
 
 
 @tool("list_branches", "read",
-      "Branches git disponibles dans core/ et branche courante.",
+      "Branches git disponibles dans le dépôt community et branche courante.",
       {})
 def _t_list_branches() -> tuple[bool, str, Any]:
     from odoo_ops import get_current_branch, get_git_branches
-    core = Path(_odoo_path()) / "core"
+    core = _community_dir()
     if not core.is_dir():
-        return False, f"core introuvable : {core}", None
+        return False, f"Dossier community introuvable (réglages) : {core}", None
     return True, "Branches listées.", {
         "current": get_current_branch(str(core)),
         "branches": get_git_branches(str(core)),
@@ -324,22 +337,28 @@ def _t_list_branches() -> tuple[bool, str, Any]:
       "Configuration de l'app : chemins Odoo/scripts/pyenv/psql, terminal, port HTTP.",
       {})
 def _t_get_config() -> tuple[bool, str, Any]:
-    from config import _load_config, get_odoo_path, get_scripts_paths
+    from config import (_load_config, get_odoo_community_path, get_odoo_enterprise_path,
+                        get_odoo_path, get_scripts_paths)
     cfg = dict(_load_config())
     cfg.pop("db_ports", None)
     cfg["odoo_path_resolved"] = get_odoo_path()
+    cfg["community_path_resolved"] = get_odoo_community_path()
+    cfg["enterprise_path_resolved"] = get_odoo_enterprise_path()
     cfg["scripts_paths_resolved"] = get_scripts_paths()
     cfg["scripts_subdirs"] = _scripts_subdirs()
     return True, "Configuration courante.", cfg
 
 
 @tool("list_modules", "read",
-      "Modules Odoo présents dans un dossier d'addons (core/addons et enterprise par défaut).",
+      "Modules Odoo présents dans un dossier d'addons (community/addons et enterprise des réglages par défaut).",
       {"folder": "dossier à inspecter (optionnel)"})
 def _t_list_modules(folder: str = "") -> tuple[bool, str, Any]:
     from odoo_ops import get_modules_in_folder
-    base = Path(_odoo_path())
-    folders = [folder] if folder else [str(base / "core" / "addons"), str(base / "enterprise")]
+    if folder:
+        folders = [folder]
+    else:
+        ent = _enterprise_dir()
+        folders = [str(_community_dir() / "addons")] + ([str(ent)] if ent else [])
     out = {}
     for f in folders:
         expanded = os.path.expanduser(f)
@@ -454,9 +473,9 @@ def _t_stop_all() -> tuple[bool, str, Any]:
 
 
 @tool("switch_branch", "write",
-      "Change la branche git de core/ et enterprise/.",
+      "Change la branche git des dépôts community et enterprise (chemins des réglages).",
       {"branch": "nom de la branche"},
-      preview=lambda a: f"Basculer core/ et enterprise/ sur « {a.get('branch')} »")
+      preview=lambda a: f"Basculer community et enterprise sur « {a.get('branch')} »")
 def _t_switch_branch(branch: str = "") -> tuple[bool, str, Any]:
     from odoo_ops import switch_branch
     branch = (branch or "").strip()
@@ -680,7 +699,7 @@ def _t_odoo_cli(args: Any = None, version: str = "", mode: str = "auto") -> tupl
     if argv[0] in ("odoo-bin", "./odoo-bin", "odoo"):
         argv = argv[1:]
 
-    core = Path(_odoo_path()) / "core"
+    core = _community_dir()
     if not (core / "odoo-bin").exists():
         return False, f"odoo-bin introuvable : {core / 'odoo-bin'}", None
 
@@ -737,7 +756,7 @@ def _as_list(value: Any) -> list[str]:
 
 def _current_branch_or_default() -> str:
     from odoo_ops import get_current_branch
-    core = Path(_odoo_path()) / "core"
+    core = _community_dir()
     if core.is_dir():
         return get_current_branch(str(core)) or "19.0"
     return "19.0"
@@ -789,7 +808,8 @@ def snapshot() -> dict:
     """Photo de l'environnement, injectée dans le prompt et affichée dans l'UI."""
     from config import get_odoo_http_port, get_terminal_app
     snap: dict[str, Any] = {
-        "odoo_path": _odoo_path(),
+        "community_path": _odoo_path(),
+        "enterprise_path": str(_enterprise_dir() or ""),
         "terminal": get_terminal_app(),
         "http_port": get_odoo_http_port(),
     }
@@ -806,7 +826,7 @@ def snapshot() -> dict:
         snap["databases_error"] = str(e)
     try:
         from odoo_ops import get_current_branch, get_git_branches
-        core = Path(_odoo_path()) / "core"
+        core = _community_dir()
         if core.is_dir():
             snap["branch"] = get_current_branch(str(core))
             snap["branches"] = get_git_branches(str(core)) or []
@@ -854,7 +874,7 @@ puis émets le bloc.
 - Si la demande est ambiguë ou si un nom de base n'existe pas, pose la question au lieu \
 de deviner. Ne supprime jamais une base qui n'a pas été nommée explicitement par l'utilisateur.
 - Avant de lancer odoo-bin (ou de démarrer une base) sur une base existante, compare sa \
-version à la branche courante de core/ (état ci-dessous). Si elles diffèrent, dis-le et \
+version à la branche courante du dépôt community (état ci-dessous). Si elles diffèrent, dis-le et \
 propose d'abord `switch_branch` : sinon Odoo échoue ou migre la base sans le vouloir.
 - Ne dis jamais qu'une branche n'existe pas sans l'avoir vérifiée avec `list_branches`. \
 Si l'utilisateur demande explicitement une branche, fais ce qu'il demande : signale un \
@@ -1302,14 +1322,38 @@ def _selftest() -> int:
     check("nom de base invalide", not DB_NAME_RE.match('x"; drop'))
     check("outils de modification présents",
           all(n in TOOLS for n in ("duplicate_database", "rename_database", "sanitize_database", "set_database_port")))
+    print("\nChemins des réglages (noms de dossiers libres)")
+    import subprocess
     import tempfile
-    from odoo_ops import _community_path
+    import config as _cfg
+    real_comm, real_ent = _cfg.get_odoo_community_path, _cfg.get_odoo_enterprise_path
     with tempfile.TemporaryDirectory() as root:
-        (Path(root) / "core").mkdir()
-        (Path(root) / "core" / "odoo-bin").touch()
-        core = (Path(root) / "core").resolve()
-        check("racine Odoo → core/ (switch_branch)", _community_path(root) == core)
-        check("core/ reste core/", _community_path(str(core)) == core)
+        comm = Path(root) / "mon-community"
+        ent = Path(root) / "src" / "ent-perso"
+        (comm / "addons" / "sale").mkdir(parents=True)
+        (comm / "addons" / "sale" / "__manifest__.py").write_text("{}")
+        (comm / "odoo-bin").touch()
+        ent.mkdir(parents=True)
+        for repo in (comm, ent):
+            subprocess.run(["git", "init", "-q", "-b", "ma-branche", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t",
+                            "commit", "-q", "--allow-empty", "-m", "init"], check=True)
+        _cfg.get_odoo_community_path = lambda: str(comm)
+        _cfg.get_odoo_enterprise_path = lambda: str(ent)
+        try:
+            check("community = chemin des réglages", _community_dir() == comm.resolve())
+            check("enterprise = chemin des réglages", _enterprise_dir() == ent.resolve())
+            r = run_tool("list_branches", {})
+            check("list_branches lit le dépôt community", r["ok"] and r["data"]["current"] == "ma-branche", str(r))
+            r = run_tool("switch_branch", {"branch": "ma-branche"})
+            check("switch_branch tourne dans les deux dépôts", r["ok"], str(r))
+            r = run_tool("list_modules", {})
+            check("list_modules lit community/addons", str(comm.resolve() / "addons") in (r["data"] or {}), str(r))
+            from odoo_ops import build_addons_path
+            addons = build_addons_path(_odoo_path(), []).split(",")
+            check("addons-path = réglages", addons == [str(comm.resolve() / "addons"), str(ent.resolve())], str(addons))
+        finally:
+            _cfg.get_odoo_community_path, _cfg.get_odoo_enterprise_path = real_comm, real_ent
     print("\nPrompt")
     sys_prompt = SYSTEM_PROMPT.format(tools=_tools_doc(), snapshot="{}")
     check("outils listés dans le prompt", "`delete_database`" in sys_prompt)

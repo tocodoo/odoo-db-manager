@@ -17,7 +17,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from config import DEFAULT_ODOO_PATH, VERSION_CONFIG, get_pyenv_for_branch
+from config import VERSION_CONFIG, get_pyenv_for_branch
 from odoo_ops import (
     build_addons_path,
     check_branches_match,
@@ -76,7 +76,9 @@ def _quit_entire_app() -> None:
 
 
 def _resolve_path(path: str) -> str:
-    return os.path.expanduser(path) if path else DEFAULT_ODOO_PATH
+    """Chemin community (dossier contenant odoo-bin) : --path, sinon celui des réglages."""
+    from config import get_odoo_community_path
+    return os.path.expanduser(path) if path else get_odoo_community_path()
 
 
 def cmd_create(args):
@@ -145,9 +147,9 @@ def cmd_locks(args):
 
 def cmd_branches(args):
     path = _resolve_path(args.path)
-    core = Path(path) / "core"
+    core = Path(path)
     if not core.is_dir():
-        print(f"core repository not found: {core}")
+        print(f"community repository not found: {core}")
         return 1
     branches = get_git_branches(str(core))
     if not branches:
@@ -217,7 +219,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("--path", "-p", help=f"Odoo path (default: {DEFAULT_ODOO_PATH})")
+    parser.add_argument("--path", "-p", help="Community path, folder containing odoo-bin (default: from settings)")
 
     sub = parser.add_subparsers(dest="cmd", required=True)
 

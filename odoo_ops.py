@@ -15,11 +15,7 @@ def _community_path(odoo_path: Optional[str] = None) -> Path:
     """Retourne le chemin du dossier community (core/odoo)."""
     from config import get_odoo_community_path
     if odoo_path:
-        p = Path(odoo_path).expanduser().resolve()
-        # Accepte aussi la racine Odoo (parent de core/) : l'assistant IA passe la racine.
-        if not (p / "odoo-bin").exists() and (p / "core" / "odoo-bin").exists():
-            p = p / "core"
-        return p
+        return Path(odoo_path).expanduser().resolve()
     return Path(get_odoo_community_path()).expanduser().resolve()
 
 
@@ -644,8 +640,9 @@ def run_script_for_db(
     """Lance le script dans le terminal configuré."""
     def _scripts_cwd(root_or_community: str) -> str:
         p = Path(root_or_community).expanduser().resolve()
-        # Si on reçoit le chemin community (.../core), lancer depuis la racine Odoo (...).
-        if p.name in {"core", "community"}:
+        # Si on reçoit le chemin community (dossier contenant odoo-bin, quel que soit son
+        # nom), lancer depuis son dossier parent.
+        if (p / "odoo-bin").exists():
             return str(p.parent)
         return str(p)
 
@@ -1559,8 +1556,7 @@ def build_addons_path(odoo_path: str, extra_folders: list[str]) -> str:
     """Construit le --addons-path à partir du chemin Odoo et dossiers custom."""
     community_addons = _community_path(odoo_path) / "addons"
     if not community_addons.is_dir():
-        # Les appelants passent souvent la racine Odoo (parent de core/) : on retombe sur
-        # le dossier community configuré.
+        # Chemin reçu sans addons/ : on retombe sur le dossier community des réglages.
         configured = _community_path() / "addons"
         if configured.is_dir():
             community_addons = configured
@@ -1709,11 +1705,16 @@ def _detect_module_parent_dirs(odoo_path: str, modules: list[str]) -> list[str]:
     odoo_root = _community_path(odoo_path).parent
     if not odoo_root.is_dir():
         return []
-    ignored = {"core", "enterprise", "scripts", ".git", "__pycache__"}
+    ignored = {"scripts", ".git", "__pycache__"}
+    skip_paths = {_community_path(odoo_path).resolve()}
+    enterprise = _effective_enterprise_path()
+    if enterprise:
+        skip_paths.add(enterprise.resolve())
     found: list[str] = []
     seen: set[str] = set()
     for child in odoo_root.iterdir():
-        if not child.is_dir() or child.name in ignored or child.name.startswith("."):
+        if (not child.is_dir() or child.name in ignored or child.name.startswith(".")
+                or child.resolve() in skip_paths):
             continue
         for module_name in modules:
             if not module_name or module_name in seen:
