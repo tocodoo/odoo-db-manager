@@ -15,7 +15,11 @@ def _community_path(odoo_path: Optional[str] = None) -> Path:
     """Retourne le chemin du dossier community (core/odoo)."""
     from config import get_odoo_community_path
     if odoo_path:
-        return Path(odoo_path).expanduser().resolve()
+        p = Path(odoo_path).expanduser().resolve()
+        # Accepte aussi la racine Odoo (parent de core/) : l'assistant IA passe la racine.
+        if not (p / "odoo-bin").exists() and (p / "core" / "odoo-bin").exists():
+            p = p / "core"
+        return p
     return Path(get_odoo_community_path()).expanduser().resolve()
 
 

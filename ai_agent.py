@@ -1302,6 +1302,14 @@ def _selftest() -> int:
     check("nom de base invalide", not DB_NAME_RE.match('x"; drop'))
     check("outils de modification présents",
           all(n in TOOLS for n in ("duplicate_database", "rename_database", "sanitize_database", "set_database_port")))
+    import tempfile
+    from odoo_ops import _community_path
+    with tempfile.TemporaryDirectory() as root:
+        (Path(root) / "core").mkdir()
+        (Path(root) / "core" / "odoo-bin").touch()
+        core = (Path(root) / "core").resolve()
+        check("racine Odoo → core/ (switch_branch)", _community_path(root) == core)
+        check("core/ reste core/", _community_path(str(core)) == core)
     print("\nPrompt")
     sys_prompt = SYSTEM_PROMPT.format(tools=_tools_doc(), snapshot="{}")
     check("outils listés dans le prompt", "`delete_database`" in sys_prompt)
