@@ -809,7 +809,7 @@ def snapshot() -> dict:
         core = Path(_odoo_path()) / "core"
         if core.is_dir():
             snap["branch"] = get_current_branch(str(core))
-            snap["branches"] = (get_git_branches(str(core)) or [])[:60]
+            snap["branches"] = get_git_branches(str(core)) or []
     except Exception:
         pass
     try:
@@ -856,6 +856,9 @@ de deviner. Ne supprime jamais une base qui n'a pas été nommée explicitement 
 - Avant de lancer odoo-bin (ou de démarrer une base) sur une base existante, compare sa \
 version à la branche courante de core/ (état ci-dessous). Si elles diffèrent, dis-le et \
 propose d'abord `switch_branch` : sinon Odoo échoue ou migre la base sans le vouloir.
+- Ne dis jamais qu'une branche n'existe pas sans l'avoir vérifiée avec `list_branches`. \
+Si l'utilisateur demande explicitement une branche, fais ce qu'il demande : signale un \
+écart de version en une phrase, mais ne lui impose pas une autre branche.
 - Pour odoo-bin, passe les arguments tels qu'on les taperait (un par élément de liste) ; \
 n'ajoute pas --addons-path, l'application s'en charge.
 - Si aucune action n'est nécessaire, réponds simplement, sans bloc.

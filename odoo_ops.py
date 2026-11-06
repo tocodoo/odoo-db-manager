@@ -199,21 +199,34 @@ def get_pyenv_env(version: str) -> Optional[str]:
     return cfg.get("pyenv")
 
 
+def _branch_sort_key(name: str) -> tuple:
+    """Plus récent d'abord : master, puis versions décroissantes (saas-19.4 > 19.0 > saas-18.4)."""
+    if name == "master":
+        return (0, ())
+    m = re.fullmatch(r"(saas-)?(\d+)(?:\.(\d+))?", name)
+    if m:
+        major, minor = int(m.group(2)), int(m.group(3) or 0)
+        return (1, (-major, -minor, 0 if m.group(1) else 1))
+    return (2, (name,))
+
+
 def get_git_branches(repo_path: str) -> list[str]:
-    """Récupère la liste des branches locales d'un dépôt git."""
+    """Branches locales et distantes (origin/X ramené à X), sans les branches runbot
+    internes (staging.*, tmp.*), triées de la plus récente à la plus ancienne."""
     code, out, _ = run_cmd(["git", "branch", "-a", "--format=%(refname:short)"], cwd=repo_path)
     if code != 0:
         return []
-    branches = [b.strip() for b in out.strip().split("\n") if b.strip()]
-    seen = set()
-    result = []
-    for b in branches:
-        # Simplifier remote/origin/X -> X
-        short = b.replace("remotes/origin/", "") if "remotes/origin/" in b else b
-        if short not in seen:
-            seen.add(short)
-            result.append(short)
-    return sorted(result, key=lambda x: (x.startswith("saas"), x))
+    seen: set[str] = set()
+    for b in out.splitlines():
+        b = b.strip()
+        if b.startswith("remotes/"):
+            b = b[len("remotes/"):]
+        if "/" in b and b.split("/", 1)[0] in ("origin", "upstream"):
+            b = b.split("/", 1)[1]
+        if not b or b in ("origin", "upstream", "HEAD") or b.startswith(("staging.", "tmp.")):
+            continue
+        seen.add(b)
+    return sorted(seen, key=_branch_sort_key)
 
 
 def get_current_branch(repo_path: str) -> Optional[str]:
