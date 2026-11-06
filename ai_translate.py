@@ -175,8 +175,7 @@ def _run_claude_headless(
             [path, "-p", "--output-format", "text"],
             input=prompt,
             capture_output=True,
-            text=True,
-            encoding="utf-8",
+            text=True, encoding="utf-8", errors="replace",
             timeout=timeout,
             env=_env_with_path(),
         )

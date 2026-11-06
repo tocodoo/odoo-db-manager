@@ -46,7 +46,7 @@ def _env_with_path() -> dict:
             # peut ajouter des chemins (ex: ~/.local/bin) ; -l seul ne charge que .zprofile.
             _res = subprocess.run(
                 ["/bin/zsh", "-i", "-l", "-c", "echo $PATH"],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5,
                 env={**os.environ, "PATH": extra},
             )
             if _res.returncode == 0 and _res.stdout.strip():
@@ -142,7 +142,7 @@ def run_cmd(
             cwd=cwd,
             env=full_env,
             capture_output=capture,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             timeout=timeout,
         )
         return result.returncode, result.stdout or "", result.stderr or ""
@@ -168,7 +168,7 @@ def run_cmd_streaming(
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             bufsize=1,
         )
     except FileNotFoundError:
@@ -456,7 +456,7 @@ def _run_command_via_applescript(command: str) -> tuple[bool, str]:
         res = subprocess.run(
             ["/usr/bin/osascript", "-e", script],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             timeout=5,
         )
         if res.returncode == 0:
@@ -532,7 +532,7 @@ end if
         res = subprocess.run(
             ["/usr/bin/osascript", "-e", script],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             timeout=5,
         )
         if res.returncode == 0 and (res.stdout or "").strip() == "ok":
@@ -1809,7 +1809,7 @@ def run_odoo(
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             bufsize=1,
         )
         full_out = []

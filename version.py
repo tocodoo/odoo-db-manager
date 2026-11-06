@@ -22,7 +22,7 @@ def _git(*args: str, timeout: float = 15.0) -> str:
     result = subprocess.run(
         ["git", "-C", REPO_DIR, *args],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         timeout=timeout,
         env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
     )

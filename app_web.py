@@ -298,7 +298,7 @@ def api_pyenv_global_set():
             result = subprocess.run(
                 cmd_args,
                 capture_output=True,
-                text=True,
+                text=True, encoding="utf-8", errors="replace",
                 timeout=10,
                 env=env,
             )
@@ -312,7 +312,7 @@ def api_pyenv_global_set():
                 result2 = subprocess.run(
                     ["/bin/zsh", "-lc", shell_cmd],
                     capture_output=True,
-                    text=True,
+                    text=True, encoding="utf-8", errors="replace",
                     timeout=10,
                     env=env,
                 )
@@ -454,7 +454,7 @@ def api_browse_folder():
         result = subprocess.run(
             ["osascript", "-e", f'return POSIX path of (choose folder with prompt "{prompt}")'],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             timeout=60,
         )
         if result.returncode == 0 and result.stdout.strip():
@@ -475,7 +475,7 @@ def api_browse_file():
         result = subprocess.run(
             ["osascript", "-e", f'return POSIX path of (choose file with prompt "{prompt}")'],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             timeout=60,
         )
         if result.returncode == 0 and result.stdout.strip():
@@ -493,14 +493,14 @@ def api_permissions_accessibility():
     try:
         subprocess.run(
             ["osascript", "-e", 'tell application "System Events" to get name of first process'],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5,
         )
     except Exception:
         pass
     try:
         subprocess.run(
             ["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5,
         )
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 500
@@ -513,21 +513,21 @@ def api_permissions_automation():
     try:
         subprocess.run(
             ["osascript", "-e", 'tell application "System Events" to get name of first process'],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5,
         )
     except Exception:
         pass
     try:
         subprocess.run(
             ["osascript", "-e", 'tell application "Warp" to activate'],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5,
         )
     except Exception:
         pass
     try:
         subprocess.run(
             ["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5,
         )
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 500
@@ -1281,7 +1281,7 @@ def _window_pids(port: int) -> list[int]:
     """PIDs des processus fenêtre (lancés avec --window-only) pour ce port."""
     result = subprocess.run(
         ["/usr/bin/pgrep", "-f", "--", f"--window-only http://127.0.0.1:{port}"],
-        capture_output=True, text=True, check=False,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
     )
     return [int(p) for p in result.stdout.split() if p.isdigit() and int(p) != os.getpid()]
 

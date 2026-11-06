@@ -58,6 +58,8 @@ OPTIONS = {
         "CFBundleShortVersionString": APP_VERSION,
         "NSHighResolutionCapable": True,
         "NSAppleEventsUsageDescription": "Pour lancer Odoo dans le terminal.",
+        # Lancée depuis le Finder, l'app n'a pas de LANG : Python passerait en ASCII.
+        "LSEnvironment": {"LANG": "en_US.UTF-8", "PYTHONUTF8": "1"},
     },
 }
 

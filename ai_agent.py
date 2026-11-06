@@ -89,7 +89,7 @@ def _claude_env() -> dict:
 def _cli_version(cli: str) -> str:
     try:
         res = subprocess.run(
-            [cli, "--version"], capture_output=True, text=True,
+            [cli, "--version"], capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=15, env=_env_with_path(),
         )
         return (res.stdout or "").strip().split("\n")[0]
@@ -103,7 +103,7 @@ def _keychain_has_credentials() -> bool:
         try:
             res = subprocess.run(
                 ["security", "find-generic-password", "-s", service],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
             )
             if res.returncode == 0:
                 return True
@@ -176,7 +176,7 @@ def _probe_cli(cli: str) -> tuple[bool, str]:
         res = subprocess.run(
             [cli, "-p", "ok", "--output-format", "json", "--max-turns", "1",
              "--restricted", "--disable-slash-commands"],
-            capture_output=True, text=True, timeout=90,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90,
             cwd=str(_agent_cwd()), env=_claude_env(),
         )
         payload = json.loads(res.stdout or "{}")
@@ -945,17 +945,22 @@ def call_claude(prompt: str, system_prompt: str,
     try:
         proc = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, bufsize=1, cwd=str(_agent_cwd()), env=_claude_env(),
+            text=True, encoding="utf-8", errors="replace", bufsize=1, cwd=str(_agent_cwd()), env=_claude_env(),
         )
     except Exception as e:
         return False, f"Impossible de lancer Claude Code : {e}"
 
     def _feed():
+        # Toujours fermer stdin : sinon le CLI attend 3 s puis échoue sans prompt.
         try:
             proc.stdin.write(prompt)
-            proc.stdin.close()
         except Exception:
             pass
+        finally:
+            try:
+                proc.stdin.close()
+            except Exception:
+                pass
 
     threading.Thread(target=_feed, daemon=True).start()
 
