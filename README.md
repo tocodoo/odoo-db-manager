@@ -40,6 +40,8 @@ That's it, you only do this once.
 
 ## Use
 
+- **Assistant** (home, `⌘K`): ask in plain language. It creates, duplicates, renames, neutralizes or deletes databases and runs any `odoo-bin` command (server options or subcommands: `cloc`, `db`, `module`, `i18n`, `shell`…). Short commands run inline and their output comes back in the chat. The server and `shell` open in your terminal. Every change waits for your **Run**. Deletions and other irreversible commands always ask, even with **Auto-run** on.
+  On first launch you connect your **Claude subscription** (Pro/Max) through Claude Code (`claude /login`). No API key needed.
 - **Create a database**: four steps: environment and branch, launch script, database name and modules, then custom addons or a dump. Click **Create / Update**.
 - **My databases**: start, stop, restart, open, clear module locks, change the port.
 - **Menu bar**: the running databases, with **Open**, **Restart** and **Disconnect**.

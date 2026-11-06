@@ -15,8 +15,11 @@ from config import (
     detect_all_paths,
     get_ai_api_key,
     get_ai_api_provider,
+    get_ai_auto_run,
     get_ai_mode,
+    get_ai_model,
     get_ai_validated,
+    get_onboarding_done,
     get_odoo_community_path,
     get_odoo_enterprise_path,
     get_odoo_http_port,
@@ -28,8 +31,11 @@ from config import (
     get_scripts_paths,
     save_ai_api_key,
     save_ai_api_provider,
+    save_ai_auto_run,
     save_ai_mode,
+    save_ai_model,
     save_ai_validated,
+    save_onboarding_done,
     save_odoo_path,
     save_psql_path,
     save_pyenv_root,
@@ -709,6 +715,100 @@ def api_ai_claude_cli_validate():
         save_ai_mode("claude_cli")
     save_ai_validated(ok)
     return jsonify({"ok": ok, "message": message})
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Assistant IA : pilote l'app en langage naturel (voir ai_agent.py)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _sse(events) -> Response:
+    """Emballe un générateur d'événements en flux Server-Sent Events."""
+    def stream():
+        try:
+            for event in events:
+                yield "data: " + json.dumps(event, ensure_ascii=False, default=str) + "\n\n"
+        except Exception as e:  # le flux ne doit jamais mourir en silence
+            yield "data: " + json.dumps({"type": "error", "message": str(e)}) + "\n\n"
+            yield "data: " + json.dumps({"type": "done"}) + "\n\n"
+    return Response(stream(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.route("/api/ai/status")
+def api_ai_status():
+    """État de l'assistant : CLI installé, connecté, compte, modèle, onboarding."""
+    import ai_agent
+    status = ai_agent.auth_status(probe=request.args.get("probe") == "1")
+    status["model"] = get_ai_model()
+    status["auto_run"] = get_ai_auto_run()
+    status["onboarding_done"] = get_onboarding_done()
+    status["ai_mode"] = get_ai_mode()
+    return jsonify(status)
+
+
+@app.route("/api/ai/login", methods=["POST"])
+def api_ai_login():
+    """Ouvre `claude /login` dans le terminal pour s'authentifier avec l'abonnement."""
+    import ai_agent
+    ok, message = ai_agent.login_in_terminal()
+    return jsonify({"ok": ok, "message": message})
+
+
+@app.route("/api/ai/context")
+def api_ai_context():
+    """Photo de l'environnement telle que l'assistant la voit."""
+    import ai_agent
+    return jsonify(ai_agent.snapshot())
+
+
+@app.route("/api/ai/settings", methods=["POST"])
+def api_ai_settings():
+    """Modèle et auto-exécution des actions non destructives."""
+    data = request.json or {}
+    if "model" in data:
+        save_ai_model(str(data.get("model") or "sonnet"))
+    if "auto_run" in data:
+        save_ai_auto_run(bool(data.get("auto_run")))
+    if "onboarding_done" in data:
+        save_onboarding_done(bool(data.get("onboarding_done")))
+    return jsonify({"ok": True, "model": get_ai_model(),
+                    "auto_run": get_ai_auto_run(),
+                    "onboarding_done": get_onboarding_done()})
+
+
+@app.route("/api/ai/chat", methods=["POST"])
+def api_ai_chat():
+    """Envoie un message à l'assistant. Répond en flux SSE."""
+    import ai_agent
+    data = request.json or {}
+    message = (data.get("message") or "").strip()
+    session_id = (data.get("session_id") or "").strip()
+    if not message:
+        return jsonify({"ok": False, "message": "Empty message"}), 400
+    session = ai_agent.get_session(session_id)
+    return _sse(ai_agent.converse(session, user_message=message))
+
+
+@app.route("/api/ai/approve", methods=["POST"])
+def api_ai_approve():
+    """Valide ou refuse l'action en attente, puis poursuit la conversation."""
+    import ai_agent
+    data = request.json or {}
+    session_id = (data.get("session_id") or "").strip()
+    if not session_id:
+        return jsonify({"ok": False, "message": "session_id required"}), 400
+    session = ai_agent.get_session(session_id)
+    return _sse(ai_agent.converse(session, resume_with={"approved": bool(data.get("approved"))}))
+
+
+@app.route("/api/ai/reset", methods=["POST"])
+def api_ai_reset():
+    """Repart d'une conversation vide."""
+    import ai_agent
+    session_id = ((request.json or {}).get("session_id") or "").strip()
+    if session_id:
+        ai_agent.reset_session(session_id)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/translate/modules")

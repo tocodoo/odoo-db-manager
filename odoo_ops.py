@@ -1540,7 +1540,14 @@ exec "$PYTHON" {odoo_bin_str} \\
 
 def build_addons_path(odoo_path: str, extra_folders: list[str]) -> str:
     """Construit le --addons-path à partir du chemin Odoo et dossiers custom."""
-    parts = [str(_community_path(odoo_path) / "addons")]
+    community_addons = _community_path(odoo_path) / "addons"
+    if not community_addons.is_dir():
+        # Les appelants passent souvent la racine Odoo (parent de core/) : on retombe sur
+        # le dossier community configuré.
+        configured = _community_path() / "addons"
+        if configured.is_dir():
+            community_addons = configured
+    parts = [str(community_addons)]
     enterprise = _effective_enterprise_path()
     if enterprise:
         parts.append(str(enterprise))

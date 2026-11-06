@@ -158,11 +158,11 @@ def cmd_branches(args):
     return 0
 
 
-WINDOW_BACKGROUND = "#0a0507"
+WINDOW_BACKGROUND = "#f5f5f7"
 
 
-def _dark_title_bar(win) -> None:
-    """Barre de titre noire, sans titre, boutons fermer/réduire/agrandir conservés."""
+def _light_title_bar(win) -> None:
+    """Barre de titre claire (Aqua), sans titre, boutons fermer/réduire/agrandir conservés."""
     try:
         import AppKit
         from PyObjCTools import AppHelper
@@ -172,8 +172,8 @@ def _dark_title_bar(win) -> None:
     def apply():
         try:
             ns_window = win.native
-            color = AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(10 / 255, 5 / 255, 7 / 255, 1.0)
-            ns_window.setAppearance_(AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameDarkAqua))
+            color = AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(245 / 255, 245 / 255, 247 / 255, 1.0)
+            ns_window.setAppearance_(AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua))
             ns_window.setTitlebarAppearsTransparent_(True)
             ns_window.setTitleVisibility_(AppKit.NSWindowTitleHidden)
             ns_window.setBackgroundColor_(color)
@@ -201,7 +201,7 @@ def main():
         try:
             # Fermer la fenetre GUI doit aussi fermer la menubar.
             win.events.closed += lambda: _quit_entire_app()
-            win.events.shown += lambda: _dark_title_bar(win)
+            win.events.shown += lambda: _light_title_bar(win)
         except Exception:
             pass
         webview.start()

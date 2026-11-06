@@ -17,6 +17,9 @@ _DEFAULTS = {
     "ai_mode": "",  # "" | "api_key" | "claude_cli"
     "ai_api_provider": "anthropic",  # anthropic | openai | gemini
     "ai_validated": False,
+    "ai_model": "sonnet",      # modèle de l'assistant (alias Claude Code)
+    "ai_auto_run": False,      # exécuter les actions non destructives sans validation
+    "onboarding_done": False,  # écran de premier lancement déjà passé
 }
 
 AI_KEYRING_SERVICE = "Odoo Database Manager - AI"
@@ -330,6 +333,33 @@ def get_ai_validated() -> bool:
 
 def save_ai_validated(validated: bool) -> bool:
     return _save_config({"ai_validated": bool(validated)})
+
+
+def get_ai_model() -> str:
+    """Modèle employé par l'assistant (alias Claude Code : sonnet, opus, haiku…)."""
+    return (_load_config().get("ai_model") or _DEFAULTS["ai_model"]).strip()
+
+
+def save_ai_model(model: str) -> bool:
+    return _save_config({"ai_model": (model or "sonnet").strip()})
+
+
+def get_ai_auto_run() -> bool:
+    """True si l'assistant exécute les actions non destructives sans demander."""
+    return bool(_load_config().get("ai_auto_run", False))
+
+
+def save_ai_auto_run(enabled: bool) -> bool:
+    return _save_config({"ai_auto_run": bool(enabled)})
+
+
+def get_onboarding_done() -> bool:
+    """True si l'écran de premier lancement a déjà été passé."""
+    return bool(_load_config().get("onboarding_done", False))
+
+
+def save_onboarding_done(done: bool) -> bool:
+    return _save_config({"onboarding_done": bool(done)})
 
 
 def get_ai_api_key(provider: str) -> str:
