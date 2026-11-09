@@ -1,7 +1,0 @@
-{
-  "version": "2.0",
-  "min_version": "2.0",
-  "download_url": "https://github.com/tocodoo/odoo-db-manager#install",
-  "release_notes": "Nouvelle installation en une commande, puis mises à jour en un clic.",
-  "published_at": "2026-10-22"
-}

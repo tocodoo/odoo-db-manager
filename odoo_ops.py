@@ -37,8 +37,23 @@ def _effective_enterprise_path() -> Optional[Path]:
     return p if p.is_dir() else None
 
 
-def _env_with_path() -> dict:
-    """Environnement avec PATH étendu pour l'app (psql, git, etc.)."""
+_LOGIN_PATH: Optional[str] = None
+
+
+def _login_shell_path() -> str:
+    """PATH of the user's login shell, computed once per process (zsh -i is slow)."""
+    global _LOGIN_PATH
+    if _LOGIN_PATH is not None:
+        return _LOGIN_PATH
+    import time as _time
+    cache = Path.home() / "Library" / "Caches" / "Odoo Database Manager" / "login_path"
+    try:
+        if _time.time() - cache.stat().st_mtime < 86400:
+            _LOGIN_PATH = cache.read_text(encoding="utf-8").strip()
+            if _LOGIN_PATH:
+                return _LOGIN_PATH
+    except OSError:
+        pass
     extra = f"{Path.home()}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
     if os.name == "posix":
         try:
@@ -47,12 +62,25 @@ def _env_with_path() -> dict:
             _res = subprocess.run(
                 ["/bin/zsh", "-i", "-l", "-c", "echo $PATH"],
                 capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5,
-                env={**os.environ, "PATH": extra},
+                env={**os.environ, "PATH": extra}, stdin=subprocess.DEVNULL,
             )
-            if _res.returncode == 0 and _res.stdout.strip():
-                extra = _res.stdout.strip() + ":" + extra
+            out = (_res.stdout or "").strip().splitlines()
+            if _res.returncode == 0 and out:
+                extra = out[-1].strip() + ":" + extra
         except Exception:
             pass
+    _LOGIN_PATH = extra
+    try:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(extra, encoding="utf-8")
+    except OSError:
+        pass
+    return extra
+
+
+def _env_with_path() -> dict:
+    """Environnement avec PATH étendu pour l'app (psql, git, etc.)."""
+    extra = _login_shell_path()
     e = os.environ.copy()
     e["PATH"] = extra + (":" + e.get("PATH", "") if e.get("PATH") else "")
     # Éviter que PYTHONHOME/PYTHONPATH de l'app packagée (py2app) ne pollue
@@ -1953,6 +1981,10 @@ def clear_module_locks(db_name: str) -> bool:
     psql = _find_psql()
     code, _, _ = run_cmd([
         psql, "-d", db_name,
-        "-c", "UPDATE ir_module_module SET state = 'uninstalled' WHERE state IN ('to install', 'to upgrade', 'to remove');"
+        "-c",
+        # 'to upgrade' / 'to remove' modules are installed: putting them back to 'uninstalled'
+        # would drop them (and everything depending on them) from the registry.
+        "UPDATE ir_module_module SET state = 'installed' WHERE state IN ('to upgrade', 'to remove');"
+        "UPDATE ir_module_module SET state = 'uninstalled' WHERE state = 'to install';",
     ])
     return code == 0

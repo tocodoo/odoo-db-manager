@@ -22,3 +22,7 @@ packaging/payload-zip/
 # Editors
 .vscode/
 .idea/
+
+# Swift app
+macos/.build/
+macos/build/

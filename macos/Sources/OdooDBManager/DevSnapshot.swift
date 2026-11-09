@@ -1,0 +1,49 @@
+import AppKit
+import SwiftUI
+
+/// Development helper: with DBM_SNAPSHOT_DIR set, renders the home grid and the detail of
+/// DBM_OPEN (or the first running database) to PNG files with ImageRenderer, in light and dark.
+enum DevSnapshot {
+    static let dir = ProcessInfo.processInfo.environment["DBM_SNAPSHOT_DIR"]
+    static let openDB = ProcessInfo.processInfo.environment["DBM_OPEN"]
+    static let tab = ProcessInfo.processInfo.environment["DBM_TAB"].flatMap(DetailTab.init(rawValue:))
+
+    @MainActor
+    static func run(store: Store) async {
+        guard let dir else { return }
+        try? await Task.sleep(for: .seconds(1))
+        let running = store.running.filter { $0.kind == "server" }.compactMap { p in store.databases.first { $0.name == p.db } }
+        let items = Array(store.databases.sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }.prefix(12))
+        for scheme in [ColorScheme.light, .dark] {
+            let grid = DatabaseGrid(running: running, items: items, title: "All databases") { _ in }
+                .environment(store)
+                .frame(width: 1180)
+                .background(Color(nsColor: .windowBackgroundColor))
+                .environment(\.colorScheme, scheme)
+            save(grid, "\(dir)/home-\(scheme).png")
+        }
+        let name = openDB ?? running.first?.name ?? store.databases.first?.name ?? ""
+        guard let info = try? await CLI.json(DBInfo.self, ["info", name, "--modules"]) else { return }
+        for scheme in [ColorScheme.light, .dark] {
+            let detail = VStack(spacing: 0) {
+                DetailHeader(info: info).padding(.horizontal, 24).padding(.vertical, 18)
+                Divider()
+                OverviewTab(info: info, scrolls: false)
+            }
+            .environment(store)
+            .frame(width: 1180)
+            .background(Color(nsColor: .windowBackgroundColor))
+            .environment(\.colorScheme, scheme)
+            save(detail, "\(dir)/detail-\(scheme).png")
+        }
+    }
+
+    @MainActor
+    private static func save<V: View>(_ view: V, _ path: String) {
+        let r = ImageRenderer(content: view)
+        r.scale = 2
+        guard let img = r.cgImage else { return }
+        let rep = NSBitmapImageRep(cgImage: img)
+        try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
+    }
+}

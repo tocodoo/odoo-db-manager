@@ -9,7 +9,7 @@ import os
 import subprocess
 from typing import Any
 
-APP_VERSION = "2.0"
+APP_VERSION = "3.0"
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_DIR = os.path.expanduser("~/Library/Logs/Odoo Database Manager")

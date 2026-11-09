@@ -4,12 +4,13 @@
 #   curl -fsSL https://raw.githubusercontent.com/tocodoo/odoo-db-manager/main/install.sh | bash
 #   or, from a clone: ./install.sh
 #
-# Checks every prerequisite and installs what is missing (Git, Python 3.10+),
-# always installs from a git clone so the app can update itself from GitHub
-# (clones the repo to ~/odoodbmanager when run from anywhere else), then installs
-# the dependencies and a light app in /Applications that runs straight from the
-# clone. Running it again updates everything. The app's "Update" button runs it
-# with --update after a git pull.
+# Checks every prerequisite and installs what is missing (Command Line Tools,
+# Python 3.10+), always installs from a git clone so the app can update itself
+# from GitHub (clones the repo to ~/odoodbmanager when run from anywhere else),
+# then installs:
+#   - the `odoodb` command and the Claude skill / MCP server (agents use them),
+#   - the native macOS app (SwiftUI, built here), a monitor driving `odoodb`.
+# Running it again updates everything (`--update` after a git pull).
 set -euo pipefail
 
 REPO_URL="${ODOO_DB_MANAGER_REPO:-https://github.com/tocodoo/odoo-db-manager.git}"
@@ -28,12 +29,13 @@ echo
 
 [[ "$(uname)" == "Darwin" ]] || fail "This script is for macOS."
 
-# 1. Git (ships with Apple's Command Line Tools)
-if ! git --version >/dev/null 2>&1; then
+# 1. Git and Swift (ship with Apple's Command Line Tools)
+if ! git --version >/dev/null 2>&1 || ! swift --version >/dev/null 2>&1; then
   echo "… installing Git: click Install in the macOS window that opens, then wait here"
   xcode-select --install >/dev/null 2>&1 || true
   for _ in $(seq 1 720); do xcode-select -p >/dev/null 2>&1 && break; sleep 5; done
   git --version >/dev/null 2>&1 || fail "Git is still missing. Finish the Command Line Tools install, then run this command again."
+  swift --version >/dev/null 2>&1 || fail "Swift is missing: run 'xcode-select --install', then this command again."
 fi
 ok "$(git --version)"
 
@@ -57,10 +59,9 @@ git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1 \
   || warn "This branch does not track a GitHub branch: updates are off."
 ok "Git clone: $HERE"
 
-# 3. Python 3.10+ with a shared libpython (needed by the macOS app)
+# 3. Python 3.10+ (runs odoodb)
 py_ok() {
-  [[ -x "$1" ]] && "$1" -c 'import sys, sysconfig
-sys.exit(0 if sys.version_info >= (3, 10) and (sysconfig.get_config_var("PYTHONFRAMEWORK") or sysconfig.get_config_var("Py_ENABLE_SHARED")) else 1)' 2>/dev/null
+  [[ -x "$1" ]] && "$1" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null
 }
 find_python() {
   local v c
@@ -107,14 +108,16 @@ echo "… installing dependencies"
 "$VENV/bin/python" -m pip install --quiet --disable-pip-version-check -r requirements.txt
 ok "Dependencies installed"
 
-# 5. The app: a light bundle (py2app alias) that runs the code of this clone,
-#    so an update is a git pull and a restart.
-echo "… building the app"
-BUILD="$HERE/build/alias"
-rm -rf "$BUILD"
-mkdir -p "$BUILD"
-"$VENV/bin/python" setup.py py2app -A --dist-dir "$BUILD/dist" --bdist-base "$BUILD/py2app" >"$BUILD.log" 2>&1 \
-  || { tail -20 "$BUILD.log"; fail "The app build failed. Full log: $BUILD.log"; }
+# 5. odoodb for agents: command, Claude Code skill, Claude Desktop MCP server
+bash "$HERE/agent/install-agent.sh"
+
+# 6. The native app (SwiftUI), built from macos/
+echo "… building the app (about a minute)"
+BUILD="$HERE/macos/build"
+LOG_DIR="$HOME/Library/Logs/$APP_NAME"
+mkdir -p "$LOG_DIR"
+bash "$HERE/macos/build.sh" "$BUILD" >"$LOG_DIR/build.log" 2>&1 \
+  || { tail -20 "$LOG_DIR/build.log"; fail "The app build failed. Full log: $LOG_DIR/build.log"; }
 
 # Quit the running app (the update is started from it)
 [[ $UPDATE == 1 ]] && sleep 1
@@ -133,10 +136,10 @@ if [[ -e "$DEST/$APP_NAME.app" ]] && ! rm -rf "$DEST/$APP_NAME.app" 2>/dev/null;
     DEST="$HOME/Applications"; mkdir -p "$DEST"; rm -rf "$DEST/$APP_NAME.app"
   fi
 fi
-ditto "$BUILD/dist/$APP_NAME.app" "$DEST/$APP_NAME.app"
+ditto "$BUILD/$APP_NAME.app" "$DEST/$APP_NAME.app"
 ok "App installed: $DEST/$APP_NAME.app"
 
-# 6. What the app drives (not installed here: Odoo developers already have them)
+# 7. What the app drives (not installed here: Odoo developers already have them)
 command -v psql >/dev/null 2>&1 || [[ -d "/Applications/Postgres.app" ]] \
   || warn "PostgreSQL (psql) not found: the app needs it to create databases."
 [[ -d "${PYENV_ROOT:-$HOME/.pyenv}/versions" ]] \
@@ -145,11 +148,12 @@ command -v psql >/dev/null 2>&1 || [[ -d "/Applications/Postgres.app" ]] \
 open "$DEST/$APP_NAME.app"
 
 [[ $UPDATE == 1 ]] && { ok "Updated to $(git rev-parse --short HEAD)"; exit 0; }
-cat <<EOF
+cat <<'EOF'
 
 ────────────────────────────────────────────────────────────
 Done. Odoo Database Manager is open (icon in the menu bar).
-Next time, open it from Applications or Spotlight.
-Updates: click "Update" in the app when it shows one.
+Agents: any Claude Code session now knows the `odoodb` command
+(try: "create an Odoo 19 database with sale and start it").
+Updates: run this command again, or `odoodb self-update`.
 ────────────────────────────────────────────────────────────
 EOF
