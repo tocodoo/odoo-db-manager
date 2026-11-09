@@ -61,6 +61,8 @@ final class Store {
     var busy: [String: String] = [:]
     /// Bumped after every action so open detail views reload.
     var revision = 0
+    /// Extra bottom space for toasts while a bottom bar (bulk selection) is shown.
+    var toastInset: CGFloat = 0
 
     private var pollTask: Task<Void, Never>?
     private var toastTask: Task<Void, Never>?
@@ -181,24 +183,31 @@ final class Store {
         }
     }
 
-    func start(_ db: String) {
-        Task {
-            await perform("Start \(db)", db: db, busyLabel: "Starting…", args: ["start", db]) { r in
-                r.alreadyRunning == true ? "\(db) is already running" : "\(db) is up on \(r.url ?? "")"
-            }
-        }
+    func start(_ db: String) { Task { await runStart(db) } }
+
+    @discardableResult
+    func runStart(_ db: String) async -> Bool {
+        await perform("Start \(db)", db: db, busyLabel: "Starting…", args: ["start", db]) { r in
+            r.alreadyRunning == true ? "\(db) is already running" : "\(db) is up on \(r.url ?? "")"
+        } != nil
     }
 
     func startInTerminal(_ db: String) {
         Task { await perform("Start \(db) in terminal", db: db, busyLabel: "Starting…", args: ["start", db, "--terminal", "--no-wait"]) { _ in "\(db) opened in the terminal" } }
     }
 
-    func stop(_ db: String) {
-        Task { await perform("Stop \(db)", db: db, busyLabel: "Stopping…", args: ["stop", db]) { _ in "\(db) stopped" } }
+    func stop(_ db: String) { Task { await runStop(db) } }
+
+    @discardableResult
+    func runStop(_ db: String) async -> Bool {
+        await perform("Stop \(db)", db: db, busyLabel: "Stopping…", args: ["stop", db]) { _ in "\(db) stopped" } != nil
     }
 
-    func restart(_ db: String) {
-        Task { await perform("Restart \(db)", db: db, busyLabel: "Restarting…", args: ["restart", db]) { _ in "\(db) restarted" } }
+    func restart(_ db: String) { Task { await runRestart(db) } }
+
+    @discardableResult
+    func runRestart(_ db: String) async -> Bool {
+        await perform("Restart \(db)", db: db, busyLabel: "Restarting…", args: ["restart", db]) { _ in "\(db) restarted" } != nil
     }
 
     func open(_ db: String, series: String? = nil) {
@@ -213,18 +222,24 @@ final class Store {
         Task { await perform(fix.map { "Repair \(db): \($0)" } ?? "Repair \(db)", db: db, busyLabel: "Repairing…", args: args) { _ in "\(db) repaired" } }
     }
 
-    func update(_ db: String, modules: [String]) {
+    func update(_ db: String, modules: [String]) { Task { await runUpdate(db, modules: modules) } }
+
+    /// Stops the database if needed, updates the modules, then restarts it if it was running.
+    @discardableResult
+    func runUpdate(_ db: String, modules: [String]) async -> Bool {
         let mods = modules.isEmpty ? "all" : modules.joined(separator: ",")
-        Task {
-            let wasRunning = isRunning(db)
-            if wasRunning { _ = await perform("Stop \(db)", db: db, args: ["stop", db]) { _ in "\(db) stopped" } }
-            let r = await perform("Update \(mods) on \(db)", db: db, busyLabel: "Updating…", args: ["update", db, "-m", mods]) { _ in "Modules updated on \(db)" }
-            if wasRunning, r != nil { start(db) }
-        }
+        let wasRunning = isRunning(db)
+        if wasRunning { _ = await perform("Stop \(db)", db: db, args: ["stop", db]) { _ in "\(db) stopped" } }
+        let r = await perform("Update \(mods) on \(db)", db: db, busyLabel: "Updating…", args: ["update", db, "-m", mods]) { _ in "Modules updated on \(db)" }
+        if wasRunning, r != nil { await runStart(db) }
+        return r != nil
     }
 
-    func neutralize(_ db: String) {
-        Task { await perform("Neutralize \(db)", db: db, busyLabel: "Neutralizing…", args: ["neutralize", db]) { _ in "\(db) neutralized" } }
+    func neutralize(_ db: String) { Task { await runNeutralize(db) } }
+
+    @discardableResult
+    func runNeutralize(_ db: String) async -> Bool {
+        await perform("Neutralize \(db)", db: db, busyLabel: "Neutralizing…", args: ["neutralize", db]) { _ in "\(db) neutralized" } != nil
     }
 
     func duplicate(_ db: String, as new: String) {
@@ -249,6 +264,65 @@ final class Store {
             message: "The database, its filestore and its launch script are deleted. This cannot be undone.",
             actionLabel: "Delete", destructive: true) {
                 Task { if await self.delete(db) { then() } }
+            }
+    }
+
+    // MARK: - Bulk
+
+    /// Runs `step` on each database one after the other: they share the same core/enterprise
+    /// checkout, so running them concurrently would fight over the branch.
+    func runBulk(_ verb: String, _ dbs: [String], stopOnFailure: Bool = false, step: @escaping (String) async -> Bool) {
+        guard !dbs.isEmpty else { return }
+        for db in dbs where busy[db] == nil { busy[db] = "Queued…" }
+        Task {
+            var ok = 0
+            for (i, db) in dbs.enumerated() {
+                if await step(db) {
+                    ok += 1
+                } else if stopOnFailure {
+                    for rest in dbs[(i + 1)...] where busy[rest] == "Queued…" { busy[rest] = nil }
+                    break
+                }
+            }
+            guard dbs.count > 1 else { return }
+            if ok == dbs.count {
+                show("\(verb) \(ok) databases")
+            } else if confirmation == nil {
+                show("\(verb) \(ok) of \(dbs.count) databases — see Activity for the failures", error: true)
+            }
+        }
+    }
+
+    func bulkStart(_ dbs: [String]) {
+        runBulk("Started", dbs.filter { !isRunning($0) }, stopOnFailure: true) { await self.runStart($0) }
+    }
+
+    func bulkStop(_ dbs: [String]) {
+        runBulk("Stopped", dbs.filter { isRunning($0) }) { await self.runStop($0) }
+    }
+
+    func bulkRestart(_ dbs: [String]) {
+        runBulk("Restarted", dbs.filter { isRunning($0) }, stopOnFailure: true) { await self.runRestart($0) }
+    }
+
+    func bulkUpdate(_ dbs: [String]) {
+        runBulk("Updated", dbs, stopOnFailure: true) { await self.runUpdate($0, modules: []) }
+    }
+
+    func bulkNeutralize(_ dbs: [String]) {
+        runBulk("Neutralized", dbs) { await self.runNeutralize($0) }
+    }
+
+    func confirmBulkDelete(_ dbs: [String], then: @escaping () -> Void = {}) {
+        guard !dbs.isEmpty else { return }
+        if dbs.count == 1 { return confirmDelete(dbs[0], then: then) }
+        let shown = dbs.prefix(8).joined(separator: ", ") + (dbs.count > 8 ? " and \(dbs.count - 8) more" : "")
+        confirmation = Confirmation(
+            title: "Delete \(dbs.count) databases?",
+            message: "\(shown)\n\nThe databases, their filestores and their launch scripts are deleted. This cannot be undone.",
+            actionLabel: "Delete \(dbs.count)", destructive: true) {
+                self.runBulk("Deleted", dbs) { await self.delete($0) }
+                then()
             }
     }
 }

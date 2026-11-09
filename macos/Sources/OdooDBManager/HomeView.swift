@@ -21,6 +21,9 @@ struct HomeView: View {
     @State private var showNew = false
     @State private var droppedDump: URL?
     @State private var dropTargeted = false
+    @State private var selecting = false
+    @State private var selection: Set<String> = []
+    @State private var anchor: String?
 
     private var versions: [String] {
         Array(Set(store.databases.compactMap { $0.series })).sorted { $0.localizedStandardCompare($1) == .orderedDescending }
@@ -55,6 +58,41 @@ struct HomeView: View {
 
     private var runningDBs: [DBSummary] {
         store.running.filter { $0.kind == "server" }.compactMap { p in store.databases.first { $0.name == p.db } }
+    }
+
+    /// Running databases shown in their own section above the others.
+    private var shownRunning: [DBSummary] { filter != .running && search.isEmpty ? runningDBs : [] }
+
+    /// Names of the cards in display order (running section first).
+    private var visibleOrder: [String] {
+        let r = shownRunning.map(\.name)
+        return r + filtered.map(\.name).filter { !r.contains($0) }
+    }
+
+    private var selectedOrdered: [String] { visibleOrder.filter(selection.contains) }
+
+    /// Plain click toggles in selection mode; ⌘-click toggles and ⇧-click extends from the last one.
+    private func select(_ name: String, _ mods: NSEvent.ModifierFlags) {
+        withAnimation(.snappy(duration: 0.2)) {
+            selecting = true
+            let order = visibleOrder
+            if mods.contains(.shift), let anchor, let a = order.firstIndex(of: anchor), let b = order.firstIndex(of: name) {
+                selection.formUnion(order[min(a, b)...max(a, b)])
+            } else if selection.contains(name) {
+                selection.remove(name)
+            } else {
+                selection.insert(name)
+            }
+            anchor = name
+        }
+    }
+
+    private func endSelection() {
+        withAnimation(.snappy(duration: 0.2)) {
+            selecting = false
+            selection = []
+            anchor = nil
+        }
     }
 
     var body: some View {
@@ -119,15 +157,31 @@ struct HomeView: View {
 
     private var grid: some View {
         ScrollView {
-            DatabaseGrid(running: filter != .running && search.isEmpty ? runningDBs : [],
+            DatabaseGrid(running: shownRunning,
                          items: filtered,
-                         title: filter == .all && search.isEmpty ? "All databases" : "\(filtered.count) result\(filtered.count == 1 ? "" : "s")") { name in
-                path.append(name)
-            }
+                         title: filter == .all && search.isEmpty ? "All databases" : "\(filtered.count) result\(filtered.count == 1 ? "" : "s")",
+                         selection: selecting ? selection : nil,
+                         open: { name in path.append(name) },
+                         select: select)
             .animation(.smooth, value: filtered.map(\.name))
             .animation(.smooth, value: runningDBs.map(\.name))
         }
         .refreshable { await store.refresh() }
+        .safeAreaInset(edge: .bottom) {
+            if selecting {
+                SelectionBar(names: selectedOrdered, total: visibleOrder.count,
+                             selectAll: { withAnimation(.snappy(duration: 0.2)) { selection = Set(visibleOrder) } },
+                             deselectAll: { withAnimation(.snappy(duration: 0.2)) { selection = [] } },
+                             done: endSelection)
+                    .padding(.bottom, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        // Deleted or filtered-out databases leave the selection: actions only touch what is visible.
+        .onChange(of: visibleOrder) { _, names in selection.formIntersection(names) }
+        .onChange(of: selecting) { _, now in withAnimation(.spring(duration: 0.35)) { store.toastInset = now ? 64 : 0 } }
+        .onDisappear { store.toastInset = 0 }
+        .onAppear { if selecting { store.toastInset = 64 } }
     }
 
     @ToolbarContentBuilder
@@ -154,6 +208,14 @@ struct HomeView: View {
             JobsButton()
 
             Button {
+                if selecting { endSelection() } else { withAnimation(.snappy(duration: 0.2)) { selecting = true } }
+            } label: {
+                Label(selecting ? "Done Selecting" : "Select", systemImage: selecting ? "checkmark.circle.fill" : "checkmark.circle")
+            }
+            .help(selecting ? "Leave selection mode" : "Select several databases (or ⌘-click a card)")
+            .disabled(store.databases.isEmpty)
+
+            Button {
                 Task { await store.refresh() }
             } label: {
                 Label("Refresh", systemImage: "arrow.clockwise")
@@ -176,7 +238,10 @@ struct DatabaseGrid: View {
     var running: [DBSummary]
     var items: [DBSummary]
     var title: String
+    /// Selected names while in selection mode, nil otherwise.
+    var selection: Set<String>? = nil
     var open: (String) -> Void
+    var select: (String, NSEvent.ModifierFlags) -> Void = { _, _ in }
 
     private let columns = [GridItem(.adaptive(minimum: 250, maximum: 360), spacing: 14)]
 
@@ -214,12 +279,20 @@ struct DatabaseGrid: View {
 
     private func cardLink(_ db: DBSummary) -> some View {
         Button {
-            open(db.name)
+            let mods = NSEvent.modifierFlags.intersection([.command, .shift])
+            if selection != nil || !mods.isEmpty { select(db.name, mods) } else { open(db.name) }
         } label: {
-            DatabaseCard(db: db)
+            DatabaseCard(db: db, selected: selection.map { $0.contains(db.name) })
         }
         .buttonStyle(CardButtonStyle())
-        .contextMenu { DatabaseMenu(name: db.name, series: db.series, onDeleted: {}) }
+        .contextMenu {
+            if let selection, selection.contains(db.name), selection.count > 1 {
+                let order = running.map(\.name) + items.map(\.name).filter { n in !running.contains { $0.name == n } }
+                BulkDatabaseMenu(names: order.filter(selection.contains))
+            } else {
+                DatabaseMenu(name: db.name, series: db.series, onDeleted: {})
+            }
+        }
     }
 }
 
@@ -234,6 +307,8 @@ struct CardButtonStyle: ButtonStyle {
 struct DatabaseCard: View {
     @Environment(Store.self) private var store
     var db: DBSummary
+    /// nil outside selection mode.
+    var selected: Bool? = nil
     @State private var hovering = false
 
     var body: some View {
@@ -241,6 +316,13 @@ struct DatabaseCard: View {
         let busy = store.busy[db.name]
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 8) {
+                if let selected {
+                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 15))
+                        .foregroundStyle(selected ? Color.accentColor : Color.secondary.opacity(0.5))
+                        .contentTransition(.symbolEffect(.replace))
+                        .transition(.scale.combined(with: .opacity))
+                }
                 StatusDot(running: proc != nil, busy: busy != nil)
                 Text(db.name)
                     .font(.headline)
@@ -288,7 +370,7 @@ struct DatabaseCard: View {
                     Label("locked", systemImage: "lock.fill").foregroundStyle(.orange)
                 }
                 Spacer()
-                if hovering && db.isOdoo {
+                if hovering && db.isOdoo && selected == nil {
                     quickAction(proc != nil)
                         .transition(.opacity.combined(with: .scale(scale: 0.8)))
                 } else {
@@ -303,7 +385,7 @@ struct DatabaseCard: View {
         .padding(14)
         .frame(height: 118)
         .contentShape(RoundedRectangle(cornerRadius: Theme.cardRadius))
-        .card(hovering: hovering, highlighted: proc != nil)
+        .card(hovering: hovering, highlighted: proc != nil, selected: selected == true)
         .offset(y: hovering ? -2 : 0)
         .onHover { h in withAnimation(.spring(duration: 0.25)) { hovering = h } }
     }
@@ -379,6 +461,98 @@ struct DatabaseMenu: View {
         Button("Copy Name") { copyToPasteboard(name) }
         Divider()
         Button("Delete…", role: .destructive) { store.confirmDelete(name, then: onDeleted) }
+    }
+}
+
+/// Context menu of a card that belongs to a multiple selection.
+struct BulkDatabaseMenu: View {
+    @Environment(Store.self) private var store
+    var names: [String]
+
+    var body: some View {
+        let running = names.filter { store.isRunning($0) }
+        Text("\(names.count) databases")
+        Button("Start") { store.bulkStart(names) }.disabled(running.count == names.count)
+        Button("Restart") { store.bulkRestart(names) }.disabled(running.isEmpty)
+        Button("Stop") { store.bulkStop(names) }.disabled(running.isEmpty)
+        Divider()
+        Button("Update All Modules") { store.bulkUpdate(names) }
+        Button("Neutralize") { store.bulkNeutralize(names) }
+        Divider()
+        Button("Copy Names") { copyToPasteboard(names.joined(separator: "\n")) }
+        Divider()
+        Button("Delete \(names.count) Databases…", role: .destructive) { store.confirmBulkDelete(names) }
+    }
+}
+
+/// Floating bar shown at the bottom of the grid in selection mode.
+struct SelectionBar: View {
+    @Environment(Store.self) private var store
+    var names: [String]
+    var total: Int
+    var selectAll: () -> Void
+    var deselectAll: () -> Void
+    var done: () -> Void
+
+    var body: some View {
+        let running = names.filter { store.isRunning($0) }
+        let none = names.isEmpty
+        HStack(spacing: 10) {
+            Text(none ? "Select databases" : "\(names.count) selected")
+                .font(.callout.weight(.semibold))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .frame(minWidth: 96, alignment: .leading)
+            Button(total > 0 && names.count == total ? "Deselect All" : "Select All") {
+                names.count == total ? deselectAll() : selectAll()
+            }
+            .buttonStyle(.link)
+            .disabled(total == 0)
+
+            Divider().frame(height: 18)
+
+            ViewThatFits(in: .horizontal) {
+                actions(running: running, none: none).labelStyle(.titleAndIcon)
+                actions(running: running, none: none).labelStyle(.iconOnly)
+            }
+
+            Divider().frame(height: 18)
+
+            Button("Done", action: done)
+                .keyboardShortcut(.cancelAction)
+        }
+        .controlSize(.regular)
+        .padding(.leading, 18)
+        .padding(.trailing, 10)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.quaternary, lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.15), radius: 16, y: 6)
+        .padding(.horizontal, 20)
+    }
+
+    private func actions(running: [String], none: Bool) -> some View {
+        HStack(spacing: 2) {
+            bar("Start", "play.fill", disabled: none || running.count == names.count) { store.bulkStart(names) }
+            bar("Restart", "arrow.clockwise", disabled: running.isEmpty) { store.bulkRestart(names) }
+            bar("Stop", "stop.fill", disabled: running.isEmpty) { store.bulkStop(names) }
+            bar("Update", "arrow.triangle.2.circlepath", help: "Update all modules", disabled: none) { store.bulkUpdate(names) }
+            bar("Neutralize", "shield.lefthalf.filled", disabled: none) { store.bulkNeutralize(names) }
+            bar("Delete…", "trash", disabled: none, destructive: true) { store.confirmBulkDelete(names) }
+        }
+        .fixedSize()
+    }
+
+    private func bar(_ title: String, _ symbol: String, help: String? = nil, disabled: Bool,
+                     destructive: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(role: destructive ? .destructive : nil, action: action) {
+            Label(title, systemImage: symbol)
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(destructive && !disabled ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
+        .padding(.horizontal, 6)
+        .disabled(disabled)
+        .help(help ?? title)
     }
 }
 

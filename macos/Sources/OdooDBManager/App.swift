@@ -99,7 +99,7 @@ struct ToastView: View {
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.quaternary, lineWidth: 0.5))
             .shadow(color: .black.opacity(0.15), radius: 16, y: 6)
             .frame(maxWidth: 560)
-            .padding(.bottom, 22)
+            .padding(.bottom, 22 + store.toastInset)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .id(toast.id)
             .onTapGesture { withAnimation { store.toast = nil } }

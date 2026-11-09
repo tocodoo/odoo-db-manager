@@ -124,25 +124,32 @@ struct Chip: View {
 struct CardBackground: ViewModifier {
     var hovering = false
     var highlighted = false
+    var selected = false
 
     func body(content: Content) -> some View {
         content
             .background {
                 RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                     .fill(Color(nsColor: .controlBackgroundColor))
+                    .overlay {
+                        if selected {
+                            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous).fill(Color.accentColor.opacity(0.07))
+                        }
+                    }
                     .shadow(color: .black.opacity(hovering ? 0.12 : 0.05), radius: hovering ? 12 : 3, y: hovering ? 6 : 1)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                    .strokeBorder(highlighted ? Theme.running.opacity(0.45) : Color.primary.opacity(hovering ? 0.12 : 0.07),
-                                  lineWidth: highlighted ? 1.2 : 0.5)
+                    .strokeBorder(selected ? Color.accentColor
+                                  : highlighted ? Theme.running.opacity(0.45) : Color.primary.opacity(hovering ? 0.12 : 0.07),
+                                  lineWidth: selected ? 2 : highlighted ? 1.2 : 0.5)
             }
     }
 }
 
 extension View {
-    func card(hovering: Bool = false, highlighted: Bool = false) -> some View {
-        modifier(CardBackground(hovering: hovering, highlighted: highlighted))
+    func card(hovering: Bool = false, highlighted: Bool = false, selected: Bool = false) -> some View {
+        modifier(CardBackground(hovering: hovering, highlighted: highlighted, selected: selected))
     }
 }
 
