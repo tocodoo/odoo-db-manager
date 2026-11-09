@@ -30,21 +30,34 @@ enum Fmt {
         ByteCountFormatter.string(fromByteCount: n, countStyle: .file)
     }
 
-    static func ago(_ date: Date?) -> String {
-        guard let date else { return "never" }
+    // Formatters are expensive to create (ICU locale setup): one of each, reused by every card.
+    private static let relative: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.locale = Locale(identifier: "en_US")
         f.unitsStyle = .short
-        return f.localizedString(for: date, relativeTo: Date())
+        return f
+    }()
+
+    private static func durationFormatter(_ units: NSCalendar.Unit) -> DateComponentsFormatter {
+        var cal = Calendar.current
+        cal.locale = Locale(identifier: "en_US")
+        let f = DateComponentsFormatter()
+        f.calendar = cal
+        f.allowedUnits = units
+        f.unitsStyle = .abbreviated
+        return f
+    }
+    private static let days = durationFormatter([.day, .hour])
+    private static let hours = durationFormatter([.hour, .minute])
+    private static let minutes = durationFormatter([.minute, .second])
+
+    static func ago(_ date: Date?) -> String {
+        guard let date else { return "never" }
+        return relative.localizedString(for: date, relativeTo: Date())
     }
 
     static func duration(_ seconds: Int) -> String {
-        let f = DateComponentsFormatter()
-        var cal = Calendar.current
-        cal.locale = Locale(identifier: "en_US")
-        f.calendar = cal
-        f.allowedUnits = seconds >= 86400 ? [.day, .hour] : seconds >= 3600 ? [.hour, .minute] : [.minute, .second]
-        f.unitsStyle = .abbreviated
+        let f = seconds >= 86400 ? days : seconds >= 3600 ? hours : minutes
         return f.string(from: TimeInterval(seconds)) ?? "\(seconds)s"
     }
 }
@@ -68,36 +81,87 @@ struct VersionBadge: View {
 struct StatusDot: View {
     var running: Bool
     var busy = false
-    @State private var pulse = false
 
     var body: some View {
         ZStack {
             if busy {
                 ProgressView().controlSize(.mini)
             } else {
+                if running {
+                    // Larger than the dot so the growing ring is never clipped; layout stays 12×12.
+                    PulseRing().frame(width: 22, height: 22).allowsHitTesting(false)
+                }
                 Circle()
                     .fill(running ? Theme.running : Color.secondary.opacity(0.35))
                     .frame(width: 8, height: 8)
-                    .overlay {
-                        if running {
-                            Circle()
-                                .stroke(Theme.running.opacity(0.5), lineWidth: 2)
-                                .scaleEffect(pulse ? 2.2 : 1)
-                                .opacity(pulse ? 0 : 1)
-                        }
-                    }
             }
         }
         .frame(width: 12, height: 12)
-        .onAppear {
-            guard running else { return }
-            withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) { pulse = true }
-        }
-        .onChange(of: running) { _, now in
-            pulse = false
-            if now {
-                withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) { pulse = true }
-            }
+    }
+}
+
+/// Endless "alive" ring around the status dot. Driven by Core Animation, so it runs in the
+/// render server: a SwiftUI repeatForever animation re-evaluates the view graph on every frame.
+struct PulseRing: NSViewRepresentable {
+    func makeNSView(context: Context) -> PulseRingView { PulseRingView() }
+    func updateNSView(_ view: PulseRingView, context: Context) {}
+}
+
+final class PulseRingView: NSView {
+    private let ring = CAShapeLayer()
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.masksToBounds = false
+        ring.fillColor = nil
+        ring.lineWidth = 2
+        layer?.addSublayer(ring)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override var isFlipped: Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func layout() {
+        super.layout()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        ring.frame = bounds
+        let d: CGFloat = 8
+        ring.path = CGPath(ellipseIn: CGRect(x: (bounds.width - d) / 2, y: (bounds.height - d) / 2, width: d, height: d), transform: nil)
+        CATransaction.commit()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColor()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        ring.removeAllAnimations()
+        updateColor()
+        guard window != nil, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+        let scale = CABasicAnimation(keyPath: "transform.scale")
+        scale.fromValue = 1
+        scale.toValue = 2.2
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 1
+        fade.toValue = 0
+        let group = CAAnimationGroup()
+        group.animations = [scale, fade]
+        group.duration = 1.6
+        group.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        group.repeatCount = .infinity
+        group.isRemovedOnCompletion = false
+        ring.add(group, forKey: "pulse")
+    }
+
+    private func updateColor() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            ring.strokeColor = NSColor.systemGreen.withAlphaComponent(0.5).cgColor
         }
     }
 }
@@ -129,14 +193,21 @@ struct CardBackground: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background {
-                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                    .fill(Color(nsColor: .controlBackgroundColor))
-                    .overlay {
-                        if selected {
-                            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous).fill(Color.accentColor.opacity(0.07))
-                        }
+                let shape = RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                ZStack {
+                    // The large hover shadow fades in as its own layer instead of animating the blur
+                    // radius, which re-rasterized the shadow on every frame of the hover animation.
+                    if hovering {
+                        shape.fill(Color(nsColor: .controlBackgroundColor))
+                            .shadow(color: .black.opacity(0.12), radius: 12, y: 6)
+                            .transition(.opacity)
                     }
-                    .shadow(color: .black.opacity(hovering ? 0.12 : 0.05), radius: hovering ? 12 : 3, y: hovering ? 6 : 1)
+                    shape.fill(Color(nsColor: .controlBackgroundColor))
+                        .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
+                    if selected {
+                        shape.fill(Color.accentColor.opacity(0.07))
+                    }
+                }
             }
             .overlay {
                 RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)

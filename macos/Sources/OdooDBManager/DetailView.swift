@@ -49,7 +49,7 @@ struct DetailView: View {
                 }
             }
         }
-        .task(id: store.revision) { await load() }
+        .task(id: store.revisions[name, default: 0]) { await load() }
         .onChange(of: store.isRunning(name)) { _, _ in Task { await load() } }
     }
 

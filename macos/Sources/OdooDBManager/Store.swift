@@ -59,13 +59,17 @@ final class Store {
     var confirmation: Confirmation?
     /// db name -> what is happening ("Starting…")
     var busy: [String: String] = [:]
-    /// Bumped after every action so open detail views reload.
-    var revision = 0
+    /// db name -> bumped after every action on it, so its open detail view reloads.
+    var revisions: [String: Int] = [:]
     /// Extra bottom space for toasts while a bottom bar (bulk selection) is shown.
     var toastInset: CGFloat = 0
 
     private var pollTask: Task<Void, Never>?
     private var toastTask: Task<Void, Never>?
+    private var refreshing = false
+    private var refreshAgain = false
+    /// > 0 while a bulk action runs: it refreshes once at the end instead of after every database.
+    private var bulkDepth = 0
 
     var databases: [DBSummary] { list?.databases ?? [] }
     var activeJobs: [Job] { jobs.filter { $0.state == .running } }
@@ -78,18 +82,46 @@ final class Store {
 
     // MARK: - Loading
 
+    /// Reloads the list. Calls made while one is in flight are coalesced into a single extra run.
     func refresh() async {
+        if refreshing {
+            refreshAgain = true
+            return
+        }
+        refreshing = true
         loading = true
-        defer { loading = false }
-        do {
-            let res = try await CLI.json(DBListResponse.self, ["list"])
-            withAnimation(.smooth) {
-                list = res
-                running = res.running
-                loadError = nil
+        defer {
+            refreshing = false
+            loading = false
+        }
+        repeat {
+            refreshAgain = false
+            do {
+                apply(try await CLI.json(DBListResponse.self, ["list"]))
+            } catch {
+                loadError = error.localizedDescription
             }
-        } catch {
-            loadError = error.localizedDescription
+        } while refreshAgain
+    }
+
+    /// Only touches what changed: reassigning an identical list re-renders and re-animates the whole grid.
+    private func apply(_ res: DBListResponse) {
+        if let list, list.databases == res.databases, list.codeSeries == res.codeSeries, list.reposBranch == res.reposBranch {
+            // same databases
+        } else {
+            withAnimation(.smooth) { list = res }
+        }
+        applyRunning(res.running)
+        if loadError != nil { loadError = nil }
+    }
+
+    private func applyRunning(_ new: [RunningProcess]) {
+        guard new != running else { return }
+        let key: (RunningProcess) -> String = { "\($0.db):\($0.pid):\($0.port)" }
+        if Set(new.map(key)) != Set(running.map(key)) {
+            withAnimation(.smooth) { running = new }
+        } else {
+            running = new
         }
     }
 
@@ -104,12 +136,7 @@ final class Store {
                 if tick % 40 == 0 {
                     await self.refresh()
                 } else if let ps = try? await CLI.json(PSResponse.self, ["ps"]) {
-                    let key: (RunningProcess) -> String = { "\($0.db):\($0.pid):\($0.port)" }
-                    if Set(ps.running.map(key)) != Set(self.running.map(key)) {
-                        withAnimation(.smooth) { self.running = ps.running }
-                    } else {
-                        self.running = ps.running
-                    }
+                    self.applyRunning(ps.running)
                 }
             }
         }
@@ -140,8 +167,10 @@ final class Store {
         if jobs.count > 30 { jobs.removeLast(jobs.count - 30) }
         if let db { busy[db] = busyLabel ?? title }
         defer {
-            if let db { busy[db] = nil }
-            revision += 1
+            if let db {
+                busy[db] = nil
+                revisions[db, default: 0] += 1
+            }
         }
         do {
             let res = try await CLI.json(ActionResult.self, args) { line in
@@ -151,7 +180,7 @@ final class Store {
             job.message = success(res)
             job.resultPath = res.path
             show(job.message)
-            Task { await refresh() }
+            if bulkDepth == 0 { Task { await refresh() } }
             return res
         } catch let e as CLIError {
             job.state = .failure
@@ -251,7 +280,10 @@ final class Store {
     }
 
     func delete(_ db: String) async -> Bool {
-        await perform("Delete \(db)", db: db, busyLabel: "Deleting…", args: ["delete", db, "--yes"]) { _ in "\(db) deleted" } != nil
+        let ok = await perform("Delete \(db)", db: db, busyLabel: "Deleting…", args: ["delete", db, "--yes"]) { _ in "\(db) deleted" } != nil
+        // The card leaves the grid right away, without waiting for the next `odoodb list`.
+        if ok { withAnimation(.smooth) { list?.databases.removeAll { $0.name == db } } }
+        return ok
     }
 
     func setPort(_ db: String, _ port: Int) {
@@ -275,6 +307,8 @@ final class Store {
         guard !dbs.isEmpty else { return }
         for db in dbs where busy[db] == nil { busy[db] = "Queued…" }
         Task {
+            bulkDepth += 1
+            defer { bulkDepth -= 1 }
             var ok = 0
             for (i, db) in dbs.enumerated() {
                 if await step(db) {
@@ -284,6 +318,7 @@ final class Store {
                     break
                 }
             }
+            await refresh()
             guard dbs.count > 1 else { return }
             if ok == dbs.count {
                 show("\(verb) \(ok) databases")

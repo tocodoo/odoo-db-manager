@@ -32,6 +32,9 @@ struct LogsTab: View {
     @State private var errorsOnly = false
     @State private var follow = true
     @State private var lastSize: UInt64 = 0
+    @State private var nextID = 0
+    /// Bytes after the last newline: a line still being written.
+    @State private var partial = ""
 
     private var visible: [LogLine] {
         var l = lines
@@ -128,33 +131,50 @@ struct LogsTab: View {
     }
 
     private func poll() async {
+        lines = []
+        lastSize = 0
+        partial = ""
         while !Task.isCancelled {
             await read()
             try? await Task.sleep(for: .seconds(1))
         }
     }
 
+    /// Reads only what was appended since the last poll. Each line keeps its id, so the list
+    /// appends rows instead of rebuilding 3000 of them every second.
     private func read() async {
         let path = info.log.path
-        let result: (UInt64, [String])? = await Task.detached(priority: .utility) {
+        let from = lastSize
+        let chunk: (size: UInt64, data: Data, fresh: Bool, cut: Bool)? = await Task.detached(priority: .utility) {
             guard let attrs = try? FileManager.default.attributesOfItem(atPath: path),
                   let size = attrs[.size] as? UInt64 else { return nil }
+            if size == from { return (size, Data(), false, false) }
+            let window: UInt64 = 600_000
+            // Restart from the end of the file when it is new, was truncated, or grew too much.
+            let start = (size < from || from == 0 || size - from > window) ? (size > window ? size - window : 0) : from
             guard let h = FileHandle(forReadingAtPath: path) else { return nil }
             defer { try? h.close() }
-            let window: UInt64 = 600_000
-            try? h.seek(toOffset: size > window ? size - window : 0)
-            let data = (try? h.readToEnd()) ?? Data()
-            var text = String(decoding: data, as: UTF8.self).components(separatedBy: "\n")
-            if size > window { text.removeFirst() }
-            if text.last == "" { text.removeLast() }
-            return (size, Array(text.suffix(3000)))
+            try? h.seek(toOffset: start)
+            let data = (try? h.read(upToCount: Int(size - start))) ?? Data()
+            return (size, data, start != from, start != from && start > 0)
         }.value
-        guard let (size, raw) = result else {
-            if !lines.isEmpty { lines = [] }
+        guard let chunk else {
+            if !lines.isEmpty || lastSize != 0 { lines = []; lastSize = 0; partial = "" }
             return
         }
-        guard size != lastSize else { return }
-        lastSize = size
-        lines = raw.enumerated().map { LogLine(id: Int(size) &+ $0.offset - raw.count, text: $0.element) }
+        guard chunk.size != lastSize else { return }
+        lastSize = chunk.size
+        var parts = ((chunk.fresh ? "" : partial) + String(decoding: chunk.data, as: UTF8.self)).components(separatedBy: "\n")
+        if chunk.cut, !parts.isEmpty { parts.removeFirst() }
+        partial = parts.popLast() ?? ""
+        var id = nextID
+        let added = parts.map { text -> LogLine in
+            defer { id += 1 }
+            return LogLine(id: id, text: text)
+        }
+        nextID = id
+        var all = chunk.fresh ? added : lines + added
+        if all.count > 3000 { all.removeFirst(all.count - 3000) }
+        lines = all
     }
 }

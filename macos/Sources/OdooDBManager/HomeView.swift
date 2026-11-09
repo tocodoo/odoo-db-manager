@@ -63,19 +63,27 @@ struct HomeView: View {
     /// Running databases shown in their own section above the others.
     private var shownRunning: [DBSummary] { filter != .running && search.isEmpty ? runningDBs : [] }
 
-    /// Names of the cards in display order (running section first).
-    private var visibleOrder: [String] {
-        let r = shownRunning.map(\.name)
-        return r + filtered.map(\.name).filter { !r.contains($0) }
+    /// What the grid shows, computed once per render (filtering and sorting are not free).
+    private struct Listing {
+        var running: [DBSummary]
+        var items: [DBSummary]
+        /// Card names in display order (running section first).
+        var order: [String]
     }
 
-    private var selectedOrdered: [String] { visibleOrder.filter(selection.contains) }
+    private var listing: Listing {
+        let running = shownRunning
+        let items = filtered
+        let names = running.map(\.name)
+        let shown = Set(names)
+        return Listing(running: running, items: items, order: names + items.map(\.name).filter { !shown.contains($0) })
+    }
 
     /// Plain click toggles in selection mode; ⌘-click toggles and ⇧-click extends from the last one.
     private func select(_ name: String, _ mods: NSEvent.ModifierFlags) {
         withAnimation(.snappy(duration: 0.2)) {
             selecting = true
-            let order = visibleOrder
+            let order = listing.order
             if mods.contains(.shift), let anchor, let a = order.firstIndex(of: anchor), let b = order.firstIndex(of: name) {
                 selection.formUnion(order[min(a, b)...max(a, b)])
             } else if selection.contains(name) {
@@ -118,7 +126,7 @@ struct HomeView: View {
                     Button("New Database") { showNew = true }.buttonStyle(.borderedProminent)
                 }
             } else {
-                grid
+                grid(listing)
             }
         }
         .navigationTitle("Databases")
@@ -155,22 +163,22 @@ struct HomeView: View {
         return "\(list.databases.count) databases · \(n) running · repos on \(list.reposBranch ?? list.codeSeries)"
     }
 
-    private var grid: some View {
-        ScrollView {
-            DatabaseGrid(running: shownRunning,
-                         items: filtered,
-                         title: filter == .all && search.isEmpty ? "All databases" : "\(filtered.count) result\(filtered.count == 1 ? "" : "s")",
+    private func grid(_ listing: Listing) -> some View {
+        let count = listing.items.count
+        return ScrollView {
+            DatabaseGrid(running: listing.running,
+                         items: listing.items,
+                         title: filter == .all && search.isEmpty ? "All databases" : "\(count) result\(count == 1 ? "" : "s")",
                          selection: selecting ? selection : nil,
                          open: { name in path.append(name) },
                          select: select)
-            .animation(.smooth, value: filtered.map(\.name))
-            .animation(.smooth, value: runningDBs.map(\.name))
+            .animation(.smooth, value: listing.order)
         }
         .refreshable { await store.refresh() }
         .safeAreaInset(edge: .bottom) {
             if selecting {
-                SelectionBar(names: selectedOrdered, total: visibleOrder.count,
-                             selectAll: { withAnimation(.snappy(duration: 0.2)) { selection = Set(visibleOrder) } },
+                SelectionBar(names: listing.order.filter(selection.contains), total: listing.order.count,
+                             selectAll: { withAnimation(.snappy(duration: 0.2)) { selection = Set(listing.order) } },
                              deselectAll: { withAnimation(.snappy(duration: 0.2)) { selection = [] } },
                              done: endSelection)
                     .padding(.bottom, 16)
@@ -178,7 +186,7 @@ struct HomeView: View {
             }
         }
         // Deleted or filtered-out databases leave the selection: actions only touch what is visible.
-        .onChange(of: visibleOrder) { _, names in selection.formIntersection(names) }
+        .onChange(of: listing.order) { _, names in selection.formIntersection(names) }
         .onChange(of: selecting) { _, now in withAnimation(.spring(duration: 0.35)) { store.toastInset = now ? 64 : 0 } }
         .onDisappear { store.toastInset = 0 }
         .onAppear { if selecting { store.toastInset = 64 } }
@@ -258,8 +266,9 @@ struct DatabaseGrid: View {
                 if items.isEmpty {
                     Text("Nothing matches.").foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(40)
                 } else {
+                    let shown = Set(running.map(\.name))
                     LazyVGrid(columns: columns, spacing: 14) {
-                        ForEach(items.filter { db in !running.contains { $0.name == db.name } }) { db in cardLink(db) }
+                        ForEach(items.filter { !shown.contains($0.name) }) { db in cardLink(db) }
                     }
                 }
             }

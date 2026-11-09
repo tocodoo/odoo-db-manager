@@ -2,11 +2,26 @@ import Foundation
 
 // Mirrors the JSON of `odoodb --json` (snake_case converted to camelCase).
 
-struct DBListResponse: Decodable {
+struct DBListResponse: Decodable, Equatable {
     var codeSeries: String
     var reposBranch: String?
     var databases: [DBSummary]
     var running: [RunningProcess]
+
+    private enum CodingKeys: String, CodingKey { case codeSeries, reposBranch, databases, running }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        codeSeries = try c.decode(String.self, forKey: .codeSeries)
+        reposBranch = try c.decodeIfPresent(String.self, forKey: .reposBranch)
+        running = try c.decode([RunningProcess].self, forKey: .running)
+        // Dates are parsed once here: sorting by activity compares them thousands of times.
+        databases = try c.decode([DBSummary].self, forKey: .databases).map { db in
+            var db = db
+            db.lastActivity = [ISO.parse(db.lastLogin), ISO.parse(db.created)].compactMap { $0 }.max()
+            return db
+        }
+    }
 }
 
 struct DBSummary: Decodable, Identifiable, Hashable {
@@ -28,10 +43,8 @@ struct DBSummary: Decodable, Identifiable, Hashable {
     var port: Int
     var url: String
     var matchesCode: Bool?
-
-    var lastActivity: Date? {
-        [ISO.parse(lastLogin), ISO.parse(created)].compactMap { $0 }.max()
-    }
+    /// Most recent of lastLogin / created, filled by DBListResponse (not in the JSON).
+    var lastActivity: Date?
 }
 
 struct RunningProcess: Decodable, Identifiable, Hashable {
