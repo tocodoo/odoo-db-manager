@@ -564,6 +564,8 @@ def cmd_self_update(a):
         return res
     if res.get("error"):
         print(f"✗ {res['error']}")
+        if res.get("hint"):
+            print(f"→ {res['hint']}")
     elif res.get("updating"):
         what = "Rebuilding" if a.rebuild else f"Updating ({res['behind']} new commit(s))"
         print(f"{what}: the app restarts when done. "

@@ -49,15 +49,32 @@ def check_for_update() -> dict[str, Any]:
             "update_available": False,
             "error": f"Not a git install: re-run {INSTALL_COMMAND}",
         }
+    step = "read the installed commit"
     try:
         commit = _git("rev-parse", "HEAD", timeout=5)
-        _git("fetch", "--quiet")
+        step = "reach GitHub (git fetch)"
+        _git("fetch", "--quiet", timeout=60)
+        step = "compare with GitHub"
         behind = int(_git("rev-list", "--count", "HEAD..@{u}", timeout=5) or 0)
     except Exception as e:
-        return {"ok": False, "current_version": current, "update_available": False, "error": str(e)}
+        return {"ok": False, "current_version": current, "update_available": False,
+                "error": f"Could not {step} in {REPO_DIR}: {e}", "hint": _update_hint(str(e))}
     # commit: what the clone is on; the app compares it with the commit it was built from.
     return {"ok": True, "current_version": current, "update_available": behind > 0, "behind": behind,
             "commit": commit}
+
+
+def _update_hint(error: str) -> str:
+    e = error.lower()
+    if "no upstream" in e or "no such branch" in e or "@{u}" in e:
+        return f"The clone does not follow GitHub's main branch: git -C {REPO_DIR} branch -u origin/main"
+    if "could not resolve host" in e or "unable to access" in e or "timed out" in e or "timeout" in e:
+        return "No connection to github.com: check the network (VPN, proxy), then try again."
+    if "dubious ownership" in e:
+        return f"git refuses this folder: git config --global --add safe.directory {REPO_DIR}"
+    if "xcrun" in e or "developer tools" in e:
+        return "git needs the Command Line Tools: xcode-select --install"
+    return f"Or reinstall: {INSTALL_COMMAND}"
 
 
 def apply_update() -> dict[str, Any]:

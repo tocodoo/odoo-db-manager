@@ -268,8 +268,14 @@ enum Updater {
     @MainActor
     static func check() async {
         let alert = NSAlert()
-        guard let s = try? await CLI.json(UpdateStatus.self, ["self-update", "--check"]) else {
+        let s: UpdateStatus
+        do {
+            s = try await CLI.json(UpdateStatus.self, ["self-update", "--check"])
+        } catch {
+            // odoodb exits with 1 and {"error", "hint"} when the check fails: say why, and what to do.
             alert.messageText = "Cannot check for updates"
+            alert.informativeText = (error as? CLIError).map { [$0.error, $0.hint].compactMap { $0 }.joined(separator: "\n\n") }
+                ?? error.localizedDescription
             alert.runModal()
             return
         }
