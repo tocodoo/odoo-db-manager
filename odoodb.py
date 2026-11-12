@@ -13,6 +13,7 @@ Every command accepts --json (machine-readable result on stdout; progress on std
   odoodb doctor <db>                  diagnose problems
   odoodb repair <db> [--fix locks]    fix them
   odoodb update <db> -m mod1,mod2     upgrade modules (-u)
+  odoodb script <db> [--port 8070]    show or edit the launch script (branch, addons, modules, python)
   odoodb reset <db> --yes             drop it and recreate it fresh (same name, script, addons, port)
   odoodb translate <db> -m mod -l fr_FR
   odoodb setup [--fix <action>]       what this Mac needs (PostgreSQL, clones, GitHub, Python envs, wkhtmltopdf)
@@ -345,6 +346,34 @@ def cmd_reset(a):
         print(f"→ {res['hint']}")
 
 
+def cmd_script(a):
+    changes = {"branch": a.branch, "addons": a.addons, "install": None if a.install is None else _csv(a.install),
+               "update": None if a.update is None else _csv(a.update), "update_mode": a.update_mode,
+               "port": a.port, "pyenv": a.pyenv}
+    if all(v is None for v in changes.values()):
+        res = T.script_settings(a.db)
+        if JSON:
+            return res
+        sc = res["script"]
+        if not sc:
+            print(f"{a.db}: no launch script (`odoodb repair {a.db} --fix script`)")
+            return
+        print(sc["path"])
+        for label, value in (("branch", sc["branch"]), ("python", sc["pyenv"]), ("port", res["port"]),
+                             ("install", ", ".join(sc["install_modules"]) or "—"),
+                             ("at start", f"{'-u' if sc['update_mode'] == 'update' else '--reinit'} "
+                                          f"{', '.join(sc['update_modules'])}" if sc["update_modules"] else "nothing")):
+            print(f"  {label:<9} {value}")
+        print("  addons")
+        for p in sc["addons_path"]:
+            print(f"    {p}")
+        return
+    res = T.edit_script(a.db, **changes)
+    if JSON:
+        return res
+    print(res["message"] + (f" {res['note']}" if res.get("note") else ""))
+
+
 def cmd_port(a):
     res = T.set_port(a.db, a.port)
     if JSON:
@@ -655,6 +684,16 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--switch-branch", action="store_true", help="checkout the database's branch if needed")
     s.add_argument("--force", action="store_true", help="switch branch even if other databases run")
     s.add_argument("--timeout", type=int, default=1800)
+
+    s = add("script", cmd_script, "show or edit a database's launch script (branch, addons, modules, port…)")
+    s.add_argument("db")
+    s.add_argument("-b", "--branch")
+    s.add_argument("-a", "--addons", nargs="+", help="the whole addons path, in order")
+    s.add_argument("--install", help="modules installed when the database is created, comma-separated ('' = none)")
+    s.add_argument("--update", help="modules updated at each start, comma-separated ('' = none)")
+    s.add_argument("--update-mode", choices=["update", "reinit"], help="-u or --reinit at each start")
+    s.add_argument("--port", type=int)
+    s.add_argument("--pyenv", help="Python environment (pyenv), e.g. odoo-19")
 
     s = add("port", cmd_port, "show or set the HTTP port")
     s.add_argument("db")

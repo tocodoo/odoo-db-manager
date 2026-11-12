@@ -9,10 +9,28 @@ enum DevSnapshot {
     static let tab = ProcessInfo.processInfo.environment["DBM_TAB"].flatMap(DetailTab.init(rawValue:))
     /// Opens a built-in terminal of this kind on DBM_OPEN at launch (server, shell, zsh).
     static let terminal = ProcessInfo.processInfo.environment["DBM_TERMINAL"]
+    /// Opens the launch script editor of DBM_OPEN at launch.
+    static let scriptEditor = ProcessInfo.processInfo.environment["DBM_SCRIPT_EDITOR"] != nil
 
     @MainActor
     static func run(store: Store) async {
         guard let dir else { return }
+        if scriptEditor {
+            // Forms do not render in ImageRenderer: capture the windows themselves (the editor is a sheet).
+            for scheme in [NSAppearance.Name.aqua, .darkAqua] {
+                NSApp.appearance = NSAppearance(named: scheme)
+                try? await Task.sleep(for: .seconds(3))
+                for (i, w) in NSApp.windows.enumerated() where w.isVisible {
+                    guard let v = w.contentView?.superview ?? w.contentView,
+                          let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { continue }
+                    v.cacheDisplay(in: v.bounds, to: rep)
+                    try? rep.representation(using: .png, properties: [:])?
+                        .write(to: URL(fileURLWithPath: "\(dir)/window-\(i)-\(scheme.rawValue).png"))
+                }
+            }
+            NSApp.appearance = nil
+            return
+        }
         try? await Task.sleep(for: .seconds(1))
         let running = store.running.filter { $0.kind == "server" }.compactMap { p in store.databases.first { $0.name == p.db } }
         let items = Array(store.databases.sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }.prefix(12))

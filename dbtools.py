@@ -171,6 +171,11 @@ def parse_script(path: Path) -> dict:
     if not addons:
         m = re.search(r"--addons-path[= ]['\"]?([^\s'\"]+)", text)
         addons = m.group(1) if m else ""
+    # Relative folders are relative to where the script runs: odoo_root() (see _spawn_script), then its `cd`.
+    cd_m = re.search(r"^\s*cd\s+['\"]?([^'\"\s;&]+)", text, re.MULTILINE)
+    base = odoo_root() / Path(cd_m.group(1)).expanduser() if cd_m else odoo_root()
+    addons_path = [p if Path(p).expanduser().is_absolute() else os.path.normpath(base / p)
+                   for p in addons.split(",") if p]
     port_m = re.search(r"--http-port[=\s]+(\d+)", text)
     pyenv_m = re.search(r"PYENV_ENV=\"\$\{PYENV_ENV:-([^}]+)\}\"", text)
     branch = _script_var(text, "BRANCH") or _script_var(text, "VERSION")
@@ -178,7 +183,7 @@ def parse_script(path: Path) -> dict:
         "path": str(path),
         "db": db,
         "branch": branch,
-        "addons_path": [p for p in addons.split(",") if p],
+        "addons_path": addons_path,
         "install_modules": [m for m in _script_var(text, "INSTALL_MODULES").split(",") if m],
         "update_modules": [m for m in _script_var(text, "UPDATE_MODULES").split(",") if m],
         "update_mode": _script_var(text, "UPDATE_MODE") or "reinit",
@@ -905,11 +910,11 @@ def branches() -> dict:
 # --------------------------------------------------------------------------- #
 
 def write_script(db: str, branch: str, addons: list[str], install: list[str], update: list[str],
-                 update_mode: str = "reinit", subdir: Optional[str] = None) -> str:
+                 update_mode: str = "reinit", subdir: Optional[str] = None, pyenv: str = "") -> str:
     existing = script_for(db)
     scripts_dir = str(Path(existing["path"]).parent) if existing else config.get_scripts_paths()[0]
     sub = None if existing else subdir
-    pyenv = pyenv_for_series(branch)
+    pyenv = pyenv or pyenv_for_series(branch)
     ok, msg = ops.create_launch_script(
         str(community_path()), db, ",".join(addons), pyenv,
         version=major_of(branch) or "19", branch=branch, scripts_dir=scripts_dir, scripts_subdir=sub,
@@ -1532,6 +1537,74 @@ def reset(db: str, modules: Optional[list[str]] = None, same_modules: bool = Fal
         result["login"] = "admin / admin"
     result.setdefault("message", f"{db} recreated.")
     return result
+
+
+MODULE_RE = re.compile(r"[A-Za-z0-9_]+")
+
+
+def python_envs() -> list[str]:
+    """pyenv environments and Python versions installed (names usable as PYENV_ENV)."""
+    root = Path(config.get_pyenv_root() or "~/.pyenv").expanduser() / "versions"
+    if not root.is_dir():
+        return []
+    return sorted((d.name for d in root.iterdir() if (d / "bin" / "python3").exists()),
+                  key=lambda n: (not n.startswith("odoo-"), n))
+
+
+def script_settings(db: str) -> dict:
+    """The launch script of a database, parsed, with what its editor offers (Python environments)."""
+    sc = script_for(db)
+    return {"ok": True, "name": db, "script": sc, "exists": db in database_names(),
+            "running": bool(running_server(db)), "port": (sc or {}).get("port") or config.get_db_port(db),
+            "envs": python_envs()}
+
+
+def edit_script(db: str, branch: Optional[str] = None, addons: Optional[list[str]] = None,
+                install: Optional[list[str]] = None, update: Optional[list[str]] = None,
+                update_mode: Optional[str] = None, port: Optional[int] = None, pyenv: Optional[str] = None) -> dict:
+    """Rewrite a database's launch script with some settings changed (None = keep). Takes effect at the
+    next start. A script odoodb did not write is kept next to it as <name>.sh.bak."""
+    sc = script_for(db)
+    if not sc:
+        if db not in database_names():
+            raise DBError(f"Database '{db}' has no launch script and does not exist.", code="not_found")
+        raise DBError(f"{db} has no launch script yet.", hint=f"Create it: `odoodb repair {db} --fix script`.",
+                      code="no_script")
+    branch = (branch if branch is not None else sc.get("branch") or "").strip() or code_series()
+    addons = [str(Path(a).expanduser()) for a in (addons if addons is not None else sc["addons_path"]) if a.strip()]
+    if not addons:
+        raise DBError("The addons path cannot be empty.", code="bad_args")
+    missing = [a for a in addons if not Path(a).is_dir()]
+    if missing:
+        raise DBError(f"Addons folder not found: {', '.join(missing)}", code="bad_args")
+    install = [m for m in (install if install is not None else sc["install_modules"]) if m]
+    update = [m for m in (update if update is not None else sc["update_modules"]) if m]
+    bad = [m for m in install + update if not MODULE_RE.fullmatch(m)]
+    if bad:
+        raise DBError(f"Invalid module name(s): {', '.join(bad)}", code="bad_args")
+    update_mode = update_mode or sc.get("update_mode") or "reinit"
+    if update_mode not in ("update", "reinit"):
+        raise DBError("update_mode is 'update' (-u) or 'reinit' (--reinit).", code="bad_args")
+    if pyenv is None:
+        # A new major version needs its own environment, unless one was chosen.
+        same_major = major_of(branch) == major_of(sc.get("branch") or "")
+        pyenv = (sc.get("pyenv") if same_major else "") or pyenv_for_series(branch)
+    if port is not None:
+        if not 1024 <= port <= 65535:
+            raise DBError("The port must be between 1024 and 65535.", code="bad_args")
+        config.save_db_port(db, port)
+    elif sc.get("port"):
+        config.save_db_port(db, sc["port"])  # create_launch_script reads the port from the settings
+    if not sc.get("managed"):
+        shutil.copy2(sc["path"], sc["path"] + ".bak")
+    path = write_script(db, branch=branch, addons=addons, install=install, update=update,
+                        update_mode=update_mode, subdir=sc.get("subdir") or None, pyenv=pyenv.strip())
+    res = {"ok": True, "name": db, "script": script_for(db), "message": f"Launch script of {db} saved."}
+    if not sc.get("managed"):
+        res["backup"] = sc["path"] + ".bak"
+    if running_server(db):
+        res["note"] = "Restart the database to apply."
+    return res
 
 
 def set_port(db: str, port: Optional[int]) -> dict:

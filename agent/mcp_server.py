@@ -139,6 +139,20 @@ TOOLS = [
          ["name", "module", "lang"],
          build=lambda a: ["translate", a["name"], "-m", a["module"], "-l", a["lang"]]
          + (["-o", a["out"]] if a.get("out") else []) + _flag(a.get("ai") is False, "--no-ai")),
+    tool("launch_script",
+         "Show or edit a database's launch script. Without changes: its branch, addons path, modules installed at "
+         "creation, modules updated at each start (-u or --reinit), port and Python environment. With changes: "
+         "rewrites it (takes effect at the next start). `addons` is the whole addons path, in order.",
+         {"name": S, "branch": S, "addons": L, "install": L, "update": L,
+          "update_mode": {**S, "description": "update (-u) or reinit (--reinit)"}, "port": I, "pyenv": S}, ["name"],
+         build=lambda a: ["script", a["name"]]
+         + (["-b", a["branch"]] if a.get("branch") else [])
+         + (["-a", *a["addons"]] if a.get("addons") else [])
+         + (["--install", ",".join(a["install"])] if a.get("install") is not None else [])
+         + (["--update", ",".join(a["update"])] if a.get("update") is not None else [])
+         + (["--update-mode", a["update_mode"]] if a.get("update_mode") else [])
+         + (["--port", str(a["port"])] if a.get("port") else [])
+         + (["--pyenv", a["pyenv"]] if a.get("pyenv") else [])),
     tool("set_port", "Set the HTTP port of a database (to run several at once).",
          {"name": S, "port": I}, ["name", "port"], build=lambda a: ["port", a["name"], str(a["port"])]),
     tool("list_branches", "Branches available in core and the one checked out. remote=true adds the version "

@@ -97,8 +97,26 @@ struct OverviewTab: View {
             VStack(spacing: 0) {
                 ForEach(Array(info.repos.enumerated()), id: \.element.id) { idx, repo in
                     if idx > 0 { Divider().padding(.leading, 44) }
-                    RepoRow(repo: repo, db: info.name)
+                    RepoRow(repo: repo, db: info.name, script: info.script)
                 }
+                Divider()
+                HStack(spacing: 8) {
+                    if let s = info.script {
+                        Button("Add Folder…") {
+                            pickAddonsFolder(start: s.addonsPath.last) { path in
+                                if !s.addonsPath.contains(path) { store.setAddons(info.name, s.addonsPath + [path], script: s) }
+                            }
+                        }
+                        Button("Edit Addons Path…") { store.editScript(info.name) }
+                    } else {
+                        Text("The addons path is editable once the launch script exists.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .controlSize(.small)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
             }
         }
     }
@@ -124,7 +142,7 @@ struct OverviewTab: View {
                     KeyValue("Port", s.port.map(String.init) ?? "—")
                     HStack {
                         Button("Reveal in Finder") { reveal(s.path) }
-                        Button("Edit") { NSWorkspace.shared.open(URL(fileURLWithPath: s.path)) }
+                        Button("Edit…") { store.editScript(info.name) }
                         Button("Change Port…") {
                             NamePrompt.ask(title: "HTTP port of \(info.name)", placeholder: String(info.port), action: "Apply") { v in
                                 if let p = Int(v) { store.setPort(info.name, p) }
@@ -153,6 +171,8 @@ struct RepoRow: View {
     var repo: Repo
     /// The database whose page shows this row: busy while pulling, reloaded after.
     var db: String
+    /// Its launch script: the row can be replaced or removed from the addons path.
+    var script: ScriptInfo? = nil
     @State private var hover = false
 
     var body: some View {
@@ -228,6 +248,20 @@ struct RepoRow: View {
                     Button("Open on GitHub") { NSWorkspace.shared.open(web) }
                 }
                 Button("Pull") { pull() }
+            }
+            if let s = script, let idx = s.addonsPath.firstIndex(of: repo.path) {
+                Divider()
+                Button("Replace Folder…") {
+                    pickAddonsFolder(start: repo.path) { path in
+                        var paths = s.addonsPath
+                        paths[idx] = path
+                        store.setAddons(db, paths, script: s)
+                    }
+                }
+                Button("Remove from Addons Path", role: .destructive) {
+                    store.setAddons(db, s.addonsPath.filter { $0 != repo.path }, script: s)
+                }
+                .disabled(repo.kind == "community")
             }
         }
     }
@@ -348,6 +382,17 @@ struct FlowLayout: Layout {
             lineH = max(lineH, s.height)
         }
     }
+}
+
+/// Folder picker for the addons path.
+@MainActor
+func pickAddonsFolder(start: String?, _ done: @escaping (String) -> Void) {
+    let panel = NSOpenPanel()
+    panel.canChooseDirectories = true
+    panel.canChooseFiles = false
+    panel.prompt = "Choose"
+    panel.directoryURL = URL(fileURLWithPath: start.map { ($0 as NSString).deletingLastPathComponent } ?? NSHomeDirectory() + "/odoo")
+    if panel.runModal() == .OK, let url = panel.url { done(url.path) }
 }
 
 extension String {

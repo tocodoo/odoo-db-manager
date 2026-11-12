@@ -96,6 +96,8 @@ odoodb --json duplicate <db> <new>
 odoodb --json rename <db> <new>
 odoodb --json neutralize <db>
 odoodb --json delete <db> --yes             # irreversible: only when the user explicitly asked
+odoodb --json script <db>                   # launch script: branch, addons path, modules, port, python
+odoodb --json script <db> -a <f1> <f2> --update my_mod --update-mode update   # edit it (next start)
 odoodb --json reset <db> --yes              # drop + recreate fresh: same name, script, addons, port; started
 odoodb --json reset <db> --yes --same-modules   # …reinstalling the modules installed now (-m a,b: these ones)
 odoodb --json checkout saas-19.4            # core + enterprise

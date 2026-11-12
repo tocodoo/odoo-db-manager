@@ -59,6 +59,7 @@ struct RootView: View {
                 }
         }
         .overlay(alignment: .bottom) { ToastView() }
+        .sheet(item: $store.scriptEditor) { t in ScriptEditorSheet(db: t.db) }
         .task {
             if let db = DevSnapshot.openDB { path = [db] }
             await store.refresh()
@@ -67,6 +68,7 @@ struct RootView: View {
             await store.loadSetup(network: false)
             if store.setup?.blocking == true || store.list == nil { store.setupShown = true }
             if let kind = DevSnapshot.terminal, let db = DevSnapshot.openDB { store.openTerminal(db, kind: kind) }
+            if DevSnapshot.scriptEditor, let db = DevSnapshot.openDB { store.editScript(db) }
             await DevSnapshot.run(store: store)
         }
         .onReceive(NotificationCenter.default.publisher(for: .openDatabase)) { note in

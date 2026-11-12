@@ -486,6 +486,7 @@ struct DatabaseMenu: View {
         Divider()
         Button("Duplicate…") { NamePrompt.ask(title: "Duplicate \(name)", placeholder: "\(name)-copy", action: "Duplicate") { store.duplicate(name, as: $0) } }
         Button("Rename…") { NamePrompt.ask(title: "Rename \(name)", placeholder: name, action: "Rename") { new in Task { _ = await store.rename(name, to: new) } } }
+        Button("Edit Launch Script…") { store.editScript(name) }
         Button("Copy Name") { copyToPasteboard(name) }
         Divider()
         Button("Reset…", role: .destructive) { store.confirmReset(name) }

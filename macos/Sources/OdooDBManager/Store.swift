@@ -72,6 +72,8 @@ final class Store {
     var terminals: [TerminalSession] = []
     var detailTab: [String: DetailTab] = [:]
     var setupShown = false
+    /// Database whose launch script editor is open.
+    var scriptEditor: ScriptEditorTarget?
     var setupLoading = false
 
     private var pollTask: Task<Void, Never>?
@@ -424,6 +426,27 @@ final class Store {
             action: { Task { await self.reset(db) } },
             secondaryLabel: "Reset with Current Modules",
             secondaryAction: { Task { await self.reset(db, sameModules: true) } })
+    }
+
+    func editScript(_ db: String) { scriptEditor = ScriptEditorTarget(db: db) }
+
+    /// Rewrites the addons path of a database's launch script. A hand-written script is replaced by a
+    /// standard one (a copy is kept as .bak): asked first.
+    func setAddons(_ db: String, _ paths: [String], script: ScriptInfo) {
+        let run = {
+            Task {
+                await self.perform("Addons path of \(db)", db: db, busyLabel: "Saving…", args: ["script", db, "-a"] + paths) { r in
+                    self.isRunning(db) ? "Addons path saved — restart \(db) to apply" : "Addons path of \(db) saved"
+                }
+            }
+        }
+        if script.managed { run(); return }
+        let file = URL(fileURLWithPath: script.path).lastPathComponent
+        confirmation = Confirmation(
+            title: "Replace \(file)?",
+            message: "This launch script was written by hand. Changing its addons path replaces it with a standard "
+                + "script (a copy is kept as \(file).bak).",
+            actionLabel: "Replace") { _ = run() }
     }
 
     func setPort(_ db: String, _ port: Int) {
