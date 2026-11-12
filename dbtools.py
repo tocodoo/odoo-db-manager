@@ -1435,6 +1435,105 @@ def delete(db: str) -> dict:
     return {"ok": True, "name": db, "message": msg}
 
 
+_LEAF_MODULES_SQL = """
+    SELECT m.name FROM ir_module_module m
+    WHERE m.state = 'installed' AND NOT m.auto_install AND NOT EXISTS (
+        SELECT 1 FROM ir_module_module_dependency d
+        JOIN ir_module_module dep ON dep.id = d.module_id AND dep.state = 'installed' AND NOT dep.auto_install
+        WHERE d.name = m.name)
+    ORDER BY m.name"""
+
+
+def installed_leaf_modules(db: str, addons: list[str]) -> list[str]:
+    """The installed modules no other installed module depends on (auto-install ones excepted, they follow):
+    installing them again gives the same set of modules. Modules whose code is no longer in the addons path
+    are left out."""
+    ok, rows = psql(db, _LEAF_MODULES_SQL)
+    if not ok:
+        return []
+    where = module_dirs(addons)
+    return [r[0] for r in rows if r and r[0] in where]
+
+
+def reset(db: str, modules: Optional[list[str]] = None, same_modules: bool = False, start_server: bool = True,
+          switch_branch: bool = False, force: bool = False, log: Log = None, timeout: int = 1800) -> dict:
+    """Drop the database and its filestore, then create it again right away under the same name, with the
+    same launch script (branch, addons path, folder), port, logs and history.
+
+    Modules installed in the new database: `modules` if given, else the currently installed ones with
+    `same_modules`, else the INSTALL_MODULES of its launch script (what it was created with), else the
+    currently installed ones."""
+    exists = db in database_names()
+    sc = script_for(db)
+    if not exists and not sc:
+        raise DBError(f"Database '{db}' does not exist.", hint="Run `odoodb list` to see the databases.",
+                      code="not_found")
+    if exists:
+        info = database_info(db)
+        sc = info.get("script")
+    else:  # an earlier reset dropped it but did not get to recreate it: its script is the recipe
+        branch = sc.get("branch") or code_series()
+        info = {"script": sc, "series": "", "code_series": code_series(), "pyenv": effective_env(sc, branch),
+                "port": sc.get("port") or config.get_db_port(db)}
+    series = info.get("series") or (sc or {}).get("branch") or code_series()
+    addons = effective_addons_path(db, sc)
+
+    install = [m for m in (modules or []) if m]
+    if not install and not same_modules:
+        install = list((sc or {}).get("install_modules") or [])
+    if not install and exists:
+        install = installed_leaf_modules(db, addons)
+    install = install or ["base"]
+
+    # Checks first: a refused reset must not have dropped anything.
+    _check_startable(db, {**info, "port": info.get("port") if start_server else None}, switch_branch, force, log)
+
+    if exists:
+        if running_server(db):
+            stop(db)
+            if log:
+                log(f"✓ {db} stopped")
+        ops._terminate_db_connections(db)
+        code, out, err = _run([ops._find_dropdb(), db], timeout=120)
+        if code != 0 and db in database_names():
+            raise DBError(f"dropdb: {(err or out).strip()}", hint="Close the other connections (psql, pgAdmin…) "
+                          "to the database and retry.", code="reset")
+        if log:
+            log(f"✓ Database {db} dropped")
+    fs = ops.get_default_filestore_dir(db)
+    if fs.is_dir():
+        shutil.rmtree(fs, ignore_errors=True)
+        if log:
+            log("✓ Filestore deleted")
+
+    # The launch script installs its INSTALL_MODULES when the database does not exist: starting it is enough.
+    # Other modules are installed by a one-shot run first, so the script (its recipe) is left untouched.
+    by_script = bool(sc and sc.get("managed")) and install == sc.get("install_modules")
+    if log:
+        log(f"→ Recreating {db} with: {', '.join(install)}")
+
+    result = {"ok": True, "name": db, "modules": install, "script": (sc or {}).get("path"),
+              "port": info.get("port")}
+    if not start_server or not by_script:
+        res = run_odoo_task(db, ["-i", ",".join(install), "--stop-after-init"], log=log, timeout=timeout)
+        if not res["ok"]:
+            result.update({k: v for k, v in res.items() if k != "name"})
+            result["hint"] = f"Read the log (`odoodb logs {db}`), fix the module, then `odoodb reset {db} --yes` again."
+            return result
+        if not start_server:
+            result["message"] = f"{db} recreated (not started)."
+            return result
+        res = start(db, timeout=timeout, log=log)
+    else:
+        res = _spawn_script(db, Path(sc["path"]), effective_env(sc, series), wait=True, timeout=timeout,
+                            url=f"http://localhost:{info.get('port') or config.get_db_port(db)}", log=log)
+    result.update({k: v for k, v in res.items() if k != "name"})
+    if res.get("ready"):
+        result["login"] = "admin / admin"
+    result.setdefault("message", f"{db} recreated.")
+    return result
+
+
 def set_port(db: str, port: Optional[int]) -> dict:
     if port is None:
         sc = script_for(db)

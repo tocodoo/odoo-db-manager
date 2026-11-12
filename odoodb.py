@@ -13,6 +13,7 @@ Every command accepts --json (machine-readable result on stdout; progress on std
   odoodb doctor <db>                  diagnose problems
   odoodb repair <db> [--fix locks]    fix them
   odoodb update <db> -m mod1,mod2     upgrade modules (-u)
+  odoodb reset <db> --yes             drop it and recreate it fresh (same name, script, addons, port)
   odoodb translate <db> -m mod -l fr_FR
   odoodb setup [--fix <action>]       what this Mac needs (PostgreSQL, clones, GitHub, Python envs, wkhtmltopdf)
   odoodb env list|create|install      pyenv environments of the Odoo versions
@@ -326,6 +327,24 @@ def cmd_delete(a):
     print(res["message"])
 
 
+def cmd_reset(a):
+    if not a.yes:
+        raise T.DBError(f"Resetting '{a.db}' drops the database and its filestore, then creates it again "
+                        "(same name, launch script, addons path and port).",
+                        hint="Confirm with --yes.", code="confirm")
+    res = T.reset(a.db, modules=_csv(a.modules), same_modules=a.same_modules, start_server=not a.no_start,
+                  switch_branch=a.switch_branch, force=a.force, log=log, timeout=a.timeout)
+    if JSON:
+        return res
+    print(f"\n{'✓' if res.get('ok') else '✗'} {res['name']} recreated with {', '.join(res['modules'])}")
+    if res.get("url"):
+        print(f"  {res['url']}  (admin / admin)")
+    for line in res.get("errors") or []:
+        print("  " + line)
+    if res.get("hint"):
+        print(f"→ {res['hint']}")
+
+
 def cmd_port(a):
     res = T.set_port(a.db, a.port)
     if JSON:
@@ -626,6 +645,16 @@ def build_parser() -> argparse.ArgumentParser:
     s = add("delete", cmd_delete, "drop a database, its filestore and script")
     s.add_argument("db")
     s.add_argument("--yes", action="store_true")
+
+    s = add("reset", cmd_reset, "drop a database and recreate it fresh (same name, script, addons, port)")
+    s.add_argument("db")
+    s.add_argument("--yes", action="store_true")
+    s.add_argument("-m", "--modules", help="modules to install (default: the launch script's INSTALL_MODULES)")
+    s.add_argument("--same-modules", action="store_true", help="reinstall the modules installed now")
+    s.add_argument("--no-start", action="store_true", help="initialise then stop (no server left running)")
+    s.add_argument("--switch-branch", action="store_true", help="checkout the database's branch if needed")
+    s.add_argument("--force", action="store_true", help="switch branch even if other databases run")
+    s.add_argument("--timeout", type=int, default=1800)
 
     s = add("port", cmd_port, "show or set the HTTP port")
     s.add_argument("db")

@@ -119,6 +119,17 @@ TOOLS = [
          "and pass confirm=true.",
          {"name": S, "confirm": B}, ["name", "confirm"],
          build=lambda a: ["delete", a["name"]] + _flag(a.get("confirm") is True, "--yes")),
+    tool("reset_database",
+         "Drop a database and its filestore, then recreate it right away with the same name, launch script, "
+         "branch, addons path and port, and start it. Installs the launch script's modules (what it was created "
+         "with), or `modules`, or with same_modules=true the modules installed now. All data is lost: only "
+         "when the user asked for it, and pass confirm=true.",
+         {"name": S, "confirm": B, "modules": L, "same_modules": B, "start": {**B, "description": "default true"},
+          "switch_branch": B}, ["name", "confirm"],
+         build=lambda a: ["reset", a["name"]] + _flag(a.get("confirm") is True, "--yes")
+         + (["-m", ",".join(a["modules"])] if a.get("modules") else [])
+         + _flag(a.get("same_modules"), "--same-modules") + _flag(a.get("start") is False, "--no-start")
+         + _flag(a.get("switch_branch"), "--switch-branch")),
     tool("neutralize_database", "Neutralize a database (crons, mail servers, payment providers…).",
          {"name": S}, ["name"], build=lambda a: ["neutralize", a["name"]]),
     tool("translate_module",

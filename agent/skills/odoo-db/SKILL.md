@@ -96,6 +96,8 @@ odoodb --json duplicate <db> <new>
 odoodb --json rename <db> <new>
 odoodb --json neutralize <db>
 odoodb --json delete <db> --yes             # irreversible: only when the user explicitly asked
+odoodb --json reset <db> --yes              # drop + recreate fresh: same name, script, addons, port; started
+odoodb --json reset <db> --yes --same-modules   # …reinstalling the modules installed now (-m a,b: these ones)
 odoodb --json checkout saas-19.4            # core + enterprise
 odoodb --json settings                      # paths in use (core, enterprise, scripts, pyenv, psql)
 odoodb --json pull                          # git pull --ff-only core + enterprise (or given folders)
@@ -121,5 +123,5 @@ sign-in, password dialog): tell them before running these.
 
 - Never `dropdb`, `git checkout` core/enterprise, or launch `odoo-bin` by hand for these tasks: `odoodb`
   keeps the launch scripts, ports, logs and the app consistent.
-- Ask before `delete`, before `--force`, and before `neutralize` on a database the user didn't create for testing.
+- Ask before `delete`, before `reset` (all data is lost), before `--force`, and before `neutralize` on a database the user didn't create for testing.
 - After creating or starting, give the user the `url` and the login.

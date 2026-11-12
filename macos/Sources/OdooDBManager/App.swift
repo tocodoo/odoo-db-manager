@@ -77,6 +77,9 @@ struct RootView: View {
             set: { if !$0 { store.confirmation = nil } }
         ), presenting: store.confirmation) { c in
             Button(c.actionLabel, role: c.destructive ? .destructive : nil) { c.action() }
+            if let label = c.secondaryLabel, let action = c.secondaryAction {
+                Button(label, role: c.destructive ? .destructive : nil) { action() }
+            }
             Button("Cancel", role: .cancel) {}
         } message: { c in
             Text(c.message)

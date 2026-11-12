@@ -98,6 +98,7 @@ odoodb start bike --switch-branch           # checks out the database's branch f
 odoodb logs bike --errors
 odoodb doctor bike && odoodb repair bike
 odoodb update bike -m my_module
+odoodb reset bike --yes                     # drop + recreate fresh, same name/script/addons/port
 odoodb translate bike -m my_module -l fr_FR
 odoodb --help
 ```

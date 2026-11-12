@@ -45,6 +45,9 @@ struct Confirmation: Identifiable {
     var actionLabel: String
     var destructive = false
     var action: () -> Void
+    /// Optional second choice shown next to the main action (same role).
+    var secondaryLabel: String? = nil
+    var secondaryAction: (() -> Void)? = nil
 }
 
 @MainActor
@@ -399,6 +402,28 @@ final class Store {
         // The card leaves the grid right away, without waiting for the next `odoodb list`.
         if ok { withAnimation(.smooth) { list?.databases.removeAll { $0.name == db } } }
         return ok
+    }
+
+    /// Drops the database and recreates it fresh: same name, launch script, addons path and port, then starts it.
+    @discardableResult
+    func reset(_ db: String, sameModules: Bool = false) async -> Bool {
+        var args = ["reset", db, "--yes"]
+        if sameModules { args.append("--same-modules") }
+        return await perform("Reset \(db)", db: db, busyLabel: "Resetting…", args: args) { r in
+            r.ready == true ? "\(db) recreated, up on \(r.url ?? "")" : "\(db) recreated"
+        } != nil
+    }
+
+    func confirmReset(_ db: String) {
+        confirmation = Confirmation(
+            title: "Reset \(db)?",
+            message: "The database and its filestore are dropped, then \(db) is created again empty with the same "
+                + "launch script, branch, addons and port, and started. \"Reset\" installs the modules it was "
+                + "created with; \"Reset with Current Modules\" reinstalls the ones installed now. All data is lost.",
+            actionLabel: "Reset", destructive: true,
+            action: { Task { await self.reset(db) } },
+            secondaryLabel: "Reset with Current Modules",
+            secondaryAction: { Task { await self.reset(db, sameModules: true) } })
     }
 
     func setPort(_ db: String, _ port: Int) {
