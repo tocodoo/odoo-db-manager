@@ -140,6 +140,7 @@ To uninstall:
 
 ```bash
 rm -rf "/Applications/Odoo Database Manager.app" ~/odoodbmanager ~/.local/bin/odoodb ~/.claude/skills/odoo-db
+# and the line ending with "# odoodb" in ~/.zprofile
 ```
 
 then remove the `odoo-databases` entry from `~/Library/Application Support/Claude/claude_desktop_config.json`. Your databases and launch scripts are not touched.

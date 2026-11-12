@@ -17,10 +17,17 @@ exec "$PY" "$HERE/odoodb.py" "\$@"
 EOF
 chmod +x "$HOME/.local/bin/odoodb"
 echo "✓ odoodb → $HOME/.local/bin/odoodb"
-case ":$PATH:" in
-  *":$HOME/.local/bin:"*) ;;
-  *) echo "  (add ~/.local/bin to your PATH to type 'odoodb' in a terminal)";;
-esac
+# ~/.local/bin is not in macOS's default PATH: add it to the login shell profiles (once), so `odoodb`
+# works in new terminals and for agents. bash only when its profile exists or bash is the login shell.
+PATH_LINE='export PATH="$HOME/.local/bin:$PATH"  # odoodb'
+profiles=("$HOME/.zprofile")
+if [[ -f "$HOME/.bash_profile" || "${SHELL:-}" == */bash ]]; then profiles+=("$HOME/.bash_profile"); fi
+for profile in "${profiles[@]}"; do
+  if ! grep -qs '\.local/bin' "$profile"; then
+    printf '\n%s\n' "$PATH_LINE" >> "$profile"
+    echo "✓ ~/.local/bin added to the PATH in ${profile/#$HOME/~} (new terminals)"
+  fi
+done
 
 # 2. Claude Code skill (symlink: updates with the app)
 mkdir -p "$HOME/.claude/skills"
