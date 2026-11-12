@@ -138,34 +138,66 @@ def postgres_status() -> dict:
     return res
 
 
-def _postmaster() -> Optional[tuple[str, str]]:
-    """(postgres binary, data directory) of the running server, from its command line."""
-    code, out, _ = ops.run_cmd(["ps", "-axo", "command="], timeout=10)
+def _postmasters() -> list[dict]:
+    """Running PostgreSQL servers: binary, data directory, and from postmaster.pid their port, socket folder
+    and status (ready, starting, stopping…)."""
+    code, out, _ = ops.run_cmd(["ps", "-axww", "-o", "command="], timeout=10)
+    found = []
     for line in out.splitlines():
         m = re.match(r"^(/\S+/bin/postgres)\s+-D\s+(.+?)(?=\s+-\w|\s*$)", line.strip())
-        if m and Path(m.group(2)).is_dir():
-            return m.group(1), m.group(2)
-    return None
+        if not m or not Path(m.group(2)).is_dir():
+            continue
+        info = {"binary": m.group(1), "data": m.group(2), "port": None, "socket": "", "status": ""}
+        try:
+            lines = (Path(m.group(2)) / "postmaster.pid").read_text().splitlines()
+            info["port"] = int(lines[3]) if len(lines) > 3 and lines[3].strip().isdigit() else None
+            info["socket"] = lines[4].strip() if len(lines) > 4 else ""
+            info["status"] = lines[7].strip() if len(lines) > 7 else ""
+        except OSError:
+            pass
+        found.append(info)
+    return found
+
+
+def _postmaster() -> Optional[tuple[str, str]]:
+    """(binary, data directory) of the server psql talks to (PGPORT, else 5432); among them, the stopping one."""
+    port = int(os.environ.get("PGPORT") or 5432)
+    servers = _postmasters()
+    mine = [s for s in servers if s["port"] == port] or servers
+    mine.sort(key=lambda s: s["status"] != "stopping")
+    return (mine[0]["binary"], mine[0]["data"]) if mine else None
 
 
 def postgres_restart(log: Log = None) -> str:
-    """Fast restart of the running server (its sessions are closed: Odoo servers reconnect), with its own
-    options. Ends a shutdown stuck waiting for open connections."""
+    """Restart of the running server with its own options, closing its sessions (Odoo servers reconnect).
+    Ends a shutdown stuck waiting for open connections. Fast mode, then immediate if fast does not finish."""
     pm = _postmaster()
     if not pm:
+        others = ", ".join(f"{s['data']} (port {s['port']})" for s in _postmasters())
+        if others:
+            raise T.DBError(f"No PostgreSQL server on port {os.environ.get('PGPORT') or 5432}; running: {others}.",
+                            code="postgres_down")
         return postgres_start(log)
     binary, data = pm
     pg_ctl = str(Path(binary).with_name("pg_ctl"))
-    _log(log, f"→ pg_ctl restart -m fast ({data})")
-    code, out, err = ops.run_cmd([pg_ctl, "restart", "-D", data, "-m", "fast", "-w", "-t", "60",
-                                  "-l", str(Path(data) / "postgresql.log")], timeout=120)
-    if code != 0:
-        raise T.DBError(f"pg_ctl restart failed: {(err or out).strip()[-300:]}",
-                        hint="In Postgres.app, click Stop then Start (or restart the Mac).", code="postgres_down")
+    errors = []
+    for mode in ("fast", "immediate"):
+        _log(log, f"→ pg_ctl restart -m {mode} ({data})")
+        code, out, err = ops.run_cmd([pg_ctl, "restart", "-D", data, "-m", mode, "-w", "-t", "60",
+                                      "-l", str(Path(data) / "postgresql.log")], timeout=150)
+        if code == 0:
+            break
+        errors.append(f"{mode}: {(err or out).strip()[-300:]}")
+        _log(log, f"⚠ {errors[-1]}")
+    else:
+        raise T.DBError("PostgreSQL could not be restarted. " + " · ".join(errors),
+                        hint="In Postgres.app, click Stop then Start, or restart the Mac. "
+                             f"Its log: {Path(data) / 'postgresql.log'}", code="postgres_down")
     if _wait_postgres(20):
         return "PostgreSQL restarted."
-    raise T.DBError("PostgreSQL restarted but does not accept connections yet.",
-                    hint="Check again in a few seconds.", code="postgres_down")
+    status = postgres_status()
+    raise T.DBError(f"PostgreSQL restarted but still refuses connections: {status.get('error', '')[:200]}",
+                    hint=f"Check again in a few seconds. Log: {Path(data) / 'postgresql.log'}", code="postgres_down")
 
 
 def _wait_postgres(seconds: int) -> bool:
