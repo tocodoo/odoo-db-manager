@@ -571,15 +571,29 @@ def branch_for_env(name: str) -> str:
     return current
 
 
-def requirements_lines(branch: str = "") -> list[str]:
-    """Requirement lines of requirements.txt on `branch` (default: the checked-out code)."""
+def requirements_lines(branch: str = "", strict: bool = False) -> list[str]:
+    """Requirement lines of requirements.txt on `branch` (default: the checked-out code). strict: the branch
+    must be found (fetched from GitHub if needed) instead of falling back to the checked-out file."""
     comm = T.community_path()
     text = None
     if branch and branch != ops.get_current_branch(str(comm)):
-        for ref in (branch, f"origin/{branch}"):
-            text = T._git(str(comm), "show", f"{ref}:requirements.txt")
-            if text is not None:
+        for attempt in range(2):
+            for ref in (branch, f"origin/{branch}"):
+                text = T._git(str(comm), "show", f"{ref}:requirements.txt")
+                if text is not None:
+                    break
+            if text is not None or not strict or attempt:
                 break
+            # Only a branch GitHub has: fetching registers it on single-branch clones.
+            code, _, _ = ops.run_cmd(["git", "-C", str(comm), "ls-remote", "--exit-code", "--heads", "origin", branch],
+                                     env={"GIT_TERMINAL_PROMPT": "0"}, timeout=30)
+            if code != 0:
+                raise T.DBError(f"Branch {branch} not found on GitHub (odoo/odoo).", code="bad_args")
+            error = ops.fetch_branch_if_missing(str(comm), branch)
+            if error:
+                raise T.DBError(f"Branch {branch}: {error}", code="git")
+        if text is None and strict:
+            raise T.DBError(f"No requirements.txt on {branch} in {comm}.", code="bad_args")
     if text is None:
         try:
             text = (comm / "requirements.txt").read_text(encoding="utf-8")
@@ -748,18 +762,27 @@ def install_packages(name: str, lines: list[str], log: Log = None) -> dict:
     return {"ok": not failed, "name": name, "failed": failed, "skipped": skipped, "message": msg}
 
 
-def create_env(name: str, branch: str = "", log: Log = None) -> dict:
-    """pyenv environment `name` (odoo-19…) on the right Python, filled from the branch's requirements.txt.
+def create_env(name: str, branch: str = "", log: Log = None, python: str = "", requirements: bool = True) -> dict:
+    """pyenv environment `name` on Python `python` (default: the one of the Odoo version, from the name or the
+    branch), filled with requirements.txt of `branch` (default: <version>.0) unless requirements is False.
     Same layout as pyenv-virtualenv: versions/<python>/envs/<name>, linked as versions/<name>."""
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.\-]*", name or ""):
         raise T.DBError("Invalid environment name.", code="bad_args")
-    major = T.major_of(name) or T.major_of(branch)
-    if not major:
-        raise T.DBError(f"Cannot tell the Odoo version of '{name}'.", hint="Name it odoo-<version>, e.g. odoo-19.",
-                        code="bad_args")
-    branch = branch or branch_for_env(name)
+    if python and not re.fullmatch(r"3\.\d{1,2}", python):
+        raise T.DBError("Python version like 3.12.", code="bad_args")
+    if name in base_pythons().values() or re.fullmatch(r"\d+\.\d+(\.\d+)?", name):
+        raise T.DBError(f"'{name}' is a Python version name: choose another name.", code="bad_args")
+    major = T.major_of(name) if name.startswith("odoo-") else ""
+    major = major or T.major_of(branch)
+    if not python and not major:
+        raise T.DBError(f"Cannot tell the Odoo version of '{name}'.",
+                        hint="Pass --python 3.12, a branch (-b 19.0), or name it odoo-<version>.", code="bad_args")
+    if requirements:
+        branch = branch or branch_for_env(name)
+        # Checked first: a wrong branch must not leave a half-made environment.
+        lines = requirements_lines(branch, strict=bool(branch))
     if not env_exists(name):
-        base = install_python(python_for_major(int(major)), log)
+        base = install_python(python or python_for_major(int(major)), log)
         target = pyenv_root() / "versions" / base / "envs" / name
         link = env_path(name)
         if link.is_symlink() or link.exists():
@@ -773,7 +796,9 @@ def create_env(name: str, branch: str = "", log: Log = None) -> dict:
         _pip(name, ["--upgrade", "pip", "setuptools", "wheel"], log)
     else:
         _log(log, f"✓ {name} exists (Python {env_python_version(name)})")
-    lines = requirements_lines(branch)
+    if not requirements:
+        return {"ok": True, "name": name, "message": f"{name} ready (Python {env_python_version(name)}, "
+                                                     "no requirements installed)."}
     if not lines:
         return {"ok": True, "name": name, "message": f"{name} ready (no requirements.txt found for {branch})."}
     _log(log, f"→ Requirements of {branch}")
@@ -784,14 +809,20 @@ def create_env(name: str, branch: str = "", log: Log = None) -> dict:
 
 def list_envs() -> dict:
     """Odoo environments: the existing odoo-* ones and those the code / launch scripts need."""
-    names = {d.name for d in (pyenv_root() / "versions").glob("odoo-*")} if (pyenv_root() / "versions").is_dir() else set()
+    versions = pyenv_root() / "versions"
+    # odoo-* ones, and any other virtualenv made here or by pyenv-virtualenv (linked to versions/<python>/envs/).
+    names = {d.name for d in versions.glob("odoo-*")} if versions.is_dir() else set()
+    if versions.is_dir():
+        names |= {d.name for d in versions.iterdir() if d.is_symlink() and "/envs/" in os.readlink(d)}
     for series in [T.code_series()] + [sc.get("branch", "") for sc in T.script_index().values()]:
         if env_name_for(series):
             names.add(env_name_for(series))
     envs = []
-    for n in sorted(names, key=lambda n: -int(T.major_of(n) or 0)):
-        branch = branch_for_env(n)
-        info = check_env(n, requirements_lines(branch)) if env_exists(n) else {}
+    for n in sorted(names, key=lambda n: (not n.startswith("odoo-"), -int(T.major_of(n) or 0), n)):
+        odoo = n.startswith("odoo-")
+        branch = branch_for_env(n) if odoo else ""
+        # Only odoo-<version> ones are checked against a requirements.txt: the others are free-form.
+        info = check_env(n, requirements_lines(branch)) if odoo and env_exists(n) else {}
         envs.append({**info, "name": n, "branch": branch, "exists": env_exists(n),
                      "python": info.get("python") or env_python_version(n)})
     return {"ok": True, "pyenv": pyenv_bin() or "", "root": str(pyenv_root()), "forced": config.get_pyenv_global_env(),

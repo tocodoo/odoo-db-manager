@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import webbrowser
@@ -479,9 +480,12 @@ def cmd_env(a):
         return
     if not a.name:
         raise T.DBError("Environment name required (e.g. odoo-19).", code="bad_args")
-    name = a.name if a.name.startswith("odoo-") or not a.name[:1].isdigit() else toolchain.env_name_for(a.name)
+    # An Odoo version or branch (19.0, saas-19.4) stands for odoo-<major>; any other name is kept (3.12 is refused).
+    is_series = re.fullmatch(r"(saas[-~])?\d{2}\.\d+", a.name)
+    name = toolchain.env_name_for(a.name) if is_series else a.name
     if a.action == "create":
-        res = toolchain.create_env(name, branch=a.branch or "", log=log)
+        res = toolchain.create_env(name, branch=a.branch or "", log=log, python=a.python or "",
+                                   requirements=not a.no_requirements)
     else:
         lines = _csv(a.packages)
         if not lines:
@@ -731,6 +735,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("name", nargs="?", help="odoo-19, or a version/branch (19.0, saas-19.4)")
     s.add_argument("-b", "--branch", help="branch whose requirements.txt to use (default: <version>.0)")
     s.add_argument("-p", "--packages", help="install: these packages instead of the missing requirements")
+    s.add_argument("--python", help="create: Python version, e.g. 3.12 (default: the one of the Odoo version)")
+    s.add_argument("--no-requirements", action="store_true", help="create: an empty environment (pip only)")
     s = add("checkout", cmd_checkout, "switch core + enterprise to a branch")
     s.add_argument("branch")
     s.add_argument("--force", action="store_true")

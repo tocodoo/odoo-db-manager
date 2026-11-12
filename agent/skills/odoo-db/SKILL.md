@@ -115,6 +115,7 @@ odoodb --json setup --fix locate:enterprise --path ~/src/enterprise   # use a cl
 odoodb --json setup --fix gh-setup-git      # git uses the gh sign-in (enterprise is private)
 odoodb --json env list                      # odoo-<major> environments, Python, missing packages
 odoodb --json env create odoo-19            # pyenv + Python 3.12 + requirements of 19.0 (minutes)
+odoodb --json env create my-env --python 3.11 -b saas-19.4   # any name/Python; --no-requirements: empty
 odoodb --json env install odoo-19 -p xlrd   # extra packages (default: the missing requirements)
 ```
 

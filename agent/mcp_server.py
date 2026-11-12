@@ -175,6 +175,13 @@ TOOLS = [
          "pyenv environments of the Odoo versions: Python version, branch whose requirements fill it, missing "
          "packages. To create one: setup_fix env-create:odoo-19.",
          build=lambda a: ["env", "list"]),
+    tool("create_python_environment",
+         "Create a pyenv environment: any name, a Python version (default: the one of the Odoo version), and the "
+         "requirements.txt of an Odoo community branch unless requirements=false. Takes minutes if Python must be "
+         "compiled.",
+         {"name": S, "python": {**S, "description": "e.g. 3.12"}, "branch": S, "requirements": B}, ["name"],
+         build=lambda a: ["env", "create", a["name"]] + (["--python", a["python"]] if a.get("python") else [])
+         + (["-b", a["branch"]] if a.get("branch") else []) + _flag(a.get("requirements") is False, "--no-requirements")),
     tool("pull_repositories", "git pull --ff-only core + enterprise, or the given repository folders.",
          {"paths": L}, build=lambda a: ["pull", *(a.get("paths") or [])]),
     tool("checkout_branch", "Switch core + enterprise to a branch (refuses while other databases run, unless force).",

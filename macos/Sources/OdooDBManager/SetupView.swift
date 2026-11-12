@@ -7,6 +7,7 @@ struct SetupView: View {
     @State private var jobs: [String: Job] = [:]
     /// Interactive action (GitHub sign-in) running in the built-in terminal.
     @State private var terminal: TerminalSession?
+    @State private var newEnvironment = false
 
     var body: some View {
         Form {
@@ -16,6 +17,12 @@ struct SetupView: View {
                         ForEach(items) { item in
                             SetupRow(item: item, job: jobs[item.id], action: { run(item) },
                                      alternative: { run($0, of: item) })
+                        }
+                        if group == "Python", items.contains(where: { $0.id == "pyenv" && $0.status == "ok" }) {
+                            HStack {
+                                Button("New Environment…") { newEnvironment = true }
+                                Spacer()
+                            }
                         }
                     }
                 }
@@ -47,6 +54,7 @@ struct SetupView: View {
             .background(.bar)
         }
         .task { await store.loadSetup() }
+        .sheet(isPresented: $newEnvironment) { NewEnvironmentSheet() }
         .sheet(item: $terminal) { s in
             TerminalSheet(session: s) { Task { await store.loadSetup() } }
         }
