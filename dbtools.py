@@ -320,11 +320,12 @@ SELECT
 def database_names() -> list[str]:
     ok, rows = psql("postgres", "SELECT datname FROM pg_database WHERE NOT datistemplate ORDER BY lower(datname)")
     if not ok:
-        raise DBError(
-            "Cannot reach PostgreSQL: " + (rows[0][0] if rows else "?"),
-            hint="Start PostgreSQL (Postgres.app) or set psql_path with `odoodb config --set psql_path=...`.",
-            code="postgres_down",
-        )
+        err = rows[0][0] if rows else "?"
+        hint = ("PostgreSQL is stuck shutting down (it waits for open connections): "
+                "`odoodb setup --fix postgres-restart`." if "shutting down" in err else
+                "Start PostgreSQL: `odoodb setup --fix postgres-start` (or set psql_path with "
+                "`odoodb settings --set psql_path=...`).")
+        raise DBError("Cannot reach PostgreSQL: " + err, hint=hint, code="postgres_down")
     return [r[0] for r in rows if r and r[0] not in NON_ODOO_DBS]
 
 

@@ -121,12 +121,51 @@ def postgres_app() -> Optional[Path]:
 
 def postgres_status() -> dict:
     ok, rows = T.psql("postgres", "SHOW server_version", timeout=8)
-    res = {"reachable": ok, "psql": ops._find_psql(), "app": str(postgres_app() or "")}
+    res = {"reachable": ok, "psql": ops._find_psql(), "app": str(postgres_app() or ""), "state": "running" if ok else "down"}
     if ok:
         res["version"] = rows[0][0] if rows else ""
-    else:
-        res["error"] = rows[0][0] if rows else ""
+        return res
+    err = rows[0][0] if rows else ""
+    res["error"] = err
+    low = err.lower()
+    if "shutting down" in low:
+        # Smart shutdown: refuses new connections until the open ones (often Odoo servers) close.
+        res["state"] = "shutting_down"
+    elif "starting up" in low or "not yet accepting" in low or "in recovery" in low:
+        res["state"] = "starting"
+    elif "postgres.app" in low or "permission" in low or "rejected" in low:
+        res["state"] = "denied"
     return res
+
+
+def _postmaster() -> Optional[tuple[str, str]]:
+    """(postgres binary, data directory) of the running server, from its command line."""
+    code, out, _ = ops.run_cmd(["ps", "-axo", "command="], timeout=10)
+    for line in out.splitlines():
+        m = re.match(r"^(/\S+/bin/postgres)\s+-D\s+(.+?)(?=\s+-\w|\s*$)", line.strip())
+        if m and Path(m.group(2)).is_dir():
+            return m.group(1), m.group(2)
+    return None
+
+
+def postgres_restart(log: Log = None) -> str:
+    """Fast restart of the running server (its sessions are closed: Odoo servers reconnect), with its own
+    options. Ends a shutdown stuck waiting for open connections."""
+    pm = _postmaster()
+    if not pm:
+        return postgres_start(log)
+    binary, data = pm
+    pg_ctl = str(Path(binary).with_name("pg_ctl"))
+    _log(log, f"→ pg_ctl restart -m fast ({data})")
+    code, out, err = ops.run_cmd([pg_ctl, "restart", "-D", data, "-m", "fast", "-w", "-t", "60",
+                                  "-l", str(Path(data) / "postgresql.log")], timeout=120)
+    if code != 0:
+        raise T.DBError(f"pg_ctl restart failed: {(err or out).strip()[-300:]}",
+                        hint="In Postgres.app, click Stop then Start (or restart the Mac).", code="postgres_down")
+    if _wait_postgres(20):
+        return "PostgreSQL restarted."
+    raise T.DBError("PostgreSQL restarted but does not accept connections yet.",
+                    hint="Check again in a few seconds.", code="postgres_down")
 
 
 def _wait_postgres(seconds: int) -> bool:
@@ -786,6 +825,19 @@ def setup_status(network: bool = True) -> dict:
         if pg["reachable"]:
             items.append(_item("postgres", "PostgreSQL", "PostgreSQL server", "ok",
                                f"PostgreSQL {pg.get('version', '')} · {pg['psql']}"))
+        elif pg["state"] == "shutting_down":
+            items.append(_item("postgres", "PostgreSQL", "PostgreSQL server", "error",
+                               "Stuck shutting down: it refuses new connections until the open ones close (often "
+                               "running Odoo servers). Restarting it closes them; Odoo servers reconnect.",
+                               "postgres-restart", "Restart PostgreSQL", blocking=True))
+        elif pg["state"] == "starting":
+            items.append(_item("postgres", "PostgreSQL", "PostgreSQL server", "warning",
+                               "Starting up: check again in a few seconds.", blocking=True))
+        elif pg["state"] == "denied":
+            items.append(_item("postgres", "PostgreSQL", "PostgreSQL server", "error",
+                               f"Postgres.app refused the connection ({pg.get('error', '')[:120]}). In Postgres.app › "
+                               "Server Settings…, allow Odoo Database Manager and python (App Permissions), "
+                               "then check again.", blocking=True))
         elif pg["app"] or _brew_postgres_formula():
             items.append(_item("postgres", "PostgreSQL", "PostgreSQL server", "error",
                                f"Installed but not running ({pg.get('error', '')[:120]}).", "postgres-start", "Start",
@@ -896,6 +948,7 @@ def setup_status(network: bool = True) -> dict:
 ACTIONS = {
     "postgres-install": "Install Postgres.app (latest PostgreSQL) and open it",
     "postgres-start": "Start PostgreSQL (Postgres.app or Homebrew)",
+    "postgres-restart": "Fast restart of PostgreSQL (ends a shutdown stuck on open connections)",
     "clone:community": "Clone odoo/odoo into the community path",
     "clone:enterprise": "Clone odoo/enterprise into the enterprise path",
     "locate:community": "Use an existing odoo/odoo folder (--path <folder>)",
@@ -916,6 +969,8 @@ def run_action(action: str, log: Log = None, path: str = "") -> dict:
         msg = postgres_install(log)
     elif kind == "postgres-start":
         msg = postgres_start(log)
+    elif kind == "postgres-restart":
+        msg = postgres_restart(log)
     elif kind == "clone":
         msg = clone_repo(arg, log=log)
     elif kind == "locate":

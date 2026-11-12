@@ -118,7 +118,8 @@ odoodb --json env create odoo-19            # pyenv + Python 3.12 + requirements
 odoodb --json env install odoo-19 -p xlrd   # extra packages (default: the missing requirements)
 ```
 
-Error code `postgres_down` → `setup --fix postgres-start`. Code `env_missing` → `repair <db> --fix env`.
+Error code `postgres_down` → `setup --fix postgres-start` (`postgres-restart` when the error says
+"the database system is shutting down"). Code `env_missing` → `repair <db> --fix env`.
 `create` builds a missing environment by itself. `gh-login` and `wkhtmltopdf` need the user (terminal
 sign-in, password dialog): tell them before running these.
 

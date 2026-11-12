@@ -115,6 +115,7 @@ Add `--json` for machine-readable output. Databases started by `odoodb` (or the 
 |---|---|
 | The app does not open | Paste the install line again in the Terminal. |
 | *"Cannot reach PostgreSQL"* | **Setup › Start** (or `odoodb setup --fix postgres-start`). First install: click **Initialize** in the Postgres window. |
+| *"the database system is shutting down"* (Postgres.app says "Running" but "does not accept passwordless local connections") | PostgreSQL waits for open connections before stopping: **Setup › Restart PostgreSQL** (`odoodb setup --fix postgres-restart`). |
 | A database does not start | Open it: the Overview lists what is wrong. Or `odoodb doctor <db>`. |
 | *"Python environment … not found"* | **Create** in Setup or on the database page (`odoodb env create odoo-19`). |
 | Enterprise cannot be fetched | **Setup › Sign In to GitHub**, then **Use for git** (`gh auth setup-git`). |
