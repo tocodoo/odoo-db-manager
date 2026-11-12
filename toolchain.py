@@ -317,6 +317,38 @@ def clone_repo(kind: str, branch: str = "", log: Log = None) -> str:
     return f"{kind} cloned on {branch} in {dest}."
 
 
+def locate_repo(kind: str, path: str) -> str:
+    """Use an existing copy of odoo/odoo or odoo/enterprise: checks the folder, then saves it in the settings."""
+    if kind not in REMOTES:
+        raise T.DBError(f"Unknown repository {kind}", code="bad_args")
+    if not path:
+        raise T.DBError("Folder required.", hint=f"`odoodb setup --fix locate:{kind} --path <folder>`", code="bad_args")
+    p = Path(path).expanduser().resolve()
+    if kind == "community":
+        # The Odoo folder itself (core/, community/…) or its parent holding one of them.
+        found = p if (p / "odoo-bin").is_file() else next(
+            (c for c in (p / "core", p / "community", p / "odoo") if (c / "odoo-bin").is_file()), None)
+        if not found:
+            raise T.DBError(f"No odoo-bin in {p}.", hint="Choose the odoo/odoo clone: the folder that contains odoo-bin.",
+                            code="bad_args")
+        config.save_odoo_community_path(str(found))
+    else:
+        found = p if (p / "web_enterprise" / "__manifest__.py").is_file() else next(
+            (c for c in (p / "enterprise",) if (c / "web_enterprise" / "__manifest__.py").is_file()), None)
+        if not found:
+            raise T.DBError(f"{p} is not odoo/enterprise (no web_enterprise module).",
+                            hint="Choose the odoo/enterprise clone.", code="bad_args")
+        config.save_odoo_enterprise_path(str(found))
+    branch = ops.get_current_branch(str(found)) if (found / ".git").exists() else None
+    note = f" on {branch}" if branch else " (not a git clone: branches cannot be switched)"
+    return f"Odoo {kind}: {found}{note}."
+
+
+def desktop_clone_url(kind: str) -> str:
+    """Opens GitHub Desktop's clone window on the repository."""
+    return f"x-github-client://openRepo/{REMOTES[kind][:-4]}"
+
+
 def remote_branches(max_age: int = 3600) -> list[str]:
     """Version branches of odoo/odoo on GitHub (master, 19.0, saas-19.4…), cached one hour."""
     cache = CACHE_DIR / "remote_branches.json"
@@ -730,9 +762,13 @@ def install_wkhtmltopdf(log: Log = None) -> str:
 # --------------------------------------------------------------------------- #
 
 def _item(id_: str, group: str, title: str, status: str, detail: str = "", action: str = "",
-          action_label: str = "", blocking: bool = False, link: str = "") -> dict:
+          action_label: str = "", blocking: bool = False, link: str = "",
+          alternatives: Optional[list[dict]] = None) -> dict:
+    """alternatives: other ways to fix it, each {"id", "label"} with an "action" (needs --path for locate:*)
+    or a "url" to open (GitHub Desktop)."""
     return {"id": id_, "group": group, "title": title, "status": status, "detail": detail,
-            "action": action or None, "action_label": action_label, "blocking": blocking, "link": link or None}
+            "action": action or None, "action_label": action_label, "blocking": blocking, "link": link or None,
+            "alternatives": alternatives or []}
 
 
 def setup_status(network: bool = True) -> dict:
@@ -765,12 +801,21 @@ def setup_status(network: bool = True) -> dict:
             title = "Odoo community" if kind == "community" else "Odoo enterprise"
             if not (path / ".git").exists():
                 exists = path.is_dir() and any(path.iterdir())
-                items.append(_item(kind, "Odoo code", title, "error" if kind == "community" else "warning",
-                                   f"{path} is not a git clone." if exists else
-                                   f"Not found in {path}." + (" Needs access to odoo/enterprise on GitHub."
-                                                               if kind == "enterprise" else ""),
-                                   "" if exists else f"clone:{kind}", "" if exists else f"Clone {REMOTES[kind][19:-4]}",
-                                   blocking=kind == "community"))
+                # Three ways: clone now (shallow), point to an existing copy, or clone later in GitHub Desktop.
+                alternatives = [{"id": "locate", "label": "Locate…", "action": f"locate:{kind}"}]
+                if gh["desktop"]:
+                    alternatives.append({"id": "desktop", "label": "Clone in GitHub Desktop…",
+                                         "url": desktop_clone_url(kind), "path": str(path)})
+                else:
+                    alternatives.append({"id": "desktop", "label": "Get GitHub Desktop",
+                                         "url": "https://desktop.github.com"})
+                detail = (f"{path} is not a git clone." if exists else f"Not found in {path}.")
+                if kind == "enterprise":
+                    detail += " Needs access to odoo/enterprise on GitHub."
+                detail += " Clone it here, locate a copy you already have, or clone it later with GitHub Desktop."
+                items.append(_item(kind, "Odoo code", title, "error" if kind == "community" else "warning", detail,
+                                   "" if exists else f"clone:{kind}", "" if exists else "Clone",
+                                   blocking=kind == "community", alternatives=alternatives))
                 continue
             branch = ops.get_current_branch(str(path)) or "?"
             detail = f"{branch} · {path}"
@@ -853,6 +898,8 @@ ACTIONS = {
     "postgres-start": "Start PostgreSQL (Postgres.app or Homebrew)",
     "clone:community": "Clone odoo/odoo into the community path",
     "clone:enterprise": "Clone odoo/enterprise into the enterprise path",
+    "locate:community": "Use an existing odoo/odoo folder (--path <folder>)",
+    "locate:enterprise": "Use an existing odoo/enterprise folder (--path <folder>)",
     "gh-install": "Install the GitHub CLI (Homebrew)",
     "gh-login": "Sign in to GitHub (opens the terminal)",
     "gh-setup-git": "Make git use the GitHub CLI sign-in",
@@ -863,7 +910,7 @@ ACTIONS = {
 }
 
 
-def run_action(action: str, log: Log = None) -> dict:
+def run_action(action: str, log: Log = None, path: str = "") -> dict:
     kind, _, arg = action.partition(":")
     if kind == "postgres-install":
         msg = postgres_install(log)
@@ -871,6 +918,8 @@ def run_action(action: str, log: Log = None) -> dict:
         msg = postgres_start(log)
     elif kind == "clone":
         msg = clone_repo(arg, log=log)
+    elif kind == "locate":
+        msg = locate_repo(arg, path)
     elif kind == "gh-install":
         msg = gh_install(log)
     elif kind == "gh-login":

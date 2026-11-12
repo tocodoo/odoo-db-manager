@@ -111,6 +111,7 @@ odoodb --json pull                          # git pull --ff-only core + enterpri
 odoodb --json setup                         # items with status ok/warning/error/optional and an "action"
 odoodb --json setup --fix postgres-start    # or postgres-install (downloads Postgres.app)
 odoodb --json setup --fix clone:enterprise  # shallow clones; other branches are fetched when switched to
+odoodb --json setup --fix locate:enterprise --path ~/src/enterprise   # use a clone the user already has
 odoodb --json setup --fix gh-setup-git      # git uses the gh sign-in (enterprise is private)
 odoodb --json env list                      # odoo-<major> environments, Python, missing packages
 odoodb --json env create odoo-19            # pyenv + Python 3.12 + requirements of 19.0 (minutes)

@@ -14,7 +14,8 @@ struct SetupView: View {
                 ForEach(groups(setup.items), id: \.0) { group, items in
                     Section(group) {
                         ForEach(items) { item in
-                            SetupRow(item: item, job: jobs[item.id]) { run(item) }
+                            SetupRow(item: item, job: jobs[item.id], action: { run(item) },
+                                     alternative: { run($0, of: item) })
                         }
                     }
                 }
@@ -62,6 +63,33 @@ struct SetupView: View {
         return order.map { ($0, byGroup[$0] ?? []) }
     }
 
+    private func run(_ alt: SetupAlternative, of item: SetupItem) {
+        if let link = alt.url, let url = URL(string: link) {
+            NSWorkspace.shared.open(url)
+            if let path = alt.path {
+                store.show("Clone it in GitHub Desktop into \(path.replacingOccurrences(of: NSHomeDirectory(), with: "~")) "
+                           + "(or anywhere, then Locate…), and Check Again here.")
+            }
+            return
+        }
+        guard let action = alt.action else { return }
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.prompt = "Use This Folder"
+        panel.message = item.id == "enterprise" ? "Choose your odoo/enterprise clone"
+            : "Choose your odoo/odoo clone (the folder that contains odoo-bin)"
+        panel.directoryURL = URL(fileURLWithPath: NSHomeDirectory())
+        guard panel.runModal() == .OK, let folder = panel.url else { return }
+        Task {
+            _ = await store.perform("Locate \(item.title)", db: nil, args: ["setup", "--fix", action, "--path", folder.path],
+                                    onJob: { jobs[item.id] = $0 }) { r in r.message ?? "\(item.title) found" }
+            jobs[item.id] = nil
+            await store.loadSetup()
+            await store.refresh()
+        }
+    }
+
     private func run(_ item: SetupItem) {
         if let cmd = item.terminal {
             terminal = TerminalSession(db: nil, kind: "setup", title: item.actionLabel.isEmpty ? item.title : item.actionLabel,
@@ -80,6 +108,9 @@ struct SetupRow: View {
     var item: SetupItem
     var job: Job?
     var action: () -> Void
+    var alternative: (SetupAlternative) -> Void = { _ in }
+
+    private var alternatives: [SetupAlternative] { item.alternatives ?? [] }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -102,10 +133,26 @@ struct SetupRow: View {
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                // Several ways to fix it: all the buttons on their own line, the main one first.
+                if job == nil, !alternatives.isEmpty {
+                    HStack(spacing: 8) {
+                        if item.action != nil {
+                            Button(item.actionLabel.isEmpty ? "Fix" : item.actionLabel, action: action)
+                                .buttonStyle(.borderedProminent)
+                        }
+                        ForEach(alternatives) { alt in
+                            Button(alt.label) { alternative(alt) }
+                        }
+                    }
+                    .controlSize(.small)
+                    .padding(.top, 4)
+                }
             }
             Spacer(minLength: 8)
             if job != nil {
                 ProgressView().controlSize(.small)
+            } else if !alternatives.isEmpty {
+                EmptyView()
             } else if item.action != nil {
                 Button(item.actionLabel.isEmpty ? "Fix" : item.actionLabel, action: action)
                     .buttonStyle(.borderedProminent)

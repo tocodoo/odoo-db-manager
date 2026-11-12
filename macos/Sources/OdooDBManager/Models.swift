@@ -228,6 +228,19 @@ struct SetupItem: Decodable, Identifiable, Hashable {
     var link: String?
     /// Interactive command (sign-in…): run in the built-in terminal instead of `setup --fix`.
     var terminal: String?
+    /// Other ways to fix it (Odoo clones: locate an existing copy, clone in GitHub Desktop).
+    var alternatives: [SetupAlternative]?
+}
+
+struct SetupAlternative: Decodable, Hashable, Identifiable {
+    var id: String
+    var label: String
+    /// `setup --fix <action> --path <folder>` (the folder is asked first).
+    var action: String?
+    /// Opened instead (GitHub Desktop's clone window, or its download page).
+    var url: String?
+    /// Where the item expects the clone (said after opening GitHub Desktop).
+    var path: String?
 }
 
 struct SettingsResponse: Decodable {

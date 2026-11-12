@@ -164,10 +164,12 @@ TOOLS = [
          "requirements, wkhtmltopdf. Each item has a status and the `action` that fixes it.",
          build=lambda a: ["setup"]),
     tool("setup_fix",
-         "Run one setup action: postgres-install, postgres-start, clone:community, clone:enterprise, gh-install, "
+         "Run one setup action: postgres-install, postgres-start, clone:community, clone:enterprise, "
+         "locate:community / locate:enterprise (use an existing clone: pass its folder as `path`), gh-install, "
          "gh-setup-git, pyenv-install, env-create:<name>, env-deps:<name>, wkhtmltopdf (asks the user's password "
          "in a macOS dialog). gh-login opens the terminal: the user must finish it.",
-         {"action": S}, ["action"], build=lambda a: ["setup", "--fix", a["action"]]),
+         {"action": S, "path": S}, ["action"],
+         build=lambda a: ["setup", "--fix", a["action"]] + (["--path", a["path"]] if a.get("path") else [])),
     tool("python_environments",
          "pyenv environments of the Odoo versions: Python version, branch whose requirements fill it, missing "
          "packages. To create one: setup_fix env-create:odoo-19.",

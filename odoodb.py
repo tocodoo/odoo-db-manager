@@ -435,7 +435,7 @@ def cmd_setup(a):
             print(f"  {k:<20} {v}")
         return
     if a.fix:
-        res = toolchain.run_action(a.fix, log=log)
+        res = toolchain.run_action(a.fix, log=log, path=a.path or "")
         if JSON:
             return res
         print(("✓ " if res.get("ok") else "✗ ") + res.get("message", ""))
@@ -453,6 +453,11 @@ def cmd_setup(a):
             print(f"      → odoodb setup --fix {i['action']}")
         elif i.get("link") and i["status"] != "ok":
             print(f"      → {i['link']}")
+        for alt in i.get("alternatives") or []:
+            if alt.get("action"):
+                print(f"      → odoodb setup --fix {alt['action']} --path <folder>")
+            elif alt.get("url"):
+                print(f"      → {alt['label']} {alt['url']}")
 
 
 def cmd_env(a):
@@ -716,6 +721,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("paths", nargs="*")
     s = add("setup", cmd_setup, "check what this Mac needs and install it")
     s.add_argument("--fix", metavar="ACTION", help="run one action (see --list-actions)")
+    s.add_argument("--path", help="locate:<kind>: the folder of the existing clone")
     s.add_argument("--list-actions", action="store_true")
     s.add_argument("--offline", action="store_true", help="skip the GitHub access checks")
     s = add("env", cmd_env, "Python environments (pyenv) of the Odoo versions")
