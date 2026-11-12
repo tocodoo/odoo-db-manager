@@ -1,6 +1,7 @@
 """Configuration par défaut pour Odoo DB Manager."""
 import json
 import os
+import re
 
 # Valeurs par défaut (système)
 _DEFAULTS = {
@@ -391,9 +392,5 @@ def delete_ai_api_key(provider: str) -> bool:
 
 def get_pyenv_for_branch(branch: str) -> str:
     """Déduit l'environnement pyenv à partir du nom de branche (ex: saas~19.2 -> odoo-19)."""
-    b = branch or ""
-    if "19" in b:
-        return "odoo-19"
-    if "18" in b:
-        return "odoo-18"
-    return "odoo-18"
+    m = re.search(r"(\d+)", branch or "")
+    return f"odoo-{m.group(1)}" if m else "odoo-19"

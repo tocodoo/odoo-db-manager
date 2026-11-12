@@ -274,12 +274,44 @@ def switch_branch(odoo_path: str, branch: str) -> tuple[bool, str]:
     for name, path in repos:
         if not path.is_dir():
             continue
+        fetch_error = fetch_branch_if_missing(str(path), branch)
+        if fetch_error:
+            errors.append(f"{name}: {fetch_error}")
+            continue
         code, out, err = run_cmd(["git", "checkout", branch], cwd=str(path))
         if code != 0:
             errors.append(f"{name}: {err or out}")
     if errors:
         return False, "Errors:\n" + "\n".join(errors)
     return True, f"core and enterprise switched to {branch}"
+
+
+def fetch_branch_if_missing(repo_path: str, branch: str) -> Optional[str]:
+    """Makes `branch` checkout-able: fetches it from origin when neither it nor origin/<branch> exists
+    locally (single-branch or shallow clones), then creates the local branch tracking it.
+    Returns an error message, or None."""
+    def has(ref: str) -> bool:
+        return run_cmd(["git", "rev-parse", "--verify", "--quiet", ref], cwd=repo_path)[0] == 0
+
+    if has(f"refs/heads/{branch}"):
+        return None
+    # Single-branch clones only track their branch: origin must know this one too (for checkout and pull).
+    _, refspecs, _ = run_cmd(["git", "config", "--get-all", "remote.origin.fetch"], cwd=repo_path)
+    if "refs/heads/*" not in refspecs and f"refs/heads/{branch}:" not in refspecs:
+        run_cmd(["git", "remote", "set-branches", "--add", "origin", branch], cwd=repo_path)
+    if not has(f"refs/remotes/origin/{branch}"):
+        _, shallow, _ = run_cmd(["git", "rev-parse", "--is-shallow-repository"], cwd=repo_path)
+        cmd = ["git", "fetch", "origin", f"+refs/heads/{branch}:refs/remotes/origin/{branch}"]
+        if shallow.strip() == "true":
+            cmd += ["--depth", "1"]
+        code, out, err = run_cmd(cmd, cwd=repo_path, env={"GIT_TERMINAL_PROMPT": "0"}, timeout=1800)
+        if code != 0:
+            last = (err or out).strip().splitlines()
+            return f"cannot fetch {branch} from GitHub ({last[-1] if last else 'error'})"
+    code, out, err = run_cmd(["git", "branch", "--track", branch, f"origin/{branch}"], cwd=repo_path)
+    if code != 0:
+        return (err or out).strip() or f"cannot create the branch {branch}"
+    return None
 
 
 def check_branches_match(odoo_path: str, expected_branch: str) -> tuple[bool, str]:

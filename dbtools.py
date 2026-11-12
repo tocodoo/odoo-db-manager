@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import config
+import history
 import odoo_ops as ops
 
 LOG_DIR = Path.home() / "Library" / "Logs" / "Odoo Database Manager" / "databases"
@@ -89,11 +90,14 @@ def major_of(series: str) -> str:
 
 
 def pyenv_for_series(series: str) -> str:
+    """odoo-<major>, existing or not (a missing one is reported, and created on demand)."""
     major = major_of(series)
-    root = Path(config.get_pyenv_root() or "~/.pyenv").expanduser()
-    if major and (root / "versions" / f"odoo-{major}").is_dir():
-        return f"odoo-{major}"
-    return config.get_pyenv_for_branch(series)
+    return f"odoo-{major}" if major else config.get_pyenv_for_branch(series)
+
+
+def effective_env(sc: Optional[dict], series: str) -> str:
+    """The environment that really runs a database: forced in the settings, else its script's, else odoo-<major>."""
+    return config.get_pyenv_global_env() or (sc or {}).get("pyenv") or pyenv_for_series(series)
 
 
 def community_path() -> Path:
@@ -611,9 +615,10 @@ def database_info(db: str, with_modules: bool = False) -> dict:
         "port": port,
         "url": f"http://localhost:{port}",
         "log": {"path": str(lp), "exists": lp.is_file(), "size": lp.stat().st_size if lp.is_file() else 0},
-        "pyenv": (sc or {}).get("pyenv") or pyenv_for_series(summary.get("series") or (sc or {}).get("branch") or ""),
+        "pyenv": effective_env(sc, summary.get("series") or (sc or {}).get("branch") or ""),
         "custom_modules": custom,
         "module_counts": _count_by(modules),
+        "history": history.summary(db),
         **details,
     }
     info["issues"] = diagnose(db, info, modules, procs)
@@ -683,11 +688,7 @@ def diagnose(db: str, info: dict, modules: list[dict], procs: list[dict]) -> lis
             (f" — found in {', '.join(Path(f).name for f in found)}" if found else " — not found under the Odoo folder."),
             "addons" if found else None, "Add the folders to the addons path" if found else ""))
 
-    pyenv = info.get("pyenv")
-    root = Path(config.get_pyenv_root() or "~/.pyenv").expanduser()
-    if pyenv and not (root / "versions" / pyenv).is_dir():
-        issues.append(_issue("pyenv_missing", "error", f"Python environment {pyenv} not found",
-                             f"Create it with pyenv (expected in {root / 'versions' / pyenv})."))
+    issues += _runtime_issues(info, modules)
 
     run = info.get("running")
     port = info.get("port")
@@ -702,6 +703,46 @@ def diagnose(db: str, info: dict, modules: list[dict], procs: list[dict]) -> lis
             issues.append(_issue("filestore_missing", "warning", "Filestore missing",
                                  f"{rows[0][0]} attachments point to files that are not in {info['filestore']['path']}. "
                                  "Images and assets may be broken.", "assets", "Regenerate assets"))
+    return issues
+
+
+def _runtime_issues(info: dict, modules: list[dict]) -> list[dict]:
+    """Python environment (exists, requirements, modules' external dependencies) and wkhtmltopdf."""
+    import toolchain as TC
+    issues = []
+    env = info.get("pyenv") or ""
+    series = info.get("series") or (info.get("script") or {}).get("branch") or ""
+    deps = TC.manifest_dependencies(modules)
+    if env and not TC.env_exists(env):
+        issues.append(_issue("pyenv_missing", "error", f"Python environment {env} not found",
+                             f"Expected in {TC.env_path(env)}. Created with pyenv on Python "
+                             f"{TC.python_for_major(int(major_of(env) or major_of(series) or 19))}, with the requirements "
+                             f"of {branch_for_series(series) or 'the code'} (a few minutes).",
+                             "env", f"Create {env}"))
+    elif env:
+        check = TC.check_env(env, TC.requirements_lines(branch_for_series(series)), list(deps["python"]))
+        names = [TC._req_name(line) for line in check.get("missing", [])] + check.get("missing_modules", [])
+        labels = [TC._req_name(line) for line in check.get("missing", [])]
+        for mod in check.get("missing_modules", []):
+            users = deps["python"].get(mod, [])
+            labels.append(f"{mod} (for {', '.join(users[:3])}{'…' if len(users) > 3 else ''})")
+        if names:
+            issues.append(_issue(
+                "python_packages", "warning", f"{len(names)} Python package(s) missing in {env}",
+                ", ".join(labels[:12]) + ("…" if len(labels) > 12 else "") +
+                f" — to install in the {env} environment: `{TC.env_path(env)}/bin/pip install {' '.join(names)}`",
+                "pydeps", f"Install in {env}"))
+    lacking = [b for b in deps["bin"] if b != "wkhtmltopdf" and not TC._which(b)]
+    if lacking:
+        issues.append(_issue("programs_missing", "warning", f"Program(s) not found: {', '.join(lacking)}",
+                             "; ".join(f"{b} is needed by {', '.join(deps['bin'][b][:3])}" for b in lacking) +
+                             ". Install them for the whole Mac (e.g. with Homebrew)."))
+    if not TC.wkhtmltopdf_path():
+        issues.append(_issue("wkhtmltopdf_missing", "warning", "wkhtmltopdf not installed",
+                             "PDF reports (invoices, quotations, delivery slips…) cannot be printed. "
+                             "It is a program for the whole Mac, not a package of the Python environment: "
+                             "version 0.12.6 with patched Qt (macOS asks for your password).",
+                             "wkhtmltopdf", "Install wkhtmltopdf"))
     return issues
 
 
@@ -724,6 +765,9 @@ REPAIRS = {
     "port": "Move the database to a free HTTP port",
     "admin": "Reset the admin user (id 2) to login 'admin' / password 'admin'",
     "init": "Initialise an empty database (install base)",
+    "env": "Create the database's Python environment (pyenv, requirements of its branch)",
+    "pydeps": "Install the missing Python packages in the database's environment",
+    "wkhtmltopdf": "Install wkhtmltopdf 0.12.6 for the whole Mac (asks for the password)",
 }
 
 
@@ -773,6 +817,21 @@ def _apply_fix(db: str, fix: str, info: dict, force: bool, log: Log) -> str:
         if not target:
             raise DBError("Unknown database version.")
         return ensure_branch(target, db=db, force=force, log=log)
+    if fix in ("env", "pydeps", "wkhtmltopdf"):
+        import toolchain as TC
+        env = info.get("pyenv") or ""
+        series = info.get("series") or (sc or {}).get("branch") or ""
+        if fix == "wkhtmltopdf":
+            return TC.install_wkhtmltopdf(log)
+        if fix == "env":
+            res = TC.create_env(env, branch_for_series(series), log=log)
+        else:
+            deps = TC.manifest_dependencies(list_modules(db, info.get("addons_path")))
+            check = TC.check_env(env, TC.requirements_lines(branch_for_series(series)), list(deps["python"]))
+            res = TC.install_packages(env, check.get("missing", []) + check.get("missing_modules", []), log)
+        if not res["ok"]:
+            raise DBError(res["message"], hint="Install the failed ones by hand in that environment.", code="pip")
+        return res["message"]
     if fix == "port":
         port = free_port(exclude_db=db)
         ops.set_db_port(db, port)
@@ -888,6 +947,11 @@ def _check_startable(db: str, info: dict, switch_branch: bool, force: bool, log:
         msg = ensure_branch(branch_for_series(series), db=db, force=force, log=log)
         if log:
             log("✓ " + msg)
+    env = info.get("pyenv") or ""
+    root = Path(config.get_pyenv_root() or "~/.pyenv").expanduser()
+    if env and not (root / "versions" / env / "bin" / "python3").exists():
+        raise DBError(f"The Python environment {env} does not exist.",
+                      hint=f"Create it: `odoodb repair {db} --fix env` (or `odoodb env create {env}`).", code="env_missing")
     port = info.get("port")
     clash = [p for p in odoo_processes() if p["kind"] == "server" and p["db"] != db and p["port"] == port]
     if clash:
@@ -895,16 +959,69 @@ def _check_startable(db: str, info: dict, switch_branch: bool, force: bool, log:
                       hint=f"Stop it, or move this database: `odoodb port {db} {free_port(db)}`.", code="port_busy")
 
 
+TERMINAL_KINDS = ("server", "shell", "zsh")
+
+
+def terminal_command(db: str, kind: str = "server", switch_branch: bool = False, force: bool = False,
+                     log: Log = None) -> dict:
+    """What the app's built-in terminal runs for a database, prepared like `start` (branch, locks, script,
+    port, log rotation): `server` = the launch script in the foreground (Ctrl+C, breakpoints), `shell` =
+    `odoo-bin shell`, `zsh` = a shell in the community folder with the database's Python environment first
+    in PATH. The app writes the terminal output to `log` so the Logs and History tabs see it."""
+    if kind not in TERMINAL_KINDS:
+        raise DBError(f"Unknown terminal kind {kind}", hint="One of: " + ", ".join(TERMINAL_KINDS), code="bad_args")
+    info = database_info(db)
+    sc = info.get("script")
+    pyenv = info.get("pyenv") or ""
+    env = _script_env(pyenv)
+    env.update({"TERM": "xterm-256color", "COLORTERM": "truecolor", "ODOODB_DB": db})
+    env.pop("NO_COLOR", None)
+    py_bin = str(Path(config.get_pyenv_root() or "~/.pyenv").expanduser() / "versions" / pyenv / "bin")
+    if kind == "zsh":
+        env["PATH"] = py_bin + ":" + env.get("PATH", "")
+        env["VIRTUAL_ENV"] = str(Path(py_bin).parent)
+        return {"ok": True, "name": db, "kind": kind, "title": f"zsh · {db}", "executable": "/bin/zsh",
+                "args": ["-l"], "cwd": str(community_path()), "env": env, "log": None}
+    if kind == "server" and info.get("running"):
+        raise DBError(f"{db} is already running ({info['running'].get('mode')}).",
+                      hint=f"Stop it first: `odoodb stop {db}`.", code="running")
+    # Checks first: a refused run must not have changed the database.
+    _check_startable(db, {**info, "port": info["port"] if kind == "server" else None}, switch_branch, force, log)
+    if info.get("modules_locked"):
+        ops.clear_module_locks(db)
+        if log:
+            log("✓ Pending module states reset")
+    if kind == "shell":
+        addons = effective_addons_path(db, sc)
+        args = [str(community_path() / "odoo-bin"), "shell", "-d", db, f"--addons-path={','.join(addons)}"]
+        return {"ok": True, "name": db, "kind": kind, "title": f"odoo shell · {db}",
+                "executable": str(Path(py_bin) / "python3"), "args": args, "cwd": str(community_path()),
+                "env": env, "log": None}
+    if not sc:
+        _apply_fix(db, "script", info, force=force, log=log)
+        sc = script_for(db)
+    lp = _rotate_log(db)
+    lp.touch()
+    try:
+        _pid_path(db).unlink()  # not a background run: `ps` shows it as "terminal"
+    except OSError:
+        pass
+    return {"ok": True, "name": db, "kind": kind, "title": f"{db} · {info.get('series') or ''}".strip(" ·"),
+            "executable": "/bin/bash", "args": [sc["path"]], "cwd": str(odoo_root()), "env": env,
+            "log": str(lp), "url": info["url"]}
+
+
 def start(db: str, terminal: bool = False, wait: bool = True, switch_branch: bool = False,
           force: bool = False, timeout: int = 600, log: Log = None) -> dict:
     info = database_info(db)
     if info.get("running"):
         return {"ok": True, "name": db, "already_running": True, "url": info["url"], "running": info["running"]}
+    # Checks first: a refused start must not have changed the database.
+    _check_startable(db, info, switch_branch, force, log)
     if info.get("modules_locked"):
         ops.clear_module_locks(db)
         if log:
             log("✓ Pending module states reset")
-    _check_startable(db, info, switch_branch, force, log)
     sc = info.get("script")
     if not sc:
         _apply_fix(db, "script", info, force=force, log=log)
@@ -921,11 +1038,17 @@ def start(db: str, terminal: bool = False, wait: bool = True, switch_branch: boo
     return _spawn_script(db, Path(sc["path"]), pyenv, wait=wait, timeout=timeout, url=info["url"], log=log)
 
 
-def _spawn_script(db: str, script: Path, pyenv: str, wait: bool, timeout: int, url: str, log: Log) -> dict:
+def _rotate_log(db: str) -> Path:
+    """Before a new run: the history reads the end of the previous log, which becomes <db>.previous.log."""
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     lp = log_path(db)
     if lp.exists() and lp.stat().st_size:
+        history.ingest(db, final=True)
         lp.replace(lp.with_suffix(".previous.log"))
+    return lp
+
+
+def _script_env(pyenv: str) -> dict:
     env = ops._env_with_path()
     for k in ("VIRTUAL_ENV", "PYTHONHOME", "PYTHONPATH", "PYENV_VERSION", "CONDA_PREFIX"):
         env.pop(k, None)
@@ -933,6 +1056,12 @@ def _spawn_script(db: str, script: Path, pyenv: str, wait: bool, timeout: int, u
         env["PYENV_ENV"] = pyenv
         env["PYENV_VERSION"] = pyenv
     env["PSQL_BIN"] = ops._find_psql()
+    return env
+
+
+def _spawn_script(db: str, script: Path, pyenv: str, wait: bool, timeout: int, url: str, log: Log) -> dict:
+    lp = _rotate_log(db)
+    env = _script_env(pyenv)
     with open(lp, "ab") as fh:
         proc = subprocess.Popen(["/bin/bash", str(script)], cwd=str(odoo_root()), env=env,
                                 stdin=subprocess.DEVNULL, stdout=fh, stderr=subprocess.STDOUT,
@@ -1013,7 +1142,8 @@ def read_log(db: str, lines: int = 200, errors_only: bool = False) -> dict:
     lp = log_path(db)
     if not lp.is_file():
         run = running_server(db)
-        note = ("Running in a terminal: its output is not captured. Restart it with `odoodb restart` to capture logs."
+        note = ("Running in an external terminal: its output is not captured. Restart it from the app "
+                "(background or built-in terminal) to capture logs."
                 if run else "No log yet: start the database with `odoodb start`.")
         return {"ok": True, "name": db, "path": str(lp), "lines": [], "note": note}
     with open(lp, "rb") as fh:
@@ -1057,14 +1187,23 @@ def run_odoo_task(db: str, args: list[str], log: Log = None, timeout: int = 3600
     if log:
         log("$ " + " ".join(shlex.quote(c) for c in cmd))
     errors: list[str] = []
+    # Appended to the database's log: the Logs tab and the history see what an update or install raised.
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    log_fh = open(log_path(db), "a", encoding="utf-8")
+    log_fh.write(f"# odoodb: {' '.join(shlex.quote(c) for c in cmd)}\n")
 
     def on_line(line: str):
         if " ERROR " in line or " CRITICAL " in line:
             errors.append(line)
+        log_fh.write(line + "\n")
         if log:
             log(line)
 
-    code, out = ops.run_cmd_streaming(cmd, cwd=str(community_path()), on_output=on_line)
+    try:
+        code, out = ops.run_cmd_streaming(cmd, cwd=str(community_path()), on_output=on_line)
+    finally:
+        log_fh.close()
+        history.ingest(db, final=True)
     ok = code == 0
     return {"ok": ok, "name": db, "exit_code": code, "errors": errors[-10:],
             "message": "Done." if ok else f"odoo-bin exited with code {code}.",
@@ -1140,6 +1279,14 @@ def create(db: str, branch: str = "", modules: Optional[list[str]] = None, addon
                       hint="Pass the folder that contains them with --addons.", code="module_not_found")
     if detected and log:
         log(f"✓ Addons folders detected: {', '.join(detected)}")
+    env = config.get_pyenv_global_env() or pyenv_for_series(branch)
+    import toolchain as TC
+    if not TC.env_exists(env):
+        if log:
+            log(f"→ Python environment {env} missing: creating it (a few minutes, once)")
+        res = TC.create_env(env, branch, log=log)
+        if log:
+            log(("✓ " if res["ok"] else "⚠ ") + res["message"])
     install = modules or (["base"] if not dump else [])
     # Re-initialise only the custom modules at each start (the developer's own code).
     custom_dirs = {a["path"] for a in custom_addons(addons_path.split(","))}
@@ -1230,6 +1377,7 @@ def duplicate(src: str, new: str) -> dict:
     ok, msg = ops.duplicate_database(src, new)
     if not ok:
         raise DBError(msg, code="duplicate")
+    history.copy(src, new)
     return {"ok": True, "name": new, "source": src, "message": msg}
 
 
@@ -1260,6 +1408,12 @@ def rename(old: str, new: str) -> dict:
     ports = config.get_db_ports()
     if old in ports:
         config.save_db_port(new, ports[old])
+    history.rename(old, new)
+    for suffix in (".log", ".previous.log"):
+        try:
+            (LOG_DIR / f"{old}{suffix}").replace(LOG_DIR / f"{new}{suffix}")
+        except OSError:
+            pass
     return {"ok": True, "name": new, "previous": old, "message": ", ".join(msgs)}
 
 
@@ -1277,6 +1431,7 @@ def delete(db: str) -> dict:
             p.unlink()
         except OSError:
             pass
+    history.drop(db)
     return {"ok": True, "name": db, "message": msg}
 
 

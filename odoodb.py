@@ -8,10 +8,14 @@ Every command accepts --json (machine-readable result on stdout; progress on std
   odoodb create <db> -b 19.0 -m sale  create a database (and start it)
   odoodb start|stop|restart <db>      run it in the background (logs captured)
   odoodb logs <db> [-f] [--errors]    server log
+  odoodb history <db> [--errors]      past warnings, errors and tracebacks (folded, with counts)
+  odoodb terminal <db> [--kind shell] run it in this terminal (foreground), or odoo shell / zsh
   odoodb doctor <db>                  diagnose problems
   odoodb repair <db> [--fix locks]    fix them
   odoodb update <db> -m mod1,mod2     upgrade modules (-u)
   odoodb translate <db> -m mod -l fr_FR
+  odoodb setup [--fix <action>]       what this Mac needs (PostgreSQL, clones, GitHub, Python envs, wkhtmltopdf)
+  odoodb env list|create|install      pyenv environments of the Odoo versions
 """
 from __future__ import annotations
 
@@ -213,6 +217,38 @@ def cmd_logs(a):
     print("\n".join(res["lines"]))
 
 
+def cmd_history(a):
+    import history
+    if a.clear:
+        res = history.clear(a.db)
+        if JSON:
+            return res
+        print(res["message"])
+        return
+    T.require_db(a.db)
+    levels = ["ERROR", "CRITICAL"] if a.errors else (["WARNING"] if a.warnings else None)
+    res = history.events(a.db, levels=levels, limit=a.lines)
+    if JSON:
+        return res
+    s = res["summary"]
+    print(f"{a.db}: {s['errors']} error(s), {s['warnings']} warning(s) logged")
+    for e in res["events"]:
+        print(f"\n[{e['level']}] ×{e['count']}  last {e['last']}  {e['logger']}")
+        print(f"  {e['message'][:300]}")
+        if e.get("exception"):
+            print(f"  → {e['exception']}")
+        if a.full and e.get("detail"):
+            print("\n".join("    " + l for l in e["detail"].splitlines()[-40:]))
+
+
+def cmd_terminal(a):
+    res = T.terminal_command(a.db, kind=a.kind, switch_branch=a.switch_branch, force=a.force, log=log)
+    if JSON:
+        return res
+    os.chdir(res["cwd"])
+    os.execve(res["executable"], [res["executable"], *res["args"]], res["env"])
+
+
 def cmd_doctor(a):
     res = T.doctor(a.db)
     if JSON:
@@ -315,10 +351,94 @@ def cmd_translate(a):
 
 def cmd_branches(a):
     res = T.branches()
+    if a.remote:
+        import odoo_ops
+        import toolchain
+        local = set(res["branches"])
+        res["remote_only"] = [b for b in toolchain.remote_branches(max_age=0 if a.refresh else 3600) if b not in local]
+        res["branches"] = sorted(local | set(res["remote_only"]), key=odoo_ops._branch_sort_key)
     if JSON:
         return res
     print(f"current: {res['current']} (code {res['code_series']})")
-    print("\n".join("  " + b for b in res["branches"]))
+    remote = set(res.get("remote_only", []))
+    print("\n".join("  " + b + ("  (on GitHub, fetched when used)" if b in remote else "") for b in res["branches"]))
+
+
+def cmd_pull(a):
+    import toolchain
+    paths = a.paths or [str(T.community_path())] + ([str(T.enterprise_path())] if T.enterprise_path() else [])
+    res = toolchain.pull(paths, log=log)
+    if JSON:
+        return res
+    for r in res["pulled"]:
+        print(f"✓ {r['path']}: {r['message']}")
+
+
+_MARK = {"ok": "✓", "warning": "⚠", "error": "✗", "optional": "○"}
+
+
+def cmd_setup(a):
+    import toolchain
+    if a.list_actions:
+        res = {"ok": True, "actions": toolchain.ACTIONS}
+        if JSON:
+            return res
+        for k, v in toolchain.ACTIONS.items():
+            print(f"  {k:<20} {v}")
+        return
+    if a.fix:
+        res = toolchain.run_action(a.fix, log=log)
+        if JSON:
+            return res
+        print(("✓ " if res.get("ok") else "✗ ") + res.get("message", ""))
+        return
+    res = toolchain.setup_status(network=not a.offline)
+    if JSON:
+        return res
+    group = None
+    for i in res["items"]:
+        if i["group"] != group:
+            group = i["group"]
+            print(f"\n{group}")
+        print(f"  {_MARK.get(i['status'], '?')} {i['title']}: {i['detail']}")
+        if i.get("action"):
+            print(f"      → odoodb setup --fix {i['action']}")
+        elif i.get("link") and i["status"] != "ok":
+            print(f"      → {i['link']}")
+
+
+def cmd_env(a):
+    import toolchain
+    if a.action == "list":
+        res = toolchain.list_envs()
+        if JSON:
+            return res
+        print(f"pyenv: {res['pyenv'] or 'not installed'} ({res['root']})"
+              + (f" — every database forced on {res['forced']}" if res["forced"] else ""))
+        for e in res["envs"]:
+            if not e["exists"]:
+                state = f"missing → odoodb env create {e['name']}"
+            elif e.get("missing"):
+                state = f"{len(e['missing'])} package(s) missing → odoodb env install {e['name']}"
+            else:
+                state = "ok"
+            print(f"  {e['name']:<10} Python {e.get('python') or '—':<8} {e['branch']:<12} {state}")
+        return
+    if not a.name:
+        raise T.DBError("Environment name required (e.g. odoo-19).", code="bad_args")
+    name = a.name if a.name.startswith("odoo-") or not a.name[:1].isdigit() else toolchain.env_name_for(a.name)
+    if a.action == "create":
+        res = toolchain.create_env(name, branch=a.branch or "", log=log)
+    else:
+        lines = _csv(a.packages)
+        if not lines:
+            branch = a.branch or toolchain.branch_for_env(name)
+            lines = toolchain.check_env(name, toolchain.requirements_lines(branch)).get("missing", [])
+        res = toolchain.install_packages(name, lines, log=log) if lines else \
+            {"ok": True, "name": name, "message": f"Nothing missing in {name}."}
+    if JSON:
+        return res
+    print(("✓ " if res["ok"] else "✗ ") + res["message"])
 
 
 def cmd_checkout(a):
@@ -381,15 +501,19 @@ def cmd_scaffold(a):
 
 def cmd_self_update(a):
     import version
-    res = version.check_for_update()
-    if not a.check and res.get("update_available"):
-        res = {**res, **version.apply_update(), "updating": True}
+    if a.rebuild:
+        res = {**version.rebuild(), "updating": True, "behind": 0}
+    else:
+        res = version.check_for_update()
+        if not a.check and res.get("update_available"):
+            res = {**res, **version.apply_update(), "updating": True}
     if JSON:
         return res
     if res.get("error"):
         print(f"✗ {res['error']}")
     elif res.get("updating"):
-        print(f"Updating ({res['behind']} new commit(s)): the app restarts when done. "
+        what = "Rebuilding" if a.rebuild else f"Updating ({res['behind']} new commit(s))"
+        print(f"{what}: the app restarts when done. "
               f"Log: ~/Library/Logs/Odoo Database Manager/update.log")
     elif res.get("update_available"):
         print(f"{res['behind']} new commit(s) available: run `odoodb self-update`.")
@@ -457,6 +581,20 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("-f", "--follow", action="store_true")
     s.add_argument("--errors", action="store_true", help="only errors and tracebacks")
 
+    s = add("history", cmd_history, "past warnings, errors and tracebacks of a database")
+    s.add_argument("db")
+    s.add_argument("--errors", action="store_true", help="only errors / critical")
+    s.add_argument("--warnings", action="store_true", help="only warnings")
+    s.add_argument("-n", "--lines", type=int, default=50, help="how many events (most recent first)")
+    s.add_argument("--full", action="store_true", help="print the tracebacks")
+    s.add_argument("--clear", action="store_true", help="forget the history")
+
+    s = add("terminal", cmd_terminal, "run a database in the foreground here (or odoo shell / zsh); --json: the command")
+    s.add_argument("db")
+    s.add_argument("--kind", choices=["server", "shell", "zsh"], default="server")
+    s.add_argument("--switch-branch", action="store_true")
+    s.add_argument("--force", action="store_true")
+
     s = add("doctor", cmd_doctor, "diagnose a database")
     s.add_argument("db")
 
@@ -503,7 +641,20 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("-o", "--out", help="file or folder (default: the module's i18n/ folder)")
     s.add_argument("--no-ai", action="store_true", help="only export the .po")
 
-    add("branches", cmd_branches, "branches available in core")
+    s = add("branches", cmd_branches, "branches available in core")
+    s.add_argument("--remote", action="store_true", help="also the version branches on GitHub not fetched yet")
+    s.add_argument("--refresh", action="store_true", help="with --remote: ignore the one-hour cache")
+    s = add("pull", cmd_pull, "git pull --ff-only core + enterprise (or the given repositories)")
+    s.add_argument("paths", nargs="*")
+    s = add("setup", cmd_setup, "check what this Mac needs and install it")
+    s.add_argument("--fix", metavar="ACTION", help="run one action (see --list-actions)")
+    s.add_argument("--list-actions", action="store_true")
+    s.add_argument("--offline", action="store_true", help="skip the GitHub access checks")
+    s = add("env", cmd_env, "Python environments (pyenv) of the Odoo versions")
+    s.add_argument("action", choices=["list", "create", "install"])
+    s.add_argument("name", nargs="?", help="odoo-19, or a version/branch (19.0, saas-19.4)")
+    s.add_argument("-b", "--branch", help="branch whose requirements.txt to use (default: <version>.0)")
+    s.add_argument("-p", "--packages", help="install: these packages instead of the missing requirements")
     s = add("checkout", cmd_checkout, "switch core + enterprise to a branch")
     s.add_argument("branch")
     s.add_argument("--force", action="store_true")
@@ -517,6 +668,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--theme", help="JSON file overriding the theme variables (colors, fonts…)")
     s = add("self-update", cmd_self_update, "update odoodb and the app from GitHub")
     s.add_argument("--check", action="store_true", help="only check")
+    s.add_argument("--rebuild", action="store_true", help="rebuild and reinstall the app from the current code, without pulling")
     s = add("settings", cmd_settings, "show or change settings")
     s.add_argument("--set", nargs="*", metavar="KEY=VALUE")
     return p

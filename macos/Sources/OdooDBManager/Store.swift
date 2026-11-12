@@ -63,6 +63,13 @@ final class Store {
     var revisions: [String: Int] = [:]
     /// Extra bottom space for toasts while a bottom bar (bulk selection) is shown.
     var toastInset: CGFloat = 0
+    /// What this Mac needs (`odoodb setup`), and whether its sheet is shown.
+    var setup: SetupResponse?
+    /// Built-in terminal sessions (all databases), and the tab a database page should switch to.
+    var terminals: [TerminalSession] = []
+    var detailTab: [String: DetailTab] = [:]
+    var setupShown = false
+    var setupLoading = false
 
     private var pollTask: Task<Void, Never>?
     private var toastTask: Task<Void, Never>?
@@ -176,6 +183,13 @@ final class Store {
             let res = try await CLI.json(ActionResult.self, args) { line in
                 Task { @MainActor in job.lines.append(line) }
             }
+            if res.ok == false {
+                job.state = .failure
+                job.message = res.failureText
+                show(job.message, error: true)
+                if bulkDepth == 0 { Task { await refresh() } }
+                return nil
+            }
             job.state = .success
             job.message = success(res)
             job.resultPath = res.path
@@ -203,6 +217,23 @@ final class Store {
             confirmation = Confirmation(
                 title: "Switch branch?", message: e.error + "\n\ncore and enterprise will be checked out on the database's branch.",
                 actionLabel: "Switch & continue") { retry("--switch-branch") }
+        case "env_missing" where db != nil:
+            let db = db ?? ""
+            confirmation = Confirmation(
+                title: "Create the Python environment?",
+                message: e.error + "\n\nIt is created with pyenv, with the requirements of the database's branch (a few minutes, once).",
+                actionLabel: "Create & continue") {
+                    Task {
+                        if await self.perform("Python environment for \(db)", db: db, busyLabel: "Installing Python…",
+                                              args: ["repair", db, "--fix", "env"], success: { r in r.message ?? "Environment ready" }) != nil {
+                            await self.perform(title, db: db, args: args, success: success)
+                        }
+                    }
+                }
+        case "postgres_down", "postgres_missing":
+            confirmation = Confirmation(
+                title: "PostgreSQL is not running", message: e.error + (e.hint.map { "\n\n" + $0 } ?? ""),
+                actionLabel: "Open Setup") { self.setupShown = true }
         case "busy":
             confirmation = Confirmation(
                 title: "Other databases are running", message: e.error + "\n\nThey will keep running on code of another version until restarted.",
@@ -210,6 +241,86 @@ final class Store {
         default:
             show(e.error + (e.hint.map { "\n" + $0 } ?? ""), error: true)
         }
+    }
+
+    // MARK: - Built-in terminal
+
+    func openTerminal(_ db: String, kind: String, extra: [String] = []) {
+        Task { await runOpenTerminal(db, kind: kind, extra: extra) }
+    }
+
+    private func runOpenTerminal(_ db: String, kind: String, extra: [String]) async {
+        if kind == "server" { busy[db] = "Preparing…" }
+        defer { if kind == "server" { busy[db] = nil } }
+        do {
+            let spec = try await CLI.json(TerminalSpec.self, ["terminal", db, "--kind", kind] + extra)
+            let session = TerminalSession(db: db, spec: spec)
+            session.onExit = { [weak self] s in
+                guard let self else { return }
+                if s.kind == "server" {
+                    self.revisions[db, default: 0] += 1
+                    Task { await self.refresh() }
+                }
+            }
+            terminals.append(session)
+            detailTab[db] = .terminal
+            NotificationCenter.default.post(name: .openDatabase, object: db)
+        } catch let e as CLIError {
+            let retry: (String) -> Void = { flag in self.openTerminal(db, kind: kind, extra: extra + [flag]) }
+            switch e.code {
+            case "branch_mismatch":
+                confirmation = Confirmation(
+                    title: "Switch branch?", message: e.error + "\n\ncore and enterprise will be checked out on the database's branch.",
+                    actionLabel: "Switch & continue") { retry("--switch-branch") }
+            case "busy":
+                confirmation = Confirmation(
+                    title: "Other databases are running", message: e.error + "\n\nThey will keep running on code of another version until restarted.",
+                    actionLabel: "Switch anyway", destructive: true) { retry("--force") }
+            case "env_missing":
+                confirmation = Confirmation(
+                    title: "Create the Python environment?",
+                    message: e.error + "\n\nIt is created with pyenv, with the requirements of the database's branch (a few minutes, once).",
+                    actionLabel: "Create & continue") {
+                        Task {
+                            if await self.perform("Python environment for \(db)", db: db, busyLabel: "Installing Python…",
+                                                  args: ["repair", db, "--fix", "env"], success: { r in r.message ?? "Environment ready" }) != nil {
+                                self.openTerminal(db, kind: kind, extra: extra)
+                            }
+                        }
+                    }
+            default:
+                show(e.error + (e.hint.map { "\n" + $0 } ?? ""), error: true)
+            }
+        } catch {
+            show(error.localizedDescription, error: true)
+        }
+    }
+
+    func closeTerminal(_ session: TerminalSession) {
+        session.terminate()
+        terminals.removeAll { $0.id == session.id }
+    }
+
+    // MARK: - Setup
+
+    func loadSetup(network: Bool = true) async {
+        setupLoading = true
+        defer { setupLoading = false }
+        if let r = try? await CLI.json(SetupResponse.self, ["setup"] + (network ? [] : ["--offline"])) {
+            withAnimation(.smooth) { setup = r }
+        }
+    }
+
+    /// Runs the action of a setup item, then reloads the checklist (and the databases: PostgreSQL may be up now).
+    @discardableResult
+    func runSetup(_ item: SetupItem, onJob: ((Job) -> Void)? = nil) async -> Bool {
+        guard let action = item.action else { return false }
+        let r = await perform("\(item.actionLabel): \(item.title)", db: nil, args: ["setup", "--fix", action], onJob: onJob) { r in
+            r.message ?? "\(item.title): done"
+        }
+        await loadSetup()
+        if item.id == "postgres" { await refresh() }
+        return r != nil
     }
 
     func start(_ db: String) { Task { await runStart(db) } }
@@ -221,7 +332,11 @@ final class Store {
         } != nil
     }
 
-    func startInTerminal(_ db: String) {
+    /// Runs the database in the built-in terminal (Terminal tab of its page).
+    func startInTerminal(_ db: String) { openTerminal(db, kind: "server") }
+
+    /// The configured external terminal app (Warp, Terminal, iTerm2).
+    func startInExternalTerminal(_ db: String) {
         Task { await perform("Start \(db) in terminal", db: db, busyLabel: "Starting…", args: ["start", db, "--terminal", "--no-wait"]) { _ in "\(db) opened in the terminal" } }
     }
 

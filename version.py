@@ -50,11 +50,14 @@ def check_for_update() -> dict[str, Any]:
             "error": f"Not a git install: re-run {INSTALL_COMMAND}",
         }
     try:
+        commit = _git("rev-parse", "HEAD", timeout=5)
         _git("fetch", "--quiet")
         behind = int(_git("rev-list", "--count", "HEAD..@{u}", timeout=5) or 0)
     except Exception as e:
         return {"ok": False, "current_version": current, "update_available": False, "error": str(e)}
-    return {"ok": True, "current_version": current, "update_available": behind > 0, "behind": behind}
+    # commit: what the clone is on; the app compares it with the commit it was built from.
+    return {"ok": True, "current_version": current, "update_available": behind > 0, "behind": behind,
+            "commit": commit}
 
 
 def apply_update() -> dict[str, Any]:
@@ -63,6 +66,11 @@ def apply_update() -> dict[str, Any]:
         _git("pull", "--ff-only", "--quiet", timeout=120)
     except Exception as e:
         return {"ok": False, "error": str(e)}
+    return rebuild()
+
+
+def rebuild() -> dict[str, Any]:
+    """install.sh --update en arrière-plan, sans pull : rebuild l'app depuis le code du clone."""
     os.makedirs(LOG_DIR, exist_ok=True)
     log = open(os.path.join(LOG_DIR, "update.log"), "w")
     subprocess.Popen(

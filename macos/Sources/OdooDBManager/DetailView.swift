@@ -1,13 +1,15 @@
 import SwiftUI
 
 enum DetailTab: String, CaseIterable, Identifiable {
-    case overview = "Overview", modules = "Modules", logs = "Logs", translate = "Translate"
+    case overview = "Overview", modules = "Modules", logs = "Logs", history = "History", terminal = "Terminal", translate = "Translate"
     var id: String { rawValue }
     var symbol: String {
         switch self {
         case .overview: "square.grid.2x2"
         case .modules: "shippingbox"
         case .logs: "text.alignleft"
+        case .history: "exclamationmark.bubble"
+        case .terminal: "apple.terminal"
         case .translate: "character.bubble"
         }
     }
@@ -50,6 +52,12 @@ struct DetailView: View {
             }
         }
         .task(id: store.revisions[name, default: 0]) { await load() }
+        .onChange(of: store.detailTab[name]) { _, t in
+            if let t { withAnimation(.smooth(duration: 0.2)) { tab = t }; store.detailTab[name] = nil }
+        }
+        .onAppear {
+            if let t = store.detailTab[name] { tab = t; store.detailTab[name] = nil }
+        }
         .onChange(of: store.isRunning(name)) { _, _ in Task { await load() } }
     }
 
@@ -76,7 +84,7 @@ struct DetailView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(maxWidth: 460)
+            .frame(maxWidth: 660)
             .padding(.bottom, 12)
 
             Divider()
@@ -86,6 +94,8 @@ struct DetailView: View {
                 case .overview: OverviewTab(info: info)
                 case .modules: ModulesTab(info: info)
                 case .logs: LogsTab(info: info)
+                case .history: HistoryTab(info: info)
+                case .terminal: TerminalTab(info: info)
                 case .translate: TranslateTab(info: info)
                 }
             }
@@ -99,7 +109,9 @@ struct DetailView: View {
                 Button("") { tab = .overview }.keyboardShortcut("1")
                 Button("") { tab = .modules }.keyboardShortcut("2")
                 Button("") { tab = .logs }.keyboardShortcut("3")
-                Button("") { tab = .translate }.keyboardShortcut("4")
+                Button("") { tab = .history }.keyboardShortcut("4")
+                Button("") { tab = .terminal }.keyboardShortcut("5")
+                Button("") { tab = .translate }.keyboardShortcut("6")
             }
             .opacity(0)
         }

@@ -88,6 +88,7 @@ struct DBInfo: Decodable {
     var pyenv: String?
     var customModules: [String]
     var moduleCounts: ModuleCounts
+    var history: HistorySummary?
     var languages: [Language]?
     var users: Int?
     var company: String?
@@ -175,6 +176,58 @@ struct BranchesResponse: Decodable {
     var current: String?
     var codeSeries: String
     var branches: [String]
+    /// With `--remote`: branches only on GitHub, fetched when a database uses them.
+    var remoteOnly: [String]?
+}
+
+struct HistorySummary: Decodable, Hashable {
+    var errors: Int
+    var warnings: Int
+    var lastError: String?
+    var last: String?
+}
+
+/// `odoodb history <db>`: warnings / errors / tracebacks of the server log, folded.
+struct HistoryResponse: Decodable {
+    var summary: HistorySummary
+    var events: [HistoryEvent]
+}
+
+struct HistoryEvent: Decodable, Identifiable, Hashable {
+    var id: String
+    var level: String
+    var logger: String
+    var message: String
+    var exception: String
+    var detail: String
+    var count: Int
+    var first: String
+    var last: String
+    var isError: Bool { level == "ERROR" || level == "CRITICAL" }
+}
+
+/// `odoodb setup`: what this Mac needs (PostgreSQL, clones, GitHub, Python environments, wkhtmltopdf).
+struct SetupResponse: Decodable {
+    var items: [SetupItem]
+    var blocking: Bool
+
+    var problems: Int { items.filter { $0.status == "error" }.count }
+    var warnings: Int { items.filter { $0.status == "warning" }.count }
+}
+
+struct SetupItem: Decodable, Identifiable, Hashable {
+    var id: String
+    var group: String
+    var title: String
+    /// ok, warning, error, optional
+    var status: String
+    var detail: String
+    var action: String?
+    var actionLabel: String
+    var blocking: Bool
+    var link: String?
+    /// Interactive command (sign-in…): run in the built-in terminal instead of `setup --fix`.
+    var terminal: String?
 }
 
 struct SettingsResponse: Decodable {
@@ -205,6 +258,15 @@ struct ActionResult: Decodable {
     var alreadyRunning: Bool?
     var errors: [String]?
     var logTail: [String]?
+    /// `repair`: one entry per fix.
+    var applied: [AppliedFix]?
+
+    struct AppliedFix: Decodable { var fix: String; var ok: Bool; var message: String }
+
+    /// Why an `ok: false` result failed, when it has no `error`.
+    var failureText: String {
+        error ?? applied?.filter { !$0.ok }.map(\.message).joined(separator: "\n") ?? message ?? "Failed"
+    }
 }
 
 enum ISO {

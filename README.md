@@ -19,7 +19,7 @@ A native macOS app (SwiftUI) that monitors your databases, and the `odoodb` comm
 ## Install
 
 > [!IMPORTANT]
-> You need a **Mac (macOS 14+)** with your Odoo setup: the community clone (with `odoo-bin`) and `enterprise/`, **pyenv** environments named `odoo-<version>` (`odoo-18`, `odoo-19`…) and **PostgreSQL** ([Postgres.app](https://postgresapp.com) or Homebrew). Everything else is installed for you. No Xcode needed.
+> You need a **Mac (macOS 14+)**. What Odoo needs is checked and installed from the app's **Setup** (or `odoodb setup`): PostgreSQL (Postgres.app), the community and enterprise clones, the GitHub sign-in (`gh`), pyenv with one environment per Odoo version (`odoo-18`, `odoo-19`…) and wkhtmltopdf. An existing setup is detected and kept as is. No Xcode needed.
 
 **1. Open the Terminal.** Press <kbd>⌘</kbd> <kbd>Space</kbd>, type `Terminal`, press <kbd>Return</kbd>.
 
@@ -31,7 +31,7 @@ curl -fsSL https://raw.githubusercontent.com/tocodoo/odoo-db-manager/main/instal
 
 It takes about two minutes: the app is compiled on your Mac. If a window asks to install the **Command Line Tools**, click **Install**: the Terminal waits for it, then continues on its own. When it is done, the app opens and its icon appears in the menu bar.
 
-**3. Check the paths once** in **Settings** (<kbd>⌘</kbd> <kbd>,</kbd>): community folder (with `odoo-bin`), enterprise, launch scripts folder, pyenv. They are detected from your previous settings if you used an older version.
+**3. Open Setup** (the wrench in the toolbar, or **Settings › Setup**) and click the buttons of what is missing: **Install Postgres.app**, **Clone odoo/odoo**, **Sign In to GitHub**, **Create** an environment… Paths (community, enterprise, launch scripts, pyenv) are in **Settings › General**, detected from your previous settings if you used an older version.
 
 **4. Restart Claude Desktop** if you use it, so it picks up the `odoo-databases` MCP server. Claude Code needs nothing: new sessions see the skill.
 
@@ -71,7 +71,11 @@ agent/install-agent.sh        # only odoodb + skill + MCP
   - **Overview**: health (version ≠ checked-out code, modules stuck *to upgrade*, installed modules without code, port busy, missing filestore…) with a **Fix** button for each, stats, the **repositories** of its addons path (branch, last commit, local changes, behind/ahead), custom modules, launch script.
   - **Modules**: every module with its version and where its code lives (community, enterprise, custom, *no code*). Select and **Update**.
   - **Logs**: live server log, errors highlighted.
+  - **History**: every warning, error and traceback the server logged, folded with a count and first / last time, kept across restarts (`odoodb history <db>`).
+  - **Terminal**: built-in terminal — run the server in the foreground (Ctrl+C, breakpoints, colored log, still captured for Logs and History), an Odoo shell, or zsh with the database's Python environment. **Start in Terminal** uses it; the external app (Warp, Terminal, iTerm2) stays available. Quitting the app stops what runs in it.
   - **Translate**: pick a module and a language, get the translated `.po` in the module's `i18n/` folder.
+- **Setup**: PostgreSQL, clones and their access to GitHub, GitHub CLI / GitHub Desktop, pyenv environments and their missing packages, wkhtmltopdf — each with the button that installs or fixes it. A database page also warns when its environment lacks a package (from `requirements.txt` or a module's `external_dependencies`) or wkhtmltopdf is missing, and says where to install it.
+- **Branches**: still one checkout switched per database; a branch not downloaded yet (single-branch or shallow clone) is fetched from GitHub when a database needs it. Repositories behind their remote get a **Pull** button, and open in GitHub Desktop or on github.com.
 - **Menu bar**: running databases with Open / Restart / Stop.
 - Drop an Odoo backup (`.zip`, `.sql`, `.dump`) on the window to restore it.
 
@@ -109,9 +113,10 @@ Add `--json` for machine-readable output. Databases started by `odoodb` (or the 
 | Problem | What to do |
 |---|---|
 | The app does not open | Paste the install line again in the Terminal. |
-| *"Cannot reach PostgreSQL"* | Start [Postgres.app](https://postgresapp.com), or set the `psql` path in Settings. |
+| *"Cannot reach PostgreSQL"* | **Setup › Start** (or `odoodb setup --fix postgres-start`). First install: click **Initialize** in the Postgres window. |
 | A database does not start | Open it: the Overview lists what is wrong. Or `odoodb doctor <db>`. |
-| *"pyenv environment not found"* | Create it with pyenv (`odoo-19`, `odoo-18`…). |
+| *"Python environment … not found"* | **Create** in Setup or on the database page (`odoodb env create odoo-19`). |
+| Enterprise cannot be fetched | **Setup › Sign In to GitHub**, then **Use for git** (`gh auth setup-git`). |
 | Anything else | [Open an issue](https://github.com/tocodoo/odoo-db-manager/issues) with `~/Library/Logs/Odoo Database Manager/build.log` or `update.log` if present. |
 
 <br>
@@ -125,6 +130,7 @@ Add `--json` for machine-readable output. Databases started by `odoodb` (or the 
 |---|---|
 | `odoodb.py` / `dbtools.py` | the command and its logic (monitoring, diagnosis, lifecycle). Single source of truth. |
 | `odoo_ops.py`, `config.py` | git, pyenv, PostgreSQL helpers; settings in `~/Library/Application Support/Odoo Database Manager/config.json` |
+| `toolchain.py` | what the Mac needs (`odoodb setup`, `odoodb env`): Postgres.app, clones, GitHub, pyenv environments, wkhtmltopdf |
 | `macos/` | the SwiftUI app (Swift package, built with the Command Line Tools: `macos/build.sh`). It only calls `odoodb --json`. |
 | `agent/` | the Claude Code skill, the MCP server, `install-agent.sh` |
 

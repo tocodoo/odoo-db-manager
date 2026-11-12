@@ -81,14 +81,22 @@ TOOLS = [
     tool("database_logs", "Server log of a database started by odoodb (or by the app).",
          {"name": S, "lines": I, "errors_only": B}, ["name"],
          build=lambda a: ["logs", a["name"], "-n", str(a.get("lines") or 200)] + _flag(a.get("errors_only"), "--errors")),
+    tool("database_history",
+         "Past WARNING / ERROR / CRITICAL records of a database's server log, with their tracebacks, folded "
+         "(count, first and last time). Survives restarts: use it to see what went wrong before.",
+         {"name": S, "errors_only": B, "limit": I, "full": B}, ["name"],
+         build=lambda a: ["history", a["name"], "-n", str(a.get("limit") or 50)]
+         + _flag(a.get("errors_only"), "--errors")),
     tool("diagnose_database",
          "Find problems: version/branch mismatch, modules stuck in 'to upgrade', installed modules whose code is "
-         "not in the addons path, missing launch script or addons folder, port conflict, missing filestore. "
+         "not in the addons path, missing launch script or addons folder, port conflict, missing filestore, "
+         "missing Python environment or packages (requirements.txt, modules' external_dependencies), no wkhtmltopdf. "
          "Each issue names the fix to pass to repair_database.",
          {"name": S}, ["name"], build=lambda a: ["doctor", a["name"]]),
     tool("repair_database",
          "Apply fixes. Without `fixes`, applies every fix the diagnosis suggests (except 'branch'). "
-         "Fixes: locks, script, addons, branch, assets, port, admin (reset to admin/admin), init.",
+         "Fixes: locks, script, addons, branch, assets, port, admin (reset to admin/admin), init, "
+         "env (create the pyenv environment), pydeps (pip install what is missing in it), wkhtmltopdf.",
          {"name": S, "fixes": L, "force": B}, ["name"],
          build=lambda a: ["repair", a["name"]] + (["--fix", ",".join(a["fixes"])] if a.get("fixes") else [])
          + _flag(a.get("force"), "--force")),
@@ -122,7 +130,25 @@ TOOLS = [
          + (["-o", a["out"]] if a.get("out") else []) + _flag(a.get("ai") is False, "--no-ai")),
     tool("set_port", "Set the HTTP port of a database (to run several at once).",
          {"name": S, "port": I}, ["name", "port"], build=lambda a: ["port", a["name"], str(a["port"])]),
-    tool("list_branches", "Branches available in core and the one checked out.", build=lambda a: ["branches"]),
+    tool("list_branches", "Branches available in core and the one checked out. remote=true adds the version "
+         "branches on GitHub not fetched yet (fetched automatically when a database uses them).",
+         {"remote": B}, build=lambda a: ["branches"] + _flag(a.get("remote"), "--remote")),
+    tool("setup_status",
+         "What this Mac needs to run Odoo databases: PostgreSQL (Postgres.app), community/enterprise clones and "
+         "their GitHub access, GitHub CLI sign-in, pyenv and one environment per Odoo version (odoo-19…) with its "
+         "requirements, wkhtmltopdf. Each item has a status and the `action` that fixes it.",
+         build=lambda a: ["setup"]),
+    tool("setup_fix",
+         "Run one setup action: postgres-install, postgres-start, clone:community, clone:enterprise, gh-install, "
+         "gh-setup-git, pyenv-install, env-create:<name>, env-deps:<name>, wkhtmltopdf (asks the user's password "
+         "in a macOS dialog). gh-login opens the terminal: the user must finish it.",
+         {"action": S}, ["action"], build=lambda a: ["setup", "--fix", a["action"]]),
+    tool("python_environments",
+         "pyenv environments of the Odoo versions: Python version, branch whose requirements fill it, missing "
+         "packages. To create one: setup_fix env-create:odoo-19.",
+         build=lambda a: ["env", "list"]),
+    tool("pull_repositories", "git pull --ff-only core + enterprise, or the given repository folders.",
+         {"paths": L}, build=lambda a: ["pull", *(a.get("paths") or [])]),
     tool("checkout_branch", "Switch core + enterprise to a branch (refuses while other databases run, unless force).",
          {"branch": S, "force": B}, ["branch"],
          build=lambda a: ["checkout", a["branch"]] + _flag(a.get("force"), "--force")),

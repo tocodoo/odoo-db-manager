@@ -139,11 +139,11 @@ fi
 ditto "$BUILD/$APP_NAME.app" "$DEST/$APP_NAME.app"
 ok "App installed: $DEST/$APP_NAME.app"
 
-# 7. What the app drives (not installed here: Odoo developers already have them)
+# 7. What the app drives (installed from the app's Setup, `odoodb setup`)
 command -v psql >/dev/null 2>&1 || [[ -d "/Applications/Postgres.app" ]] \
-  || warn "PostgreSQL (psql) not found: the app needs it to create databases."
+  || warn "PostgreSQL not found: install it from the app's Setup (or: odoodb setup --fix postgres-install)."
 [[ -d "${PYENV_ROOT:-$HOME/.pyenv}/versions" ]] \
-  || warn "pyenv not found: the app runs Odoo with the pyenv environments odoo-18 / odoo-19."
+  || warn "pyenv not found: the app's Setup installs it and creates the odoo-<version> environments."
 
 open "$DEST/$APP_NAME.app"
 

@@ -10,6 +10,7 @@ struct NewDatabaseSheet: View {
     @State private var name = ""
     @State private var branch = ""
     @State private var branches: [String] = []
+    @State private var remoteOnly: Set<String> = []
     @State private var modules = ""
     @State private var addons: [URL] = []
     @State private var restore = false
@@ -39,7 +40,13 @@ struct NewDatabaseSheet: View {
                     if exists { Text("A database with this name already exists.").font(.caption).foregroundStyle(.red) }
                     Picker("Branch", selection: $branch) {
                         if branches.isEmpty { Text(branch.isEmpty ? "Loading…" : branch).tag(branch) }
-                        ForEach(branches, id: \.self) { b in Text(b).tag(b) }
+                        ForEach(branches, id: \.self) { b in
+                            Text(remoteOnly.contains(b) ? "\(b) — from GitHub" : b).tag(b)
+                        }
+                    }
+                    if remoteOnly.contains(branch) {
+                        Text("Not downloaded yet: core and enterprise fetch it from GitHub when the database is created.")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                     TextField("Modules", text: $modules, prompt: Text("website, sale, my_module"))
                 }
@@ -121,6 +128,11 @@ struct NewDatabaseSheet: View {
             if let res = try? await CLI.json(BranchesResponse.self, ["branches"]) {
                 branches = res.branches
                 if branch.isEmpty { branch = res.current ?? res.branches.first ?? "" }
+            }
+            // Then the version branches on GitHub that are not fetched yet (network, cached an hour).
+            if let res = try? await CLI.json(BranchesResponse.self, ["branches", "--remote"]) {
+                remoteOnly = Set(res.remoteOnly ?? [])
+                branches = res.branches
             }
         }
     }

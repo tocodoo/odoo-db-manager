@@ -7,6 +7,8 @@ enum DevSnapshot {
     static let dir = ProcessInfo.processInfo.environment["DBM_SNAPSHOT_DIR"]
     static let openDB = ProcessInfo.processInfo.environment["DBM_OPEN"]
     static let tab = ProcessInfo.processInfo.environment["DBM_TAB"].flatMap(DetailTab.init(rawValue:))
+    /// Opens a built-in terminal of this kind on DBM_OPEN at launch (server, shell, zsh).
+    static let terminal = ProcessInfo.processInfo.environment["DBM_TERMINAL"]
 
     @MainActor
     static func run(store: Store) async {
@@ -21,6 +23,19 @@ enum DevSnapshot {
                 .background(Color(nsColor: .windowBackgroundColor))
                 .environment(\.colorScheme, scheme)
             save(grid, "\(dir)/home-\(scheme).png")
+        }
+        await store.loadSetup()
+        for scheme in [ColorScheme.light, .dark] {
+            // Form does not render in ImageRenderer: the rows alone.
+            let setup = VStack(alignment: .leading, spacing: 10) {
+                ForEach(store.setup?.items ?? []) { SetupRow(item: $0, job: nil) {} }
+            }
+                .padding(20)
+                .environment(store)
+                .frame(width: 640, height: 900)
+                .background(Color(nsColor: .windowBackgroundColor))
+                .environment(\.colorScheme, scheme)
+            save(setup, "\(dir)/setup-\(scheme).png")
         }
         let name = openDB ?? running.first?.name ?? store.databases.first?.name ?? ""
         guard let info = try? await CLI.json(DBInfo.self, ["info", name, "--modules"]) else { return }

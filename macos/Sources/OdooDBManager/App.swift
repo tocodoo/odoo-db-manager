@@ -63,6 +63,10 @@ struct RootView: View {
             if let db = DevSnapshot.openDB { path = [db] }
             await store.refresh()
             store.startPolling()
+            // Offline check at launch (no GitHub round trip); the sheet opens only when nothing can work.
+            await store.loadSetup(network: false)
+            if store.setup?.blocking == true || store.list == nil { store.setupShown = true }
+            if let kind = DevSnapshot.terminal, let db = DevSnapshot.openDB { store.openTerminal(db, kind: kind) }
             await DevSnapshot.run(store: store)
         }
         .onReceive(NotificationCenter.default.publisher(for: .openDatabase)) { note in

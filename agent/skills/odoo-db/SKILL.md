@@ -20,6 +20,8 @@ odoodb --json info <db>            # repos (branch, commit, changes), modules, s
 odoodb --json info <db> --modules  # + every module with state and source (community/enterprise/custom/missing)
 odoodb --json ps                   # running Odoo servers (port, pid, memory, uptime)
 odoodb --json branches             # core branches + the one checked out
+odoodb --json branches --remote    # + version branches on GitHub not fetched yet ("remote_only")
+odoodb --json setup                # what this Mac needs: PostgreSQL, clones, GitHub, Python envs, wkhtmltopdf
 ```
 
 The database version is read from the database itself (`series`, e.g. `19.0`, `saas~19.4`);
@@ -50,6 +52,7 @@ odoodb --json start <db> --switch-branch    # when it failed with code "branch_m
 odoodb --json stop <db>        # or: stop --all
 odoodb --json restart <db>
 odoodb --json logs <db> -n 200              # add --errors for errors/tracebacks only
+odoodb --json history <db> --errors         # past errors/tracebacks, folded with counts (survives restarts)
 odoodb open <db>                            # browser
 odoodb --json port <db> 8070                # run several databases at once
 ```
@@ -74,6 +77,9 @@ odoodb --json repair <db> --fix locks,assets
 | `port` | moves the database to a free port |
 | `admin` | resets user id 2 to admin / admin |
 | `init` | installs `base` in an empty database |
+| `env` | creates the database's pyenv environment (`odoo-<major>`) with its branch's requirements.txt |
+| `pydeps` | pip installs, in that environment, what requirements.txt or the modules' `external_dependencies` lack |
+| `wkhtmltopdf` | installs wkhtmltopdf 0.12.6 for the whole Mac (PDF reports; macOS asks the user's password) |
 
 Typical "my database won't start": `doctor` → `repair` → `start` (with `--switch-branch` if asked) →
 `logs --errors` if it still fails. Then fix the code or run `update`.
@@ -92,7 +98,24 @@ odoodb --json neutralize <db>
 odoodb --json delete <db> --yes             # irreversible: only when the user explicitly asked
 odoodb --json checkout saas-19.4            # core + enterprise
 odoodb --json settings                      # paths in use (core, enterprise, scripts, pyenv, psql)
+odoodb --json pull                          # git pull --ff-only core + enterprise (or given folders)
 ```
+
+## This Mac: PostgreSQL, clones, GitHub, Python environments
+
+```bash
+odoodb --json setup                         # items with status ok/warning/error/optional and an "action"
+odoodb --json setup --fix postgres-start    # or postgres-install (downloads Postgres.app)
+odoodb --json setup --fix clone:enterprise  # shallow clones; other branches are fetched when switched to
+odoodb --json setup --fix gh-setup-git      # git uses the gh sign-in (enterprise is private)
+odoodb --json env list                      # odoo-<major> environments, Python, missing packages
+odoodb --json env create odoo-19            # pyenv + Python 3.12 + requirements of 19.0 (minutes)
+odoodb --json env install odoo-19 -p xlrd   # extra packages (default: the missing requirements)
+```
+
+Error code `postgres_down` → `setup --fix postgres-start`. Code `env_missing` → `repair <db> --fix env`.
+`create` builds a missing environment by itself. `gh-login` and `wkhtmltopdf` need the user (terminal
+sign-in, password dialog): tell them before running these.
 
 ## Rules
 

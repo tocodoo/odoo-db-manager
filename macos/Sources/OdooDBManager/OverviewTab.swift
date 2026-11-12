@@ -77,6 +77,16 @@ struct OverviewTab: View {
             StatTile(title: "Languages", value: (info.languages ?? []).map(\.code).joined(separator: ", ").ifEmpty("—"),
                      symbol: "globe", detail: "\(info.languages?.count ?? 0) active")
             StatTile(title: "Python", value: info.pyenv ?? "—", symbol: "terminal", detail: "pyenv environment")
+            if let h = info.history {
+                StatTile(title: "Logged problems", value: h.errors + h.warnings == 0 ? "None" : "\(h.errors) error\(h.errors == 1 ? "" : "s")",
+                         symbol: "exclamationmark.bubble",
+                         detail: h.errors + h.warnings == 0 ? "no warning or error logged"
+                             : "\(h.warnings) warning\(h.warnings == 1 ? "" : "s")" + (ISO.parse(h.lastError).map { " · last error \(Fmt.ago($0))" } ?? ""),
+                         tint: h.errors > 0 ? .red : .secondary)
+                    .contentShape(Rectangle())
+                    .onTapGesture { store.detailTab[info.name] = .history }
+                    .help("Open the history")
+            }
         }
     }
 
@@ -87,7 +97,7 @@ struct OverviewTab: View {
             VStack(spacing: 0) {
                 ForEach(Array(info.repos.enumerated()), id: \.element.id) { idx, repo in
                     if idx > 0 { Divider().padding(.leading, 44) }
-                    RepoRow(repo: repo)
+                    RepoRow(repo: repo, db: info.name)
                 }
             }
         }
@@ -139,7 +149,10 @@ struct OverviewTab: View {
 }
 
 struct RepoRow: View {
+    @Environment(Store.self) private var store
     var repo: Repo
+    /// The database whose page shows this row: busy while pulling, reloaded after.
+    var db: String
     @State private var hover = false
 
     var body: some View {
@@ -177,8 +190,20 @@ struct RepoRow: View {
                     Text(Fmt.ago(d)).font(.caption).foregroundStyle(.tertiary)
                 }
             }
+            if let b = repo.behind, b > 0, repo.git {
+                Button { pull() } label: { Label("Pull", systemImage: "arrow.down.circle") }
+                    .controlSize(.small)
+                    .help("git pull --ff-only (\(b) new commit\(b == 1 ? "" : "s"))")
+                    .disabled(store.busy[db] != nil)
+            }
             if hover && repo.exists {
                 HStack(spacing: 4) {
+                    if repo.git, GitHub.desktop != nil {
+                        CircleButton(symbol: "macwindow", help: "Open in GitHub Desktop") { GitHub.openInDesktop(repo.root ?? repo.path) }
+                    }
+                    if let web = GitHub.webURL(remote: repo.remote, branch: repo.branch) {
+                        CircleButton(symbol: "safari", help: "Open on GitHub") { NSWorkspace.shared.open(web) }
+                    }
                     CircleButton(symbol: "folder", help: "Reveal in Finder") { reveal(repo.root ?? repo.path) }
                     CircleButton(symbol: "doc.on.doc", help: "Copy path") { copyToPasteboard(repo.root ?? repo.path) }
                 }
@@ -194,6 +219,25 @@ struct RepoRow: View {
             Button("Reveal in Finder") { reveal(repo.root ?? repo.path) }
             Button("Copy Path") { copyToPasteboard(repo.root ?? repo.path) }
             if let r = repo.remote { Button("Copy Remote URL") { copyToPasteboard(r) } }
+            if repo.git {
+                Divider()
+                if GitHub.desktop != nil {
+                    Button("Open in GitHub Desktop") { GitHub.openInDesktop(repo.root ?? repo.path) }
+                }
+                if let web = GitHub.webURL(remote: repo.remote, branch: repo.branch) {
+                    Button("Open on GitHub") { NSWorkspace.shared.open(web) }
+                }
+                Button("Pull") { pull() }
+            }
+        }
+    }
+
+    private func pull() {
+        let path = repo.root ?? repo.path
+        Task {
+            await store.perform("Pull \(repo.name)", db: db, busyLabel: "Pulling…", args: ["pull", path]) { r in
+                r.message ?? "\(repo.name) pulled"
+            }
         }
     }
 
@@ -308,4 +352,29 @@ struct FlowLayout: Layout {
 
 extension String {
     func ifEmpty(_ fallback: String) -> String { isEmpty ? fallback : self }
+}
+
+/// GitHub Desktop and github.com links for the repositories of a database.
+enum GitHub {
+    static var desktop: URL? {
+        NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.github.GitHubClient")
+    }
+
+    static func openInDesktop(_ path: String) {
+        guard let app = desktop else { return }
+        NSWorkspace.shared.open([URL(fileURLWithPath: path)], withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    /// https://github.com/<owner>/<repo>/tree/<branch> from an https or ssh remote.
+    static func webURL(remote: String?, branch: String?) -> URL? {
+        guard var r = remote else { return nil }
+        if r.hasPrefix("git@github.com:") { r = "https://github.com/" + r.dropFirst("git@github.com:".count) }
+        if r.hasPrefix("ssh://git@github.com/") { r = "https://github.com/" + r.dropFirst("ssh://git@github.com/".count) }
+        guard r.hasPrefix("https://github.com/") else { return nil }
+        if r.hasSuffix(".git") { r.removeLast(4) }
+        if let b = branch, b != "HEAD", let enc = b.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) {
+            r += "/tree/" + enc
+        }
+        return URL(string: r)
+    }
 }

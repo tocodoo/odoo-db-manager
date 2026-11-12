@@ -112,7 +112,10 @@ struct HomeView: View {
                     } description: {
                         Text(err)
                     } actions: {
-                        Button("Retry") { Task { await store.refresh() } }
+                        HStack {
+                            Button("Retry") { Task { await store.refresh() } }
+                            Button("Set Up…") { store.setupShown = true }.buttonStyle(.borderedProminent)
+                        }
                     }
                 } else {
                     ProgressView("Reading databases…").frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -134,6 +137,9 @@ struct HomeView: View {
         .searchable(text: $search, placement: .toolbar, prompt: "Search databases, addons, versions")
         .toolbar { toolbar }
         .sheet(isPresented: $showNew) { NewDatabaseSheet(dump: droppedDump) { name in path.append(name) } }
+        .sheet(isPresented: Binding(get: { store.setupShown }, set: { store.setupShown = $0 })) {
+            SetupSheet().environment(store)
+        }
         .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
             guard let p = providers.first else { return false }
             _ = p.loadObject(ofClass: URL.self) { url, _ in
@@ -214,6 +220,18 @@ struct HomeView: View {
             }
 
             JobsButton()
+
+            Button {
+                store.setupShown = true
+            } label: {
+                Label("Setup", systemImage: "wrench.and.screwdriver")
+            }
+            .overlay(alignment: .topTrailing) {
+                if (store.setup?.problems ?? 0) > 0 {
+                    Circle().fill(.red).frame(width: 7, height: 7).offset(x: 1, y: -1).allowsHitTesting(false)
+                }
+            }
+            .help((store.setup?.problems ?? 0) > 0 ? "Setup: \(store.setup?.problems ?? 0) thing(s) to fix" : "Setup")
 
             Button {
                 if selecting { endSelection() } else { withAnimation(.snappy(duration: 0.2)) { selecting = true } }
@@ -459,6 +477,7 @@ struct DatabaseMenu: View {
         } else {
             Button("Start") { store.start(name) }
             Button("Start in Terminal") { store.startInTerminal(name) }
+            Button("Start in External Terminal") { store.startInExternalTerminal(name) }
         }
         Divider()
         Button("Update All Modules") { store.update(name, modules: []) }

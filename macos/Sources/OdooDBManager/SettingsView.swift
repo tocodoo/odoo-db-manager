@@ -15,6 +15,9 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
+            SetupView()
+                .tabItem { Label("Setup", systemImage: "wrench.and.screwdriver") }
+
             Form {
                 Section("Odoo") {
                     pathField("Community (odoo-bin)", $community, folder: true)
@@ -25,7 +28,7 @@ struct SettingsView: View {
                     pathField("pyenv root", $pyenvRoot, folder: true)
                     TextField("Force pyenv env", text: $pyenvEnv, prompt: Text("automatic (odoo-<version>)"))
                     pathField("psql", $psql, folder: false)
-                    Picker("Terminal", selection: $terminal) {
+                    Picker("External terminal", selection: $terminal) {
                         ForEach(["Warp", "Terminal", "iTerm2"], id: \.self) { Text($0) }
                     }
                     TextField("Default port", text: $port)
@@ -42,7 +45,7 @@ struct SettingsView: View {
             AgentsSettings()
                 .tabItem { Label("Agents", systemImage: "sparkles") }
         }
-        .frame(width: 600, height: 520)
+        .frame(width: 640, height: 600)
         .task { await load() }
     }
 
