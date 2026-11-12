@@ -118,6 +118,24 @@ struct DetailView: View {
     }
 }
 
+/// First letter of a database on a flat bordeaux tile.
+struct DatabaseMonogram: View {
+    var name: String
+    var size: CGFloat = 52
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
+            .fill(Theme.monogramFill)
+            .overlay {
+                Text(String(name.prefix(1)).uppercased())
+                    .font(Theme.display(size: size * 0.62))
+                    .foregroundStyle(Theme.monogramLetter)
+            }
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+}
+
 struct DetailHeader: View {
     @Environment(Store.self) private var store
     var info: DBInfo
@@ -127,15 +145,7 @@ struct DetailHeader: View {
         let busy = store.busy[info.name]
         let job = store.activeJobs.first { $0.db == info.name }
         HStack(alignment: .center, spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Theme.color(forSeries: info.series).gradient)
-                Text(String(info.name.prefix(1)).uppercased())
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-            }
-            .frame(width: 52, height: 52)
-            .shadow(color: Theme.color(forSeries: info.series).opacity(0.3), radius: 6, y: 3)
+            DatabaseMonogram(name: info.name)
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 10) {

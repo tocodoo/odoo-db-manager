@@ -19,6 +19,22 @@ enum Theme {
         }
     }
 
+    /// Marcellus (SIL OFL, macos/Fonts), registered at launch; the system font if it is missing.
+    static func display(size: CGFloat) -> Font { .custom("Marcellus", size: size) }
+
+    /// Monogram tile of a database: bordeaux, with a cream letter.
+    static let monogramFill = Color(red: 0x3A / 255, green: 0x08 / 255, blue: 0x23 / 255)
+    static let monogramLetter = Color(red: 0xFD / 255, green: 0xFE / 255, blue: 0xF0 / 255)
+
+    /// Registers the bundled fonts: from the app's Resources/Fonts, else from the repository (dev builds).
+    static func registerFonts() {
+        let name = "Marcellus-Regular"
+        let url = Bundle.main.url(forResource: name, withExtension: "ttf", subdirectory: "Fonts")
+            ?? CLI.repo.appendingPathComponent("macos/Fonts/\(name).ttf")
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+    }
+
     static func label(forSeries series: String?) -> String {
         guard let s = series, !s.isEmpty else { return "—" }
         return s.replacingOccurrences(of: "saas~", with: "saas ")
