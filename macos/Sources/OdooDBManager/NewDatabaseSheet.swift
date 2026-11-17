@@ -4,7 +4,8 @@ import UniformTypeIdentifiers
 struct NewDatabaseSheet: View {
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
-    var dump: URL?
+    /// Backup dropped on the window (zip, folder, dump file): fills Dump and Filestore.
+    var dropped: URL?
     var onCreated: (String) -> Void
 
     @ViewState private var name = ""
@@ -16,6 +17,11 @@ struct NewDatabaseSheet: View {
     @ViewState private var restore = false
     @ViewState private var dumpURL: URL?
     @ViewState private var filestore: URL?
+    @ViewState private var reading = false
+    @ViewState private var readError: String?
+    @ViewState private var extracted: URL?
+    @ViewState private var dropTargeted = false
+    @ViewState private var lastSuggested = ""
     @ViewState private var neutralize = true
     @ViewState private var startAfter = true
     @ViewState private var job: Job?
@@ -67,17 +73,35 @@ struct NewDatabaseSheet: View {
                 Section {
                     Toggle("Restore a backup", isOn: $restore.animation())
                     if restore {
+                        if reading {
+                            HStack(spacing: 8) {
+                                ProgressView().controlSize(.small)
+                                Text("Reading the backup…").foregroundStyle(.secondary)
+                            }
+                        }
                         LabeledContent("Dump") {
                             HStack {
-                                Text(dumpURL?.lastPathComponent ?? "—").foregroundStyle(.secondary)
-                                Button("Choose…") { pick(folder: false) { dumpURL = $0 } }
+                                Text(display(dumpURL) ?? "—").foregroundStyle(.secondary)
+                                    .lineLimit(1).truncationMode(.middle)
+                                Button("Choose…") { pick(folder: false) { load($0) } }
                             }
                         }
                         LabeledContent("Filestore") {
                             HStack {
-                                Text(filestore?.lastPathComponent ?? "optional").foregroundStyle(.secondary)
-                                Button("Choose…") { pick(folder: true) { filestore = $0 } }
+                                Text(display(filestore) ?? "optional").foregroundStyle(.secondary)
+                                    .lineLimit(1).truncationMode(.middle)
+                                if filestore != nil {
+                                    Button { filestore = nil } label: { Image(systemName: "xmark.circle.fill") }
+                                        .buttonStyle(.plain).foregroundStyle(.secondary)
+                                }
+                                Button("Choose…") { pick(folder: true) { load($0) } }
                             }
+                        }
+                        if let readError {
+                            Text(readError).font(.caption).foregroundStyle(.red)
+                        } else {
+                            Text("Drop a backup .zip, a dump or a folder on this window: both fields are filled.")
+                                .font(.caption).foregroundStyle(.secondary)
                         }
                         Toggle("Neutralize (admin/admin, crons and mail servers off)", isOn: $neutralize)
                     }
@@ -110,21 +134,35 @@ struct NewDatabaseSheet: View {
                     Button(job?.state == .failure ? "Retry" : "Create") { create() }
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut(.defaultAction)
-                        .disabled(!validName || exists || (restore && dumpURL == nil) || job?.state == .running)
+                        .disabled(!validName || exists || (restore && dumpURL == nil) || reading || job?.state == .running)
                 }
             }
             .padding(20)
         }
         .frame(width: 560)
         .frame(minHeight: 520)
-        .task {
-            if let dump {
-                restore = true
-                dumpURL = dump
-                name = dump.deletingPathExtension().lastPathComponent
-                    .replacingOccurrences(of: " ", with: "-")
-                    .filter { $0.isLetter || $0.isNumber || "-_.".contains($0) }
+        .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
+            guard job == nil, let p = providers.first else { return false }
+            _ = p.loadObject(ofClass: URL.self) { url, _ in
+                guard let url else { return }
+                Task { @MainActor in load(url) }
             }
+            return true
+        }
+        .overlay {
+            if dropTargeted {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
+                    .background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(Label("Drop to fill Dump and Filestore", systemImage: "arrow.down.doc").font(.title3.weight(.medium)))
+                    .padding(8)
+                    .allowsHitTesting(false)
+            }
+        }
+        // The extracted zip is only needed until the restore has run.
+        .onDisappear { if let extracted, job?.state != .running { try? FileManager.default.removeItem(at: extracted) } }
+        .task {
+            if let dropped { load(dropped) }
             if let res = try? await CLI.json(BranchesResponse.self, ["branches"]) {
                 branches = res.branches
                 if branch.isEmpty { branch = res.current ?? res.branches.first ?? "" }
@@ -137,9 +175,43 @@ struct NewDatabaseSheet: View {
         }
     }
 
+    /// Reads a backup (zip, folder, dump file or filestore folder) and fills the restore fields.
+    private func load(_ url: URL) {
+        withAnimation { restore = true }
+        reading = true
+        readError = nil
+        Task {
+            defer { reading = false }
+            do {
+                let b = try await BackupDrop.resolve(url)
+                if let old = extracted, old != b.extracted { try? FileManager.default.removeItem(at: old) }
+                if b.extracted != nil { extracted = b.extracted }
+                if let d = b.dump {
+                    dumpURL = d
+                    filestore = b.filestore
+                    if name.isEmpty || name == lastSuggested { name = b.name; lastSuggested = b.name }
+                } else if let f = b.filestore {
+                    filestore = f  // a filestore folder alone: keep the dump already chosen
+                }
+            } catch {
+                readError = error.localizedDescription
+            }
+        }
+    }
+
+    /// "dump.sql (from acme.zip)" for an extracted backup, a ~ path otherwise.
+    private func display(_ url: URL?) -> String? {
+        guard let url else { return nil }
+        if let extracted, url.path.hasPrefix(extracted.path) {
+            let inside = url.path.dropFirst(extracted.path.count + 1)
+            return "\(inside.isEmpty ? url.lastPathComponent : String(inside)) — from the dropped backup"
+        }
+        return url.path.replacingOccurrences(of: NSHomeDirectory(), with: "~")
+    }
+
     private func pick(folder: Bool, _ done: @escaping (URL) -> Void) {
         let panel = NSOpenPanel()
-        panel.canChooseDirectories = folder
+        panel.canChooseDirectories = true  // the dump picker also takes a backup folder
         panel.canChooseFiles = !folder
         panel.directoryURL = URL(fileURLWithPath: NSHomeDirectory() + "/odoo")
         if panel.runModal() == .OK, let url = panel.url { done(url) }

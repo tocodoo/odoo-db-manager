@@ -31,6 +31,11 @@ final class Job: Identifiable {
     }
 }
 
+struct NewDatabaseRequest: Identifiable {
+    let id = UUID()
+    var dropped: URL?
+}
+
 struct Toast: Identifiable, Equatable {
     let id = UUID()
     var text: String
@@ -76,6 +81,8 @@ final class Store {
     var setupAssistant = false
     /// Database whose launch script editor is open.
     var scriptEditor: ScriptEditorTarget?
+    /// The New Database sheet, with the backup dropped on the window if any.
+    var newDatabase: NewDatabaseRequest?
     var setupLoading = false
 
     private var pollTask: Task<Void, Never>?

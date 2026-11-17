@@ -50,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct RootView: View {
     @Environment(Store.self) private var store
     @ViewState private var path: [String] = []
+    @ViewState private var dropTargeted = false
 
     var body: some View {
         @Bindable var store = store
@@ -61,6 +62,29 @@ struct RootView: View {
         }
         .overlay(alignment: .bottom) { ToastView() }
         .sheet(item: $store.scriptEditor) { t in ScriptEditorSheet(db: t.db) }
+        .sheet(item: $store.newDatabase) { r in
+            NewDatabaseSheet(dropped: r.dropped) { name in path = [name] }
+        }
+        // A backup dropped anywhere in the window opens New Database with Dump and Filestore filled.
+        .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
+            guard store.newDatabase == nil, store.scriptEditor == nil, !store.setupShown,
+                  let p = providers.first else { return false }
+            _ = p.loadObject(ofClass: URL.self) { url, _ in
+                guard let url else { return }
+                Task { @MainActor in store.newDatabase = NewDatabaseRequest(dropped: url) }
+            }
+            return true
+        }
+        .overlay {
+            if dropTargeted {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
+                    .background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+                    .overlay(Label("Drop a backup to restore it", systemImage: "arrow.down.doc").font(.title3.weight(.medium)))
+                    .padding(12)
+                    .allowsHitTesting(false)
+            }
+        }
         .task {
             if let db = DevSnapshot.openDB { path = [db] }
             await store.refresh()
@@ -81,6 +105,12 @@ struct RootView: View {
             if store.setup?.blocking == true || store.list == nil { store.setupShown = true }
             if let kind = DevSnapshot.terminal, let db = DevSnapshot.openDB { store.openTerminal(db, kind: kind) }
             if DevSnapshot.scriptEditor, let db = DevSnapshot.openDB { store.editScript(db) }
+            if DevSnapshot.sheet == "setup" || DevSnapshot.sheet == "env" { store.setupShown = true }
+            if DevSnapshot.sheet == "new" { store.newDatabase = NewDatabaseRequest() }
+            if let s = DevSnapshot.sheet, s.hasPrefix("dump:") {
+                store.newDatabase = NewDatabaseRequest(dropped: URL(fileURLWithPath: String(s.dropFirst(5))))
+            }
+            if DevSnapshot.sheet == "reset", let db = DevSnapshot.openDB { store.confirmReset(db) }
             await DevSnapshot.run(store: store)
         }
         .onReceive(NotificationCenter.default.publisher(for: .openDatabase)) { note in

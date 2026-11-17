@@ -18,9 +18,6 @@ struct HomeView: View {
     @AppStorage("home.filter") private var filter: DBFilter = .all
     @AppStorage("home.sort") private var sort: DBSort = .recent
     @AppStorage("home.version") private var versionFilter = ""
-    @ViewState private var showNew = false
-    @ViewState private var droppedDump: URL?
-    @ViewState private var dropTargeted = false
     @ViewState private var selecting = false
     @ViewState private var selection: Set<String> = []
     @ViewState private var anchor: String?
@@ -126,7 +123,7 @@ struct HomeView: View {
                 } description: {
                     Text("Create one here, or ask any Claude agent: “create an Odoo 19 database with sale”.")
                 } actions: {
-                    Button("New Database") { showNew = true }.buttonStyle(.borderedProminent)
+                    Button("New Database") { store.newDatabase = NewDatabaseRequest() }.buttonStyle(.borderedProminent)
                 }
             } else {
                 grid(listing)
@@ -136,30 +133,8 @@ struct HomeView: View {
         .navigationSubtitle(subtitle)
         .searchable(text: $search, placement: .toolbar, prompt: "Search databases, addons, versions")
         .toolbar { toolbar }
-        .sheet(isPresented: $showNew) { NewDatabaseSheet(dump: droppedDump) { name in path.append(name) } }
         .sheet(isPresented: Binding(get: { store.setupShown }, set: { store.setupShown = $0 })) {
             SetupSheet().environment(store)
-        }
-        .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
-            guard let p = providers.first else { return false }
-            _ = p.loadObject(ofClass: URL.self) { url, _ in
-                guard let url, ["sql", "dump", "zip", "gz"].contains(url.pathExtension.lowercased()) else { return }
-                Task { @MainActor in
-                    droppedDump = url
-                    showNew = true
-                }
-            }
-            return true
-        }
-        .overlay {
-            if dropTargeted {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
-                    .background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
-                    .overlay(Label("Drop a backup to restore it", systemImage: "arrow.down.doc").font(.title3.weight(.medium)))
-                    .padding(12)
-                    .allowsHitTesting(false)
-            }
         }
     }
 
@@ -250,8 +225,7 @@ struct HomeView: View {
             .disabled(store.loading)
 
             Button {
-                droppedDump = nil
-                showNew = true
+                store.newDatabase = NewDatabaseRequest()
             } label: {
                 Label("New Database", systemImage: "plus")
             }

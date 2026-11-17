@@ -1347,7 +1347,10 @@ def _prepare_dump(path: Path, filestore: str, log: Log) -> tuple[str, str]:
         sql = next((p for p in (tmp / "dump.sql", *tmp.rglob("*.sql"), *tmp.rglob("*.dump")) if p.is_file()), None)
         if not sql:
             raise DBError("No dump.sql in the archive.", code="bad_args")
-        fs = tmp / "filestore"
+        # Next to the dump first (zips that wrap everything in a folder), else anywhere in the archive.
+        fs = sql.parent / "filestore"
+        if not fs.is_dir():
+            fs = next((p for p in tmp.rglob("filestore") if p.is_dir()), fs)
         return str(sql), filestore or (str(fs) if fs.is_dir() else "")
     if path.suffix == ".gz":
         tmp = Path(tempfile.mkdtemp(prefix="odoodb-restore-"))
