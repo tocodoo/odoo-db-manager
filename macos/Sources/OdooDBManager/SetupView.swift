@@ -8,17 +8,45 @@ struct SetupView: View {
     /// Interactive action (GitHub sign-in) running in the built-in terminal.
     @State private var terminal: TerminalSession?
     @State private var newEnvironment = false
+    @State private var installingAll = false
+    /// The setup assistant shows one step at a time: only its items, without the checklist's footer.
+    var include: (SetupItem) -> Bool = { _ in true }
+    var footer = true
+    /// Adds an "Install All" button running every missing install of the shown items, one after the other.
+    var installAll = false
+    var newEnvironmentButton = true
+
+    private var pyenvReady: Bool { store.setup?.items.contains { $0.id == "pyenv" && $0.status == "ok" } == true }
+
+    /// Missing items fixed by a plain action (no sign-in in the terminal, no folder to choose).
+    private func installable(_ items: [SetupItem]) -> [SetupItem] {
+        items.filter { $0.status != "ok" && $0.action != nil && $0.terminal == nil }
+    }
 
     var body: some View {
         Form {
             if let setup = store.setup {
-                ForEach(groups(setup.items), id: \.0) { group, items in
+                let shown = setup.items.filter(include)
+                if installAll, !installable(shown).isEmpty {
+                    Section {
+                        HStack {
+                            Text(installingAll ? "Installing, one after the other…"
+                                 : "\(installable(shown).count) to install. macOS may ask for your password.")
+                                .font(.callout).foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Install All") { runAll(installable(shown)) }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(installingAll || !jobs.isEmpty)
+                        }
+                    }
+                }
+                ForEach(groups(shown), id: \.0) { group, items in
                     Section(group) {
                         ForEach(items) { item in
                             SetupRow(item: item, job: jobs[item.id], action: { run(item) },
                                      alternative: { run($0, of: item) })
                         }
-                        if group == "Python", items.contains(where: { $0.id == "pyenv" && $0.status == "ok" }) {
+                        if group == "Python", pyenvReady, newEnvironmentButton {
                             HStack {
                                 Button("New Environment…") { newEnvironment = true }
                                 Spacer()
@@ -37,6 +65,16 @@ struct SetupView: View {
         }
         .formStyle(.grouped)
         .safeAreaInset(edge: .bottom) {
+            if footer { checklistFooter }
+        }
+        .task { await store.loadSetup() }
+        .sheet(isPresented: $newEnvironment) { NewEnvironmentSheet() }
+        .sheet(item: $terminal) { s in
+            TerminalSheet(session: s) { Task { await store.loadSetup() } }
+        }
+    }
+
+    private var checklistFooter: some View {
             HStack {
                 if let s = store.setup {
                     Text(s.problems > 0 ? "\(s.problems) thing\(s.problems == 1 ? "" : "s") to fix"
@@ -52,11 +90,16 @@ struct SetupView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
             .background(.bar)
-        }
-        .task { await store.loadSetup() }
-        .sheet(isPresented: $newEnvironment) { NewEnvironmentSheet() }
-        .sheet(item: $terminal) { s in
-            TerminalSheet(session: s) { Task { await store.loadSetup() } }
+    }
+
+    private func runAll(_ items: [SetupItem]) {
+        installingAll = true
+        Task {
+            for item in items {
+                await store.runSetup(item) { job in jobs[item.id] = job }
+                jobs[item.id] = nil
+            }
+            installingAll = false
         }
     }
 
@@ -194,9 +237,18 @@ struct SetupRow: View {
 
 /// The checklist as a sheet (from the home toolbar, or opened when something blocking is missing).
 struct SetupSheet: View {
+    @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        if store.setupAssistant {
+            SetupAssistant()
+        } else {
+            checklist
+        }
+    }
+
+    private var checklist: some View {
         VStack(spacing: 0) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {

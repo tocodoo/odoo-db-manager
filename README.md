@@ -31,7 +31,7 @@ curl -fsSL https://raw.githubusercontent.com/tocodoo/odoo-db-manager/main/instal
 
 It takes about two minutes: the app is compiled on your Mac. If a window asks to install the **Command Line Tools**, click **Install**: the Terminal waits for it, then continues on its own. When it is done, the app opens and its icon appears in the menu bar.
 
-**3. Open Setup** (the wrench in the toolbar, or **Settings › Setup**) and click the buttons of what is missing: **Install Postgres.app**, **Clone odoo/odoo**, **Sign In to GitHub**, **Create** an environment… Paths (community, enterprise, launch scripts, pyenv) are in **Settings › General**, detected from your previous settings if you used an older version.
+**3. Follow the setup assistant.** It opens at the first launch and installs and configures everything from the app, step by step: **Tools** (PostgreSQL, the GitHub command `gh`, GitHub Desktop, pyenv, wkhtmltopdf: **Install All**), **GitHub** (sign in), **Odoo Code** (locate the community and enterprise folders you already have, or clone them with `gh` or GitHub Desktop), **Python** (one environment per Odoo version). It comes back at each launch until it is finished; afterwards the full checklist is in the toolbar (the wrench) and **Settings › Setup**. Paths (community, enterprise, launch scripts, pyenv) are in **Settings › General**, detected from your previous settings if you used an older version.
 
 **4. Restart Claude Desktop** if you use it, so it picks up the `odoo-databases` MCP server. Claude Code needs nothing: new sessions see the skill.
 

@@ -72,6 +72,8 @@ final class Store {
     var terminals: [TerminalSession] = []
     var detailTab: [String: DetailTab] = [:]
     var setupShown = false
+    /// The setup sheet shows the first-launch assistant (steps) instead of the checklist.
+    var setupAssistant = false
     /// Database whose launch script editor is open.
     var scriptEditor: ScriptEditorTarget?
     var setupLoading = false

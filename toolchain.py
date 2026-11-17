@@ -37,6 +37,8 @@ CACHE_DIR = Path.home() / "Library" / "Caches" / "Odoo Database Manager"
 APP_DIRS = [Path("/Applications"), Path.home() / "Applications"]
 REMOTES = {"community": "https://github.com/odoo/odoo.git", "enterprise": "https://github.com/odoo/enterprise.git"}
 POSTGRES_RELEASES = "https://api.github.com/repos/PostgresApp/PostgresApp/releases/latest"
+GH_RELEASES = "https://api.github.com/repos/cli/cli/releases/latest"
+GH_DESKTOP_URL = "https://central.github.com/deployments/desktop/desktop/latest/"
 WKHTMLTOPDF_PKG = ("https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-2/"
                    "wkhtmltox-0.12.6-2.macos-cocoa.pkg")
 # The package is not signed: its content is pinned instead.
@@ -308,17 +310,71 @@ def gh_status() -> dict:
     return res
 
 
+def _release_asset(api: str, pattern: str) -> tuple[str, str, str]:
+    """(tag, download url, sha256) of the latest GitHub release asset whose name matches `pattern`."""
+    req = urllib.request.Request(api, headers={"User-Agent": "odoodb", "Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        release = json.load(resp)
+    for a in release.get("assets", []):
+        if re.fullmatch(pattern, a.get("name", "")):
+            return release.get("tag_name", ""), a["browser_download_url"], (a.get("digest") or "").removeprefix("sha256:")
+    raise T.DBError(f"No download found for {pattern} in {api}.")
+
+
 def gh_install(log: Log = None) -> str:
+    """Homebrew when there is one (it keeps gh up to date), otherwise the official release in ~/.local/bin."""
     if _which("gh"):
         return "GitHub CLI already installed."
     brew = _which("brew")
-    if not brew:
-        raise T.DBError("Homebrew is needed to install the GitHub CLI.",
-                        hint="Install it from https://cli.github.com, or use GitHub Desktop.", code="missing")
-    code, _ = _stream([brew, "install", "gh"], log, env={"HOMEBREW_NO_AUTO_UPDATE": "1"})
-    if code != 0:
-        raise T.DBError("brew install gh failed.")
-    return "GitHub CLI installed."
+    if brew:
+        code, _ = _stream([brew, "install", "gh"], log, env={"HOMEBREW_NO_AUTO_UPDATE": "1"})
+        if code != 0:
+            raise T.DBError("brew install gh failed.")
+        return "GitHub CLI installed (Homebrew)."
+    arch = "arm64" if platform.machine() == "arm64" else "amd64"
+    _log(log, "→ Looking for the latest GitHub CLI")
+    tag, url, digest = _release_asset(GH_RELEASES, rf"gh_[\d.]+_macOS_{arch}\.zip")
+    dest = Path.home() / ".local" / "bin" / "gh"
+    with tempfile.TemporaryDirectory() as tmp:
+        archive = Path(tmp) / "gh.zip"
+        _log(log, f"→ Downloading GitHub CLI {tag}")
+        _download(url, archive, log)
+        if not digest or hashlib.sha256(archive.read_bytes()).hexdigest() != digest:
+            raise T.DBError("The GitHub CLI download does not match its checksum: not installed.")
+        code, _, err = ops.run_cmd(["ditto", "-x", "-k", str(archive), tmp], timeout=120)
+        binary = next(Path(tmp).glob("gh_*/bin/gh"), None)
+        if code != 0 or not binary:
+            raise T.DBError(f"Cannot unpack the GitHub CLI: {err.strip()}")
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(binary, dest)
+        dest.chmod(0o755)
+    return f"GitHub CLI {tag} installed in {dest}."
+
+
+def desktop_install(log: Log = None) -> str:
+    """Latest GitHub Desktop (signed by GitHub, checked) in /Applications, or ~/Applications without admin rights."""
+    if github_desktop():
+        return "GitHub Desktop already installed."
+    url = GH_DESKTOP_URL + ("darwin-arm64" if platform.machine() == "arm64" else "darwin")
+    dest_dir = APP_DIRS[0] if os.access(APP_DIRS[0], os.W_OK) else APP_DIRS[1]
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        archive = Path(tmp) / "desktop.zip"
+        _log(log, "→ Downloading GitHub Desktop (about 500 MB)")
+        _download(url, archive, log)
+        code, _, err = ops.run_cmd(["ditto", "-x", "-k", str(archive), tmp], timeout=600)
+        src = Path(tmp) / "GitHub Desktop.app"
+        if code != 0 or not src.is_dir():
+            raise T.DBError(f"Cannot unpack GitHub Desktop: {err.strip()}")
+        code, _, err = ops.run_cmd(["codesign", "--verify", "--deep", "--strict", "-R=anchor apple generic and "
+                                    "certificate leaf[subject.OU] = VEKTX9H2N7", str(src)], timeout=300)
+        if code != 0:
+            raise T.DBError("The downloaded GitHub Desktop is not signed by GitHub: not installed.")
+        _log(log, f"→ Installing in {dest_dir}")
+        code, _, err = ops.run_cmd(["ditto", str(src), str(dest_dir / "GitHub Desktop.app")], timeout=600)
+        if code != 0:
+            raise T.DBError(f"Copy failed: {err.strip()}")
+    return f"GitHub Desktop installed in {dest_dir}."
 
 
 def _login_command() -> str:
@@ -949,8 +1005,7 @@ def setup_status(network: bool = True) -> dict:
         if not gh["installed"]:
             items.append(_item("gh", "GitHub", "GitHub CLI (gh)", "warning",
                                "Signs git in to GitHub (enterprise is private) and fetches the branches you switch to.",
-                               "gh-install" if _which("brew") else "", "Install" if _which("brew") else "",
-                               link="https://cli.github.com"))
+                               "gh-install", "Install", link="https://cli.github.com"))
         elif not gh["user"]:
             items.append(_item("gh", "GitHub", "GitHub CLI (gh)", "warning", "Installed, not signed in.",
                                "gh-login", "Sign In…"))
@@ -964,6 +1019,7 @@ def setup_status(network: bool = True) -> dict:
         items.append(_item("desktop", "GitHub", "GitHub Desktop", "ok" if gh["desktop"] else "optional",
                            "Repositories open in it from a database page." if gh["desktop"] else
                            "Optional: to review changes and switch branches visually.",
+                           "" if gh["desktop"] else "desktop-install", "" if gh["desktop"] else "Install",
                            link="" if gh["desktop"] else "https://desktop.github.com"))
 
         envs = f_envs.result()
@@ -1016,7 +1072,8 @@ ACTIONS = {
     "clone:enterprise": "Clone odoo/enterprise into the enterprise path",
     "locate:community": "Use an existing odoo/odoo folder (--path <folder>)",
     "locate:enterprise": "Use an existing odoo/enterprise folder (--path <folder>)",
-    "gh-install": "Install the GitHub CLI (Homebrew)",
+    "gh-install": "Install the GitHub CLI (Homebrew, or the official release in ~/.local/bin)",
+    "desktop-install": "Install GitHub Desktop",
     "gh-login": "Sign in to GitHub (opens the terminal)",
     "gh-setup-git": "Make git use the GitHub CLI sign-in",
     "pyenv-install": "Install pyenv",
@@ -1040,6 +1097,8 @@ def run_action(action: str, log: Log = None, path: str = "") -> dict:
         msg = locate_repo(arg, path)
     elif kind == "gh-install":
         msg = gh_install(log)
+    elif kind == "desktop-install":
+        msg = desktop_install(log)
     elif kind == "gh-login":
         msg = gh_login()
     elif kind == "gh-setup-git":

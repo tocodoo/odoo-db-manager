@@ -65,12 +65,20 @@ struct RootView: View {
             if let db = DevSnapshot.openDB { path = [db] }
             await store.refresh()
             store.startPolling()
-            // Offline check at launch (no GitHub round trip); the sheet opens when nothing can work,
-            // and always at the first launch after the install, so a new Mac starts with the checklist.
+            // Offline check at launch (no GitHub round trip). Until the setup assistant is finished, it opens
+            // at every launch while PostgreSQL, pyenv or the community code is missing (a new Mac);
+            // a Mac that already has them never sees it. Later, the checklist opens when nothing can work.
             await store.loadSetup(network: false)
-            let firstLaunch = !UserDefaults.standard.bool(forKey: "setupShownOnce")
-            if firstLaunch || store.setup?.blocking == true || store.list == nil { store.setupShown = true }
-            if firstLaunch { UserDefaults.standard.set(true, forKey: "setupShownOnce") }
+            let has = { (id: String) in store.setup?.items.contains { $0.id == id && $0.status == "ok" } == true }
+            if !UserDefaults.standard.bool(forKey: SetupAssistant.completedKey) {
+                if store.setup != nil, has("postgres"), has("pyenv"), has("community") {
+                    UserDefaults.standard.set(true, forKey: SetupAssistant.completedKey)
+                } else {
+                    store.setupAssistant = true
+                    store.setupShown = true
+                }
+            }
+            if store.setup?.blocking == true || store.list == nil { store.setupShown = true }
             if let kind = DevSnapshot.terminal, let db = DevSnapshot.openDB { store.openTerminal(db, kind: kind) }
             if DevSnapshot.scriptEditor, let db = DevSnapshot.openDB { store.editScript(db) }
             await DevSnapshot.run(store: store)
