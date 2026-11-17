@@ -10,9 +10,13 @@ APP_NAME="Odoo Database Manager"
 APP="$DEST/$APP_NAME.app"
 VERSION="$(sed -n 's/^APP_VERSION = "\(.*\)"/\1/p' "$REPO/version.py")"
 
+# BUILD_ARCHS="arm64 x86_64": universal app (needs Xcode; the GitHub workflow builds it so).
+ARCH_FLAGS=()
+for a in ${BUILD_ARCHS:-$(uname -m)}; do ARCH_FLAGS+=(--arch "$a"); done
+
 cd "$HERE"
-swift build -c release --arch "$(uname -m)" 2>&1 | grep -Ev "^\[|^Building|^Compiling|^Write" || true
-BIN="$(swift build -c release --arch "$(uname -m)" --show-bin-path)/OdooDBManager"
+swift build -c release "${ARCH_FLAGS[@]}" 2>&1 | grep -Ev "^\[|^Building|^Compiling|^Write" || true
+BIN="$(swift build -c release "${ARCH_FLAGS[@]}" --show-bin-path)/OdooDBManager"
 [[ -x "$BIN" ]] || { echo "Build failed"; exit 1; }
 
 rm -rf "$APP"

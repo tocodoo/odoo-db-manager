@@ -111,13 +111,34 @@ ok "Dependencies installed"
 # 5. odoodb for agents: command, Claude Code skill, Claude Desktop MCP server
 bash "$HERE/agent/install-agent.sh"
 
-# 6. The native app (SwiftUI), built from macos/
-echo "… building the app (about a minute)"
+# 6. The native app (SwiftUI). GitHub builds it with Xcode for every change of macos/ (workflow "app"):
+# that build is used when it matches this clone's macos/ folder, so the Swift version of this Mac does
+# not matter. Otherwise (a change not built yet, offline…), it is compiled here.
 BUILD="$HERE/macos/build"
 LOG_DIR="$HOME/Library/Logs/$APP_NAME"
 mkdir -p "$LOG_DIR"
-bash "$HERE/macos/build.sh" "$BUILD" >"$LOG_DIR/build.log" 2>&1 \
-  || { tail -20 "$LOG_DIR/build.log"; fail "The app build failed. Full log: $LOG_DIR/build.log"; }
+APP_TREE="$(git -C "$HERE" rev-parse HEAD:macos 2>/dev/null || true)"
+APP_ZIP_URL="${REPO_URL%.git}/releases/download/app/OdooDBManager-$APP_TREE.zip"
+prebuilt_app() {
+  [[ -n "$APP_TREE" ]] && git -C "$HERE" diff --quiet HEAD -- macos/Sources macos/Package.swift macos/Package.resolved \
+    || return 1
+  local tmp; tmp="$(mktemp -d)"
+  curl -fsSL "$APP_ZIP_URL" -o "$tmp/app.zip" 2>/dev/null && ditto -x -k "$tmp/app.zip" "$tmp" \
+    && [[ -d "$tmp/$APP_NAME.app" ]] || { rm -rf "$tmp"; return 1; }
+  rm -rf "$BUILD/$APP_NAME.app"; mkdir -p "$BUILD"
+  mv "$tmp/$APP_NAME.app" "$BUILD/"
+  rm -rf "$tmp"
+  # The app runs odoodb from this clone.
+  plutil -replace DBMRepoPath -string "$HERE" "$BUILD/$APP_NAME.app/Contents/Info.plist"
+  codesign --force --deep --sign - "$BUILD/$APP_NAME.app" >/dev/null 2>&1 || true
+}
+if prebuilt_app; then
+  ok "App downloaded (built by GitHub)"
+else
+  echo "… building the app (about a minute)"
+  bash "$HERE/macos/build.sh" "$BUILD" >"$LOG_DIR/build.log" 2>&1 \
+    || { tail -20 "$LOG_DIR/build.log"; fail "The app build failed. Full log: $LOG_DIR/build.log"; }
+fi
 
 # Quit the running app (the update is started from it)
 [[ $UPDATE == 1 ]] && sleep 1
