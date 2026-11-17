@@ -27,9 +27,31 @@ import os
 import re
 import sys
 import time
+import urllib.error
 import webbrowser
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
+def _trust_system_certificates() -> None:
+    """HTTPS checks certificates against the macOS keychain (an office proxy's certificate included).
+    python.org's Python has no root certificates until its "Install Certificates" command is run:
+    without this, every download from GitHub fails with CERTIFICATE_VERIFY_FAILED."""
+    try:
+        import truststore
+        truststore.inject_into_ssl()
+        return
+    except Exception:
+        pass
+    try:
+        import ssl
+        import certifi
+        ssl._create_default_https_context = lambda *a, **k: ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        pass
+
+
+_trust_system_certificates()
 
 import dbtools as T  # noqa: E402
 
@@ -761,7 +783,15 @@ def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     JSON = bool(getattr(args, "json", False))
     try:
-        res = args.func(args)
+        try:
+            res = args.func(args)
+        except urllib.error.URLError as e:
+            # Network failures read as one line with what to do, not as a traceback.
+            reason = getattr(e, "reason", e)
+            url = getattr(e, "url", "") or getattr(e, "filename", "") or ""
+            raise T.DBError(f"Cannot download{' ' + url if url else ''}: {reason}",
+                            hint="Check the internet connection (and the proxy / VPN), then retry. "
+                                 "Certificate errors: run the install command again.", code="network") from e
     except T.DBError as e:
         if JSON:
             print(T.dumps(e.to_dict()))
