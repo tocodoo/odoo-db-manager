@@ -65,9 +65,12 @@ struct RootView: View {
             if let db = DevSnapshot.openDB { path = [db] }
             await store.refresh()
             store.startPolling()
-            // Offline check at launch (no GitHub round trip); the sheet opens only when nothing can work.
+            // Offline check at launch (no GitHub round trip); the sheet opens when nothing can work,
+            // and always at the first launch after the install, so a new Mac starts with the checklist.
             await store.loadSetup(network: false)
-            if store.setup?.blocking == true || store.list == nil { store.setupShown = true }
+            let firstLaunch = !UserDefaults.standard.bool(forKey: "setupShownOnce")
+            if firstLaunch || store.setup?.blocking == true || store.list == nil { store.setupShown = true }
+            if firstLaunch { UserDefaults.standard.set(true, forKey: "setupShownOnce") }
             if let kind = DevSnapshot.terminal, let db = DevSnapshot.openDB { store.openTerminal(db, kind: kind) }
             if DevSnapshot.scriptEditor, let db = DevSnapshot.openDB { store.editScript(db) }
             await DevSnapshot.run(store: store)
