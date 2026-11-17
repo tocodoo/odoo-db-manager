@@ -8,10 +8,10 @@ enum ModuleScope: String, CaseIterable, Identifiable {
 struct ModulesTab: View {
     @Environment(Store.self) private var store
     var info: DBInfo
-    @State private var search = ""
-    @State private var scope: ModuleScope = .all
-    @State private var selection = Set<Module.ID>()
-    @State private var sortOrder = [KeyPathComparator(\Module.name)]
+    @ViewState private var search = ""
+    @ViewState private var scope: ModuleScope = .all
+    @ViewState private var selection = Set<Module.ID>()
+    @ViewState private var sortOrder = [KeyPathComparator(\Module.name)]
 
     private var modules: [Module] {
         var mods = info.modules ?? []

@@ -27,14 +27,14 @@ struct LogLine: Identifiable, Equatable {
 struct LogsTab: View {
     @Environment(Store.self) private var store
     var info: DBInfo
-    @State private var lines: [LogLine] = []
-    @State private var filter = ""
-    @State private var errorsOnly = false
-    @State private var follow = true
-    @State private var lastSize: UInt64 = 0
-    @State private var nextID = 0
+    @ViewState private var lines: [LogLine] = []
+    @ViewState private var filter = ""
+    @ViewState private var errorsOnly = false
+    @ViewState private var follow = true
+    @ViewState private var lastSize: UInt64 = 0
+    @ViewState private var nextID = 0
     /// Bytes after the last newline: a line still being written.
-    @State private var partial = ""
+    @ViewState private var partial = ""
 
     private var visible: [LogLine] {
         var l = lines

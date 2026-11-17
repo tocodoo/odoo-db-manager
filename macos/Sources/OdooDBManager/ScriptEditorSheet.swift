@@ -32,24 +32,24 @@ struct ScriptEditorSheet: View {
         var id: String { rawValue }
     }
 
-    @State private var loaded: ScriptSettings?
-    @State private var loadError: String?
-    @State private var mode: Mode = .settings
-    @State private var branches: [String] = []
-    @State private var saving = false
+    @ViewState private var loaded: ScriptSettings?
+    @ViewState private var loadError: String?
+    @ViewState private var mode: Mode = .settings
+    @ViewState private var branches: [String] = []
+    @ViewState private var saving = false
 
     // Settings form
-    @State private var branch = ""
-    @State private var pyenv = ""
-    @State private var port = ""
-    @State private var addons: [String] = []
-    @State private var install = ""
-    @State private var atStart: AtStart = .nothing
-    @State private var update = ""
+    @ViewState private var branch = ""
+    @ViewState private var pyenv = ""
+    @ViewState private var port = ""
+    @ViewState private var addons: [String] = []
+    @ViewState private var install = ""
+    @ViewState private var atStart: AtStart = .nothing
+    @ViewState private var update = ""
 
     // Source
-    @State private var source = ""
-    @State private var savedSource = ""
+    @ViewState private var source = ""
+    @ViewState private var savedSource = ""
 
     private var script: ScriptInfo? { loaded?.script }
 

@@ -2,16 +2,16 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(Store.self) private var store
-    @State private var s: SettingsResponse?
-    @State private var community = ""
-    @State private var enterprise = ""
-    @State private var scripts = ""
-    @State private var pyenvRoot = ""
-    @State private var pyenvEnv = ""
-    @State private var psql = ""
-    @State private var terminal = "Warp"
-    @State private var port = "8069"
-    @State private var saved = false
+    @ViewState private var s: SettingsResponse?
+    @ViewState private var community = ""
+    @ViewState private var enterprise = ""
+    @ViewState private var scripts = ""
+    @ViewState private var pyenvRoot = ""
+    @ViewState private var pyenvEnv = ""
+    @ViewState private var psql = ""
+    @ViewState private var terminal = "Warp"
+    @ViewState private var port = "8069"
+    @ViewState private var saved = false
 
     var body: some View {
         TabView {
@@ -93,8 +93,8 @@ struct SettingsView: View {
 }
 
 struct AgentsSettings: View {
-    @State private var skill = false
-    @State private var cli = false
+    @ViewState private var skill = false
+    @ViewState private var cli = false
 
     private var skillPath: String { NSHomeDirectory() + "/.claude/skills/odoo-db/SKILL.md" }
     private var cliPath: String { NSHomeDirectory() + "/.local/bin/odoodb" }

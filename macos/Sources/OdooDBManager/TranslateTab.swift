@@ -3,11 +3,11 @@ import SwiftUI
 struct TranslateTab: View {
     @Environment(Store.self) private var store
     var info: DBInfo
-    @State private var module = ""
-    @State private var lang = "fr_FR"
-    @State private var useAI = true
-    @State private var customDest: URL?
-    @State private var job: Job?
+    @ViewState private var module = ""
+    @ViewState private var lang = "fr_FR"
+    @ViewState private var useAI = true
+    @ViewState private var customDest: URL?
+    @ViewState private var job: Job?
 
     static let languages: [(String, String)] = [
         ("fr_FR", "French"), ("fr_BE", "French (BE)"), ("nl_BE", "Dutch (BE)"), ("nl_NL", "Dutch"),
@@ -117,12 +117,10 @@ struct TranslateTab: View {
         if let customDest { args += ["-o", customDest.path] }
         if !useAI { args.append("--no-ai") }
         let wasRunning = store.isRunning(db)
-        // Through the binding: newer compilers (Swift 6.3) refuse assigning the @State from this escaping closure.
-        let job = $job
         Task {
             if wasRunning { await store.perform("Stop \(db)", db: db, args: ["stop", db]) { _ in "\(db) stopped for the export" } }
             await store.perform("Translate \(module) (\(lang))", db: db, busyLabel: "Translating…", args: args,
-                                onJob: { job.wrappedValue = $0 }) { r in "Written \(r.path ?? "")" }
+                                onJob: { job = $0 }) { r in "Written \(r.path ?? "")" }
             if wasRunning { store.start(db) }
         }
     }

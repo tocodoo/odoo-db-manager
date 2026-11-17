@@ -14,16 +14,16 @@ enum DBSort: String, CaseIterable, Identifiable {
 struct HomeView: View {
     @Environment(Store.self) private var store
     @Binding var path: [String]
-    @State private var search = ""
+    @ViewState private var search = ""
     @AppStorage("home.filter") private var filter: DBFilter = .all
     @AppStorage("home.sort") private var sort: DBSort = .recent
     @AppStorage("home.version") private var versionFilter = ""
-    @State private var showNew = false
-    @State private var droppedDump: URL?
-    @State private var dropTargeted = false
-    @State private var selecting = false
-    @State private var selection: Set<String> = []
-    @State private var anchor: String?
+    @ViewState private var showNew = false
+    @ViewState private var droppedDump: URL?
+    @ViewState private var dropTargeted = false
+    @ViewState private var selecting = false
+    @ViewState private var selection: Set<String> = []
+    @ViewState private var anchor: String?
 
     private var versions: [String] {
         Array(Set(store.databases.compactMap { $0.series })).sorted { $0.localizedStandardCompare($1) == .orderedDescending }
@@ -336,7 +336,7 @@ struct DatabaseCard: View {
     var db: DBSummary
     /// nil outside selection mode.
     var selected: Bool? = nil
-    @State private var hovering = false
+    @ViewState private var hovering = false
 
     var body: some View {
         let proc = store.process(for: db.name)
@@ -435,7 +435,7 @@ struct CircleButton: View {
     var help: String
     var prominent = false
     var action: () -> Void
-    @State private var hover = false
+    @ViewState private var hover = false
 
     var body: some View {
         Button(action: action) {

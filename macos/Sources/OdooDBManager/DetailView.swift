@@ -19,10 +19,10 @@ struct DetailView: View {
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     let name: String
-    @State private var info: DBInfo?
-    @State private var error: String?
-    @State private var tab: DetailTab = DevSnapshot.tab ?? .overview
-    @State private var loading = false
+    @ViewState private var info: DBInfo?
+    @ViewState private var error: String?
+    @ViewState private var tab: DetailTab = DevSnapshot.tab ?? .overview
+    @ViewState private var loading = false
 
     var body: some View {
         Group {

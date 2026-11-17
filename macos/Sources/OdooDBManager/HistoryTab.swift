@@ -4,10 +4,10 @@ import SwiftUI
 struct HistoryTab: View {
     @Environment(Store.self) private var store
     var info: DBInfo
-    @State private var res: HistoryResponse?
-    @State private var level: Level = .all
-    @State private var expanded: Set<String> = []
-    @State private var error: String?
+    @ViewState private var res: HistoryResponse?
+    @ViewState private var level: Level = .all
+    @ViewState private var expanded: Set<String> = []
+    @ViewState private var error: String?
 
     enum Level: String, CaseIterable, Identifiable {
         case all = "All", errors = "Errors", warnings = "Warnings"

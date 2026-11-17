@@ -173,7 +173,7 @@ struct RepoRow: View {
     var db: String
     /// Its launch script: the row can be replaced or removed from the addons path.
     var script: ScriptInfo? = nil
-    @State private var hover = false
+    @ViewState private var hover = false
 
     var body: some View {
         HStack(spacing: 12) {

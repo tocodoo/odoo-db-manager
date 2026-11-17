@@ -147,7 +147,7 @@ struct TerminalHost: NSViewRepresentable {
 struct TerminalTab: View {
     @Environment(Store.self) private var store
     var info: DBInfo
-    @State private var selected: UUID?
+    @ViewState private var selected: UUID?
 
     private var sessions: [TerminalSession] { store.terminals.filter { $0.db == info.name } }
     private var current: TerminalSession? { sessions.first { $0.id == selected } ?? sessions.last }

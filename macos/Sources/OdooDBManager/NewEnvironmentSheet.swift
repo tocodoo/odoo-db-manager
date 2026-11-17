@@ -13,17 +13,17 @@ struct NewEnvironmentSheet: View {
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
 
-    @State private var name = ""
-    @State private var nameEdited = false
-    @State private var python = "3.12"
-    @State private var pythonEdited = false
-    @State private var requirements = true
-    @State private var branch = ""
-    @State private var branches: [String] = []
-    @State private var remoteOnly: Set<String> = []
-    @State private var existing: Set<String> = []
-    @State private var installed: [String: String] = [:]
-    @State private var job: Job?
+    @ViewState private var name = ""
+    @ViewState private var nameEdited = false
+    @ViewState private var python = "3.12"
+    @ViewState private var pythonEdited = false
+    @ViewState private var requirements = true
+    @ViewState private var branch = ""
+    @ViewState private var branches: [String] = []
+    @ViewState private var remoteOnly: Set<String> = []
+    @ViewState private var existing: Set<String> = []
+    @ViewState private var installed: [String: String] = [:]
+    @ViewState private var job: Job?
 
     /// Versions offered: what Odoo supports, plus any other installed one.
     private var pythons: [String] {

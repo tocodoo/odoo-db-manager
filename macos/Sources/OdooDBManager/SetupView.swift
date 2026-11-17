@@ -4,11 +4,11 @@ import SwiftUI
 struct SetupView: View {
     @Environment(Store.self) private var store
     /// item id -> job of its running action
-    @State private var jobs: [String: Job] = [:]
+    @ViewState private var jobs: [String: Job] = [:]
     /// Interactive action (GitHub sign-in) running in the built-in terminal.
-    @State private var terminal: TerminalSession?
-    @State private var newEnvironment = false
-    @State private var installingAll = false
+    @ViewState private var terminal: TerminalSession?
+    @ViewState private var newEnvironment = false
+    @ViewState private var installingAll = false
     /// The setup assistant shows one step at a time: only its items, without the checklist's footer.
     var include: (SetupItem) -> Bool = { _ in true }
     var footer = true

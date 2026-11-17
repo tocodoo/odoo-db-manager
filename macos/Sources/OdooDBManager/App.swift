@@ -4,7 +4,7 @@ import SwiftUI
 @main
 struct OdooDBManagerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    @State private var store = Store()
+    @ViewState private var store = Store()
 
     var body: some Scene {
         Window("Odoo Databases", id: "main") {
@@ -49,7 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 struct RootView: View {
     @Environment(Store.self) private var store
-    @State private var path: [String] = []
+    @ViewState private var path: [String] = []
 
     var body: some View {
         @Bindable var store = store
@@ -131,7 +131,7 @@ struct ToastView: View {
 /// Toolbar button listing the recent jobs (create, start, repair, translate…).
 struct JobsButton: View {
     @Environment(Store.self) private var store
-    @State private var shown = false
+    @ViewState private var shown = false
 
     var body: some View {
         if !store.jobs.isEmpty {
@@ -164,7 +164,7 @@ struct JobsButton: View {
 
 struct JobRow: View {
     var job: Job
-    @State private var expanded = false
+    @ViewState private var expanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -252,7 +252,7 @@ struct MenuRow: View {
     var title: String
     var symbol: String
     var action: () -> Void
-    @State private var hover = false
+    @ViewState private var hover = false
 
     var body: some View {
         Button(action: action) {

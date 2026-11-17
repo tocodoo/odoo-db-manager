@@ -7,18 +7,18 @@ struct NewDatabaseSheet: View {
     var dump: URL?
     var onCreated: (String) -> Void
 
-    @State private var name = ""
-    @State private var branch = ""
-    @State private var branches: [String] = []
-    @State private var remoteOnly: Set<String> = []
-    @State private var modules = ""
-    @State private var addons: [URL] = []
-    @State private var restore = false
-    @State private var dumpURL: URL?
-    @State private var filestore: URL?
-    @State private var neutralize = true
-    @State private var startAfter = true
-    @State private var job: Job?
+    @ViewState private var name = ""
+    @ViewState private var branch = ""
+    @ViewState private var branches: [String] = []
+    @ViewState private var remoteOnly: Set<String> = []
+    @ViewState private var modules = ""
+    @ViewState private var addons: [URL] = []
+    @ViewState private var restore = false
+    @ViewState private var dumpURL: URL?
+    @ViewState private var filestore: URL?
+    @ViewState private var neutralize = true
+    @ViewState private var startAfter = true
+    @ViewState private var job: Job?
 
     private var validName: Bool { name.range(of: #"^[A-Za-z0-9][A-Za-z0-9_.\-]*$"#, options: .regularExpression) != nil }
     private var exists: Bool { store.databases.contains { $0.name == name } }
