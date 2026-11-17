@@ -192,7 +192,7 @@ final class Store {
             }
             if res.ok == false {
                 job.state = .failure
-                job.message = res.failureText
+                job.message = res.failureText + (res.hint.map { $0.isEmpty ? "" : "\n" + $0 } ?? "")
                 show(job.message, error: true)
                 if bulkDepth == 0 { Task { await refresh() } }
                 return nil
@@ -205,7 +205,7 @@ final class Store {
             return res
         } catch let e as CLIError {
             job.state = .failure
-            job.message = e.error
+            job.message = [e.error, e.hint].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "\n")
             handle(e, title: title, db: db, args: args, success: success)
         } catch {
             job.state = .failure

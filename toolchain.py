@@ -250,7 +250,7 @@ def postgres_install(log: Log = None) -> str:
     if postgres_app():
         return postgres_start(log)
     _log(log, "→ Looking for the latest Postgres.app")
-    req = urllib.request.Request(POSTGRES_RELEASES, headers={"User-Agent": "odoodb", "Accept": "application/vnd.github+json"})
+    req = urllib.request.Request(POSTGRES_RELEASES, headers=_github_api_headers())
     with urllib.request.urlopen(req, timeout=30) as resp:
         release = json.load(resp)
     # Postgres-2.9.6-18.dmg: one PostgreSQL version; the multi-version dmg is not needed.
@@ -310,9 +310,21 @@ def gh_status() -> dict:
     return res
 
 
+def _github_api_headers() -> dict:
+    """Headers of a GitHub API call, signed in with the gh token when there is one: anonymous calls are
+    limited to 60 an hour per network (an office shares them)."""
+    headers = {"User-Agent": "odoodb", "Accept": "application/vnd.github+json"}
+    gh = _which("gh")
+    if gh:
+        code, out, _ = ops.run_cmd([gh, "auth", "token", "--hostname", "github.com"], timeout=10)
+        if code == 0 and out.strip():
+            headers["Authorization"] = f"Bearer {out.strip()}"
+    return headers
+
+
 def _release_asset(api: str, pattern: str) -> tuple[str, str, str]:
     """(tag, download url, sha256) of the latest GitHub release asset whose name matches `pattern`."""
-    req = urllib.request.Request(api, headers={"User-Agent": "odoodb", "Accept": "application/vnd.github+json"})
+    req = urllib.request.Request(api, headers=_github_api_headers())
     with urllib.request.urlopen(req, timeout=30) as resp:
         release = json.load(resp)
     for a in release.get("assets", []):

@@ -5,12 +5,12 @@ import SwiftUI
 struct SetupAssistant: View {
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @ViewState private var step = Step.tools
+    @ViewState private var step = Step.github
 
     static let completedKey = "setupAssistantCompleted"
 
     enum Step: Int, CaseIterable {
-        case tools, github, code, python, ready
+        case github, tools, code, python, ready
 
         var title: String {
             switch self {
@@ -25,7 +25,7 @@ struct SetupAssistant: View {
         var heading: String {
             switch self {
             case .tools: "Install the tools"
-            case .github: "Sign in to GitHub"
+            case .github: "Install GitHub and sign in"
             case .code: "Get the Odoo code"
             case .python: "Create the Python environments"
             case .ready: "This Mac is ready"
@@ -34,10 +34,11 @@ struct SetupAssistant: View {
 
         var explanation: String {
             switch self {
-            case .tools: "PostgreSQL stores the databases, the GitHub command and GitHub Desktop get the code, "
-                + "pyenv runs each Odoo version on its own Python, wkhtmltopdf prints PDF reports."
-            case .github: "Enterprise is private: sign in with an account that can see odoo/enterprise. "
-                + "The sign-in opens in a terminal below, then in your browser."
+            case .tools: "PostgreSQL stores the databases, pyenv runs each Odoo version on its own Python, "
+                + "wkhtmltopdf prints PDF reports."
+            case .github: "First, because everything else is downloaded from GitHub: install the GitHub command "
+                + "(and GitHub Desktop), then sign in with an account that can see odoo/enterprise. "
+                + "The sign-in opens in a terminal, then in your browser."
             case .code: "Point to the community and enterprise folders you already have, "
                 + "or clone them here (GitHub command) or in GitHub Desktop."
             case .python: "One environment per Odoo version, with the packages its requirements need. "
@@ -51,7 +52,7 @@ struct SetupAssistant: View {
     /// The step an item of `odoodb setup` belongs to.
     static func step(of item: SetupItem) -> Step {
         switch item.id {
-        case "gh": item.action == "gh-install" ? .tools : .github
+        case "gh", "desktop": .github
         case "community", "enterprise": .code
         case "forced": .python
         case _ where item.id.hasPrefix("env:"): .python
@@ -70,6 +71,8 @@ struct SetupAssistant: View {
     /// What must be done before the next step; nil when it can go on.
     private var missing: String? {
         switch step {
+        case .github:
+            if !ok("gh") { return "Install the GitHub command and sign in to continue." }
         case .tools:
             if !ok("postgres") { return "PostgreSQL is needed to continue." }
             if !ok("pyenv") { return "pyenv is needed to continue." }
@@ -105,7 +108,7 @@ struct SetupAssistant: View {
                 placeholder("Get the Odoo code first: the environments follow its versions.")
             } else {
                 let s = step
-                SetupView(include: { Self.step(of: $0) == s }, footer: false, installAll: s == .tools,
+                SetupView(include: { Self.step(of: $0) == s }, footer: false, installAll: s != .python,
                           newEnvironmentButton: s == .python)
                     .id(s)
             }
@@ -118,7 +121,7 @@ struct SetupAssistant: View {
     private var header: some View {
         HStack(spacing: 0) {
             ForEach(Step.allCases, id: \.self) { s in
-                if s != .tools {
+                if s != .github {
                     Rectangle()
                         .fill(s.rawValue <= step.rawValue ? Color.accentColor : Color.secondary.opacity(0.3))
                         .frame(height: 1)
@@ -190,8 +193,8 @@ struct SetupAssistant: View {
             if let missing, step != .ready {
                 Text(missing).font(.callout).foregroundStyle(.secondary)
             }
-            if step != .tools {
-                Button("Back") { step = Step(rawValue: step.rawValue - 1) ?? .tools }
+            if step != .github {
+                Button("Back") { step = Step(rawValue: step.rawValue - 1) ?? .github }
             }
             if step == .ready {
                 Button("Start Using Odoo Database Manager") { close(completed: true) }

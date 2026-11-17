@@ -3,7 +3,7 @@ import SwiftUI
 /// Checklist of what this Mac needs (`odoodb setup`), each item with the button that installs or fixes it.
 struct SetupView: View {
     @Environment(Store.self) private var store
-    /// item id -> job of its running action
+    /// item id -> job of its running action, kept after a failure so the row shows the whole error.
     @ViewState private var jobs: [String: Job] = [:]
     /// Interactive action (GitHub sign-in) running in the built-in terminal.
     @ViewState private var terminal: TerminalSession?
@@ -36,7 +36,7 @@ struct SetupView: View {
                             Spacer()
                             Button("Install All") { runAll(installable(shown)) }
                                 .buttonStyle(.borderedProminent)
-                                .disabled(installingAll || !jobs.isEmpty)
+                                .disabled(installingAll || busy)
                         }
                     }
                 }
@@ -92,12 +92,18 @@ struct SetupView: View {
             .background(.bar)
     }
 
+    private func finish(_ id: String) {
+        if jobs[id]?.state != .failure { jobs[id] = nil }
+    }
+
+    private var busy: Bool { jobs.values.contains { $0.state == .running } }
+
     private func runAll(_ items: [SetupItem]) {
         installingAll = true
         Task {
             for item in items {
                 await store.runSetup(item) { job in jobs[item.id] = job }
-                jobs[item.id] = nil
+                finish(item.id)
             }
             installingAll = false
         }
@@ -135,7 +141,7 @@ struct SetupView: View {
         Task {
             _ = await store.perform("Locate \(item.title)", db: nil, args: ["setup", "--fix", action, "--path", folder.path],
                                     onJob: { jobs[item.id] = $0 }) { r in r.message ?? "\(item.title) found" }
-            jobs[item.id] = nil
+            finish(item.id)
             await store.loadSetup()
             await store.refresh()
         }
@@ -150,7 +156,7 @@ struct SetupView: View {
         }
         Task {
             await store.runSetup(item) { job in jobs[item.id] = job }
-            jobs[item.id] = nil
+            finish(item.id)
         }
     }
 }
@@ -162,6 +168,8 @@ struct SetupRow: View {
     var alternative: (SetupAlternative) -> Void = { _ in }
 
     private var alternatives: [SetupAlternative] { item.alternatives ?? [] }
+    private var running: Job? { job?.state == .running ? job : nil }
+    private var failed: Job? { job?.state == .failure ? job : nil }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -171,7 +179,7 @@ struct SetupRow: View {
                 .frame(width: 22)
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.title).font(.callout.weight(.medium))
-                if let job {
+                if let job = running {
                     Text(job.progress)
                         .font(.caption)
                         .foregroundStyle(Color.accentColor)
@@ -184,8 +192,9 @@ struct SetupRow: View {
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                if let failed { SetupFailure(job: failed) }
                 // Several ways to fix it: all the buttons on their own line, the main one first.
-                if job == nil, !alternatives.isEmpty {
+                if running == nil, !alternatives.isEmpty {
                     HStack(spacing: 8) {
                         if item.action != nil {
                             Button(item.actionLabel.isEmpty ? "Fix" : item.actionLabel, action: action)
@@ -200,12 +209,12 @@ struct SetupRow: View {
                 }
             }
             Spacer(minLength: 8)
-            if job != nil {
+            if running != nil {
                 ProgressView().controlSize(.small)
             } else if !alternatives.isEmpty {
                 EmptyView()
             } else if item.action != nil {
-                Button(item.actionLabel.isEmpty ? "Fix" : item.actionLabel, action: action)
+                Button(failed != nil ? "Try Again" : item.actionLabel.isEmpty ? "Fix" : item.actionLabel, action: action)
                     .buttonStyle(.borderedProminent)
                     .tint(item.status == "ok" ? .secondary : .accentColor)
                     .controlSize(.small)
@@ -232,6 +241,50 @@ struct SetupRow: View {
         case "warning": .orange
         default: .secondary
         }
+    }
+}
+
+/// What went wrong, in full: the error (with its hint) and the whole output of the command, selectable.
+struct SetupFailure: View {
+    var job: Job
+    @ViewState private var output = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label {
+                Text(job.message.isEmpty ? "Failed" : job.message)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+            }
+            .font(.callout)
+            .foregroundStyle(.red)
+            if !job.lines.isEmpty {
+                DisclosureGroup(isExpanded: $output) {
+                    ScrollView {
+                        Text(job.lines.joined(separator: "\n"))
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: 180)
+                } label: {
+                    HStack {
+                        Text("Output (\(job.lines.count) lines)").font(.caption)
+                        Spacer()
+                        Button("Copy") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(job.message + "\n\n" + job.lines.joined(separator: "\n"), forType: .string)
+                        }
+                        .controlSize(.small)
+                    }
+                }
+            }
+        }
+        .padding(10)
+        .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.top, 4)
     }
 }
 
