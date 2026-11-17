@@ -67,7 +67,7 @@ struct SetupView: View {
         .safeAreaInset(edge: .bottom) {
             if footer { checklistFooter }
         }
-        .task { await store.loadSetup() }
+        .task { await store.loadSetup(); if DevSnapshot.sheet == "env" { newEnvironment = true } }
         .sheet(isPresented: $newEnvironment) { NewEnvironmentSheet() }
         .sheet(item: $terminal) { s in
             TerminalSheet(session: s) { Task { await store.loadSetup() } }

@@ -12,11 +12,12 @@ struct SettingsView: View {
     @ViewState private var terminal = "Warp"
     @ViewState private var port = "8069"
     @ViewState private var saved = false
+    @ViewState private var devTab = DevSnapshot.sheet == "agents" ? 2 : 0
 
     var body: some View {
-        TabView {
+        TabView(selection: $devTab) {
             SetupView()
-                .tabItem { Label("Setup", systemImage: "wrench.and.screwdriver") }
+                .tabItem { Label("Setup", systemImage: "wrench.and.screwdriver") }.tag(0)
 
             Form {
                 Section("Odoo") {
@@ -40,10 +41,10 @@ struct SettingsView: View {
                 }
             }
             .formStyle(.grouped)
-            .tabItem { Label("General", systemImage: "gearshape") }
+            .tabItem { Label("General", systemImage: "gearshape") }.tag(1)
 
             AgentsSettings()
-                .tabItem { Label("Agents", systemImage: "sparkles") }
+                .tabItem { Label("Agents", systemImage: "sparkles") }.tag(2)
         }
         .frame(width: 640, height: 600)
         .task { await load() }

@@ -11,10 +11,48 @@ enum DevSnapshot {
     static let terminal = ProcessInfo.processInfo.environment["DBM_TERMINAL"]
     /// Opens the launch script editor of DBM_OPEN at launch.
     static let scriptEditor = ProcessInfo.processInfo.environment["DBM_SCRIPT_EDITOR"] != nil
+    /// Capture mode: with DBM_CAPTURE=<prefix>, opens DBM_SHEET (new, dump:<path>, setup, env, reset, settings),
+    /// waits DBM_CAPTURE_DELAY seconds, writes every visible window (dark) to DBM_SNAPSHOT_DIR/<prefix>-<i>.png, quits.
+    static let capture = ProcessInfo.processInfo.environment["DBM_CAPTURE"]
+    static let sheet = ProcessInfo.processInfo.environment["DBM_SHEET"]
+    @MainActor static var hold: NSWindow?
+
+    @MainActor
+    static func captureWindows(store: Store) async {
+        guard let dir, let capture else { return }
+        NSApp.appearance = NSAppearance(named: ProcessInfo.processInfo.environment["DBM_DARK"] != nil ? .darkAqua : .aqua)
+        try? await Task.sleep(for: .seconds(1.5))
+        if let main = NSApp.windows.first(where: { $0.isVisible && $0.frame.width > 400 && $0.sheetParent == nil && $0.title != "Settings" && !$0.title.contains("Settings") }) {
+            main.setFrame(NSRect(x: 80, y: 60, width: 1440, height: 900), display: true)
+            main.makeKeyAndOrderFront(nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        if sheet == "settings" || sheet == "agents" {
+            let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView().environment(store)))
+            w.title = "Agents"
+            w.setContentSize(NSSize(width: 640, height: 560))
+            w.makeKeyAndOrderFront(nil)
+            hold = w
+        }
+        let delay = Double(ProcessInfo.processInfo.environment["DBM_CAPTURE_DELAY"] ?? "4") ?? 4
+        try? await Task.sleep(for: .seconds(delay))
+        for (i, w) in NSApp.windows.enumerated() where w.isVisible && w.frame.width > 200 {
+            let id = CGWindowID(w.windowNumber)
+            let url = URL(fileURLWithPath: "\(dir)/\(capture)-\(i)-\(Int(w.frame.width))x\(Int(w.frame.height)).png")
+            if let img = CGWindowListCreateImage(.null, .optionIncludingWindow, id, [.boundsIgnoreFraming, .bestResolution]) {
+                try? NSBitmapImageRep(cgImage: img).representation(using: .png, properties: [:])?.write(to: url)
+            } else if let v = w.contentView?.superview ?? w.contentView, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) {
+                v.cacheDisplay(in: v.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: url)
+            }
+        }
+        NSApp.terminate(nil)
+    }
 
     @MainActor
     static func run(store: Store) async {
         guard let dir else { return }
+        if capture != nil { await captureWindows(store: store); return }
         if scriptEditor {
             // Forms do not render in ImageRenderer: capture the windows themselves (the editor is a sheet).
             for scheme in [NSAppearance.Name.aqua, .darkAqua] {
