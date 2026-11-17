@@ -117,10 +117,12 @@ struct TranslateTab: View {
         if let customDest { args += ["-o", customDest.path] }
         if !useAI { args.append("--no-ai") }
         let wasRunning = store.isRunning(db)
+        // Through the binding: newer compilers (Swift 6.3) refuse assigning the @State from this escaping closure.
+        let job = $job
         Task {
             if wasRunning { await store.perform("Stop \(db)", db: db, args: ["stop", db]) { _ in "\(db) stopped for the export" } }
             await store.perform("Translate \(module) (\(lang))", db: db, busyLabel: "Translating…", args: args,
-                                onJob: { job = $0 }) { r in "Written \(r.path ?? "")" }
+                                onJob: { job.wrappedValue = $0 }) { r in "Written \(r.path ?? "")" }
             if wasRunning { store.start(db) }
         }
     }
