@@ -1589,8 +1589,6 @@ if [[ "$DB_EXISTS" -eq 1 ]]; then
   else
     if [[ -n "$UPDATE_MODULES" ]]; then
       ARGS+=(--reinit "$UPDATE_MODULES")
-    else
-      ARGS+=(--reinit)
     fi
   fi
 else

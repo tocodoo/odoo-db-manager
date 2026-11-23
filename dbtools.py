@@ -221,6 +221,27 @@ def script_for(db: str, index: Optional[dict] = None) -> Optional[dict]:
     return (index if index is not None else script_index()).get(db)
 
 
+_BARE_REINIT = re.compile(r"\n(\s*)else\n\s*ARGS\+=\(--reinit\)\n")
+
+
+def heal_script(sc: Optional[dict]) -> None:
+    """Scripts written by older versions add a bare `--reinit` when no module is listed: Odoo refuses it
+    ("--reinit option requires 1 argument"). Removed in place before a run."""
+    if not sc or not sc.get("managed"):
+        return
+    path = Path(sc["path"])
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    fixed = _BARE_REINIT.sub("\n", text)
+    if fixed != text:
+        try:
+            path.write_text(fixed, encoding="utf-8")
+        except OSError:
+            pass
+
+
 # --------------------------------------------------------------------------- #
 # Processes
 # --------------------------------------------------------------------------- #
@@ -1262,6 +1283,7 @@ def terminal_command(db: str, kind: str = "server", switch_branch: bool = False,
     if kind not in TERMINAL_KINDS:
         raise DBError(f"Unknown terminal kind {kind}", hint="One of: " + ", ".join(TERMINAL_KINDS), code="bad_args")
     parallel_gc()
+    heal_script(script_for(db))
     info = database_info(db)
     sc = info.get("script")
     par = parallel_of(db)
@@ -1329,6 +1351,7 @@ def start(db: str, terminal: bool = False, wait: bool = True, switch_branch: boo
     version, or `core_branch` / `enterprise_branch`), from a temporary worktree. A database stopped with
     `keep_worktree` (restart, update) starts alongside again with the same settings."""
     parallel_gc()
+    heal_script(script_for(db))
     info = database_info(db)
     if info.get("running"):
         return {"ok": True, "name": db, "already_running": True, "url": info["url"], "running": info["running"]}
