@@ -1500,9 +1500,11 @@ def create_launch_script(
     install_modules: Optional[list[str]] = None,
     update_modules: Optional[list[str]] = None,
     update_mode: str = "reinit",
+    port: Optional[int] = None,
 ) -> tuple[bool, str]:
     """
     Crée un script shell pour lancer Odoo sur cette base.
+    port : port HTTP (défaut : celui de la base dans les réglages).
     scripts_subdir : sous-dossier direct sous scripts_dir (optionnel).
     VERSION= dans le script reprend le nom exact de la branche (ex. saas~19.2).
     Retourne (ok, chemin_du_script ou message d'erreur).
@@ -1570,7 +1572,7 @@ ARGS=(
   --db-filter "^${{DB}}$"
   -d "$DB"
   --dev=all
-  --http-port={get_db_port(db_name)}
+  --http-port={port or get_db_port(db_name)}
   --http-interface=127.0.0.1
 )
 

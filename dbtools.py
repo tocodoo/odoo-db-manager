@@ -972,6 +972,11 @@ def parallel_of(db: str) -> Optional[dict]:
     return _par_load().get(db)
 
 
+def _parallel_script(db: str) -> Path:
+    """The temporary launch script of a run alongside (the database's own script is never changed)."""
+    return LOG_DIR / "parallel" / f"odoo-{db}.sh"
+
+
 def parallel_host(db: str) -> str:
     host = re.sub(r"[^a-z0-9.-]+", "-", db.lower()).strip("-.") or "db"
     return f"{host}.localhost"
@@ -1071,6 +1076,8 @@ def parallel_gc(procs: Optional[list] = None, log: Log = None) -> list[str]:
              if running_server(db, procs) or now < float(e.get("hold_until") or 0)}
     if alive != state:
         _par_save(alive)
+        for db in set(state) - set(alive):
+            _parallel_script(db).unlink(missing_ok=True)
     notes = []
     if has_dirs:
         used = {e.get("worktree") for e in alive.values()}
@@ -1164,16 +1171,22 @@ def _prepare_parallel(db: str, info: dict, core_branch: str, ent_branch: str, py
     state[db] = {"port": port, "pyenv": pyenv, "core_branch": core_branch, "enterprise_branch": ent_branch,
                  "worktree": wt["key"] if wt else None, "hold_until": time.time() + START_GRACE}
     _par_save(state)
-    text = Path(sc["path"]).read_text(encoding="utf-8", errors="replace")
-    if wt:
-        text = _map_code(text, wt)
-    text, n = re.subn(r"--http-port[=\s]+\d+", f"--http-port={port}", text)
-    if not n:
-        text = re.sub(r"(exec\s+\"\$PYTHON\"\s+\S+)", rf"\1 --http-port={port}", text, count=1)
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-    script = LOG_DIR / f"{db}.parallel.sh"
-    script.write_text(text, encoding="utf-8")
-    script.chmod(0o755)
+    # A standard script generated from the parsed one (absolute addons path, modules, update mode), not a patched
+    # copy: hand-written scripts use relative paths, several odoo-bin calls, no --http-port…
+    addons = effective_addons_path(db, sc)
+    update_mode = sc.get("update_mode") or "reinit"
+    if not sc.get("managed"):
+        text = Path(sc["path"]).read_text(encoding="utf-8", errors="replace")
+        if re.search(r"(?:^|\s)-u\s+\"?\$\{?UPDATE_MODULES", text, re.MULTILINE):
+            update_mode = "update"
+    ok, script = ops.create_launch_script(
+        wt["core"] if wt else str(community_path()), db, ",".join(code_addons(db, addons)), pyenv,
+        version=major_of(core_branch or series) or "19", branch=core_branch or branch_for_series(series),
+        scripts_dir=str(LOG_DIR / "parallel"), install_modules=sc.get("install_modules") or [],
+        update_modules=sc.get("update_modules") or [], update_mode=update_mode, port=port)
+    if not ok:
+        raise DBError(script, code="script")
+    script = Path(script)
     if log:
         where = f"worktree {wt['key']}" if wt else "the main checkout"
         log(f"✓ Alongside on port {port}, code from {where}, Python {pyenv or 'default'}")
@@ -1373,6 +1386,7 @@ def _end_parallel(db: str, keep_worktree: bool, log: Log = None) -> str:
         return ""
     del state[db]
     _par_save(state)
+    _parallel_script(db).unlink(missing_ok=True)
     key = e.get("worktree")
     if not key:
         return ""
