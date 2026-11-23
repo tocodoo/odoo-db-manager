@@ -118,10 +118,10 @@ struct TranslateTab: View {
         if !useAI { args.append("--no-ai") }
         let wasRunning = store.isRunning(db)
         Task {
-            if wasRunning { await store.perform("Stop \(db)", db: db, args: ["stop", db]) { _ in "\(db) stopped for the export" } }
+            if wasRunning { await store.runStop(db, keepWorktree: true) }
             await store.perform("Translate \(module) (\(lang))", db: db, busyLabel: "Translating…", args: args,
                                 onJob: { job = $0 }) { r in "Written \(r.path ?? "")" }
-            if wasRunning { store.start(db) }
+            if wasRunning { await store.runStart(db) }
         }
     }
 }

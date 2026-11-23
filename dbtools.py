@@ -281,9 +281,11 @@ def odoo_processes() -> list[dict]:
         if is_main:
             g.update({k: p[k] for k in ("pid", "ppid", "uptime", "port", "command")})
     result = []
+    alongside = _par_load()
     for g in grouped.values():
         g["mode"] = "background" if _read_pid(g["db"]) == g["pid"] else "terminal"
-        g["url"] = f"http://localhost:{g['port']}"
+        host = parallel_host(g["db"]) if g["db"] in alongside and g["kind"] == "server" else "localhost"
+        g["url"] = f"http://{host}:{g['port']}"
         g.pop("ppid", None)
         result.append(g)
     return sorted(result, key=lambda x: x["db"].lower())
@@ -412,6 +414,8 @@ def list_databases() -> dict:
     sizes = database_sizes()
     index = script_index()
     procs = odoo_processes()
+    parallel_gc(procs)
+    alongside = _par_load()
     with ThreadPoolExecutor(max_workers=12) as pool:
         summaries = dict(zip(names, pool.map(_db_summary, names)))
     current = code_series()
@@ -431,7 +435,8 @@ def list_databases() -> dict:
             "custom_addons": [a["name"] for a in custom_addons(sc["addons_path"])] if sc else [],
             "running": bool(run),
             "port": port,
-            "url": f"http://localhost:{port}",
+            "url": (run or {}).get("url") or f"http://localhost:{port}",
+            "parallel": _parallel_summary(name, alongside.get(name)) if run else None,
             "matches_code": (norm_series(s.get("series", "")) == norm_series(current)) if s.get("series") else None,
         })
     return {
@@ -619,7 +624,8 @@ def database_info(db: str, with_modules: bool = False) -> dict:
         "repos": repos,
         "running": run,
         "port": port,
-        "url": f"http://localhost:{port}",
+        "url": (run or {}).get("url") or f"http://localhost:{port}",
+        "parallel": _parallel_summary(db, parallel_of(db)) if run else None,
         "log": {"path": str(lp), "exists": lp.is_file(), "size": lp.stat().st_size if lp.is_file() else 0},
         "pyenv": effective_env(sc, summary.get("series") or (sc or {}).get("branch") or ""),
         "custom_modules": custom,
@@ -659,7 +665,7 @@ def diagnose(db: str, info: dict, modules: list[dict], procs: list[dict]) -> lis
 
     series = info.get("series") or ""
     code = info.get("code_series") or ""
-    if series and code and norm_series(series) != norm_series(code):
+    if series and code and norm_series(series) != norm_series(code) and not (info.get("parallel") or {}).get("worktree"):
         issues.append(_issue(
             "branch_mismatch", "error", f"Database is {series}, repos are on {code}",
             f"Starting it now would run {code} code on a {series} database. "
@@ -932,6 +938,271 @@ def write_script(db: str, branch: str, addons: list[str], install: list[str], up
 
 
 # --------------------------------------------------------------------------- #
+# Parallel runs (several databases at once, other versions from temporary worktrees)
+# --------------------------------------------------------------------------- #
+# A database started "alongside" runs on a free port and is opened on http://<db>.localhost:<port> (browsers keep
+# cookies per host, not per port: two Odoo on localhost would log each other out). When it needs other code than
+# the checkout (another version or branch), core + enterprise come from a detached git worktree shared by every
+# database on the same branches. The worktree is removed when the last of them stops, unless files were modified.
+
+APP_DIR = Path.home() / "Library" / "Application Support" / "Odoo Database Manager"
+PARALLEL_STATE = APP_DIR / "parallel.json"
+# No space in the path: launch scripts `cd` and `exec` their core folder unquoted.
+WORKTREES_DIR = Path.home() / "Library" / "Caches" / "OdooDBManager" / "worktrees"
+START_GRACE = 180       # a starting database is not visible in `ps` yet: its worktree is kept meanwhile
+HOLD_SECONDS = 3600     # `stop --keep-worktree` (update, translate, restart): kept for the next start
+
+
+def _par_load() -> dict:
+    try:
+        data = json.loads(PARALLEL_STATE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _par_save(state: dict) -> None:
+    APP_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = PARALLEL_STATE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state, indent=2), encoding="utf-8")
+    tmp.replace(PARALLEL_STATE)
+
+
+def parallel_of(db: str) -> Optional[dict]:
+    return _par_load().get(db)
+
+
+def parallel_host(db: str) -> str:
+    host = re.sub(r"[^a-z0-9.-]+", "-", db.lower()).strip("-.") or "db"
+    return f"{host}.localhost"
+
+
+def db_url(db: str, port: int) -> str:
+    return f"http://{parallel_host(db)}:{port}" if parallel_of(db) else f"http://localhost:{port}"
+
+
+def _worktree_key(core_branch: str, ent_branch: str) -> str:
+    key = core_branch if (not ent_branch or ent_branch == core_branch) else f"{core_branch}+{ent_branch}"
+    return re.sub(r"[^A-Za-z0-9._+-]+", "_", key)
+
+
+def worktree_paths(key: str) -> dict:
+    base = WORKTREES_DIR / key
+    return {"path": str(base), "core": str(base / "core"), "enterprise": str(base / "enterprise")}
+
+
+def _git_ref(repo: Path, branch: str, log: Log) -> str:
+    """What to check out for `branch`: the local branch, else origin's (fetched when missing)."""
+    if _git(str(repo), "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"):
+        return branch
+    if _git(str(repo), "rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}"):
+        return f"origin/{branch}"
+    if log:
+        log(f"→ git fetch origin {branch} ({repo.name})")
+    code, _, err = _run(["git", "-C", str(repo), "fetch", "origin",
+                         f"+refs/heads/{branch}:refs/remotes/origin/{branch}"], timeout=1800)
+    if code != 0:
+        raise DBError(f"Branch {branch} not found in {repo.name}: {err.strip()[-300:]}",
+                      hint="Check the branch name (`odoodb branches --remote`).", code="git")
+    return f"origin/{branch}"
+
+
+def _add_worktree(repo: Path, target: Path, branch: str, log: Log) -> None:
+    if (target / ".git").exists():
+        return
+    ref = _git_ref(repo, branch, log)
+    _run(["git", "-C", str(repo), "worktree", "prune"], timeout=60)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if log:
+        log(f"→ git worktree add {target} ({ref}, {repo.name})")
+    # Detached: git refuses a branch checked out in two worktrees, and the main clone must stay free to use it.
+    code, _, err = _run(["git", "-C", str(repo), "worktree", "add", "--detach", str(target), ref], timeout=1800)
+    if code != 0:
+        raise DBError(f"Could not create the {repo.name} worktree: {err.strip()[-300:]}", code="git")
+
+
+def ensure_worktree(core_branch: str, ent_branch: str, log: Log = None) -> dict:
+    key = _worktree_key(core_branch, ent_branch)
+    paths = worktree_paths(key)
+    _add_worktree(community_path(), Path(paths["core"]), core_branch, log)
+    ent = enterprise_path()
+    if ent:
+        _add_worktree(ent, Path(paths["enterprise"]), ent_branch or core_branch, log)
+    else:
+        paths["enterprise"] = ""
+    return {"key": key, **paths}
+
+
+def _worktree_users(key: str, state: dict, procs: list[dict]) -> list[str]:
+    now = time.time()
+    return [db for db, e in state.items() if e.get("worktree") == key
+            and (running_server(db, procs) or now < float(e.get("hold_until") or 0))]
+
+
+def _remove_worktree(key: str, log: Log = None) -> str:
+    """Deletes a worktree folder, unless files in it were modified (then it is kept and said so)."""
+    paths = worktree_paths(key)
+    repos = [(community_path(), Path(paths["core"]))]
+    if enterprise_path():
+        repos.append((enterprise_path(), Path(paths["enterprise"])))
+    dirty = [t.name for _, t in repos if t.is_dir() and (_git(str(t), "status", "--porcelain") or "").strip()]
+    if dirty:
+        return f"Worktree {key} kept: files modified in {', '.join(dirty)} ({paths['path']})."
+    for repo, target in repos:
+        if target.exists():
+            _run(["git", "-C", str(repo), "worktree", "remove", "--force", str(target)], timeout=300)
+        _run(["git", "-C", str(repo), "worktree", "prune"], timeout=60)
+    shutil.rmtree(paths["path"], ignore_errors=True)
+    if log:
+        log(f"✓ Worktree {key} removed")
+    return f"Worktree {key} removed."
+
+
+def parallel_gc(procs: Optional[list] = None, log: Log = None) -> list[str]:
+    """Forgets the parallel runs that ended (stopped elsewhere, Ctrl+C, crash) and removes the worktrees nobody
+    uses any more. Cheap when there is nothing to do: called by `list`."""
+    state = _par_load()
+    has_dirs = WORKTREES_DIR.is_dir() and any(WORKTREES_DIR.iterdir())
+    if not state and not has_dirs:
+        return []
+    procs = procs if procs is not None else odoo_processes()
+    now = time.time()
+    alive = {db: e for db, e in state.items()
+             if running_server(db, procs) or now < float(e.get("hold_until") or 0)}
+    if alive != state:
+        _par_save(alive)
+    notes = []
+    if has_dirs:
+        used = {e.get("worktree") for e in alive.values()}
+        for d in sorted(WORKTREES_DIR.iterdir()):
+            if d.is_dir() and d.name not in used:
+                notes.append(_remove_worktree(d.name, log))
+    return notes
+
+
+def _map_code(text: str, wt: dict) -> str:
+    """Points the paths of the main core/enterprise clones at the worktree's."""
+    pairs = [(str(community_path()), wt["core"]), (config.get_odoo_community_path(), wt["core"])]
+    if wt.get("enterprise") and enterprise_path():
+        pairs += [(str(enterprise_path()), wt["enterprise"]), (config.get_odoo_enterprise_path(), wt["enterprise"])]
+    for old, new in sorted({p for p in pairs if p[0]}, key=lambda p: -len(p[0])):
+        text = re.sub(re.escape(old.rstrip("/")) + r"(?=[/,\"'\s]|$)", new, text, flags=re.MULTILINE)
+    return text
+
+
+def code_core(db: str) -> Path:
+    """community folder that runs `db`: its worktree when it runs alongside on other code."""
+    e = parallel_of(db)
+    if e and e.get("worktree"):
+        core = Path(worktree_paths(e["worktree"])["core"])
+        if core.is_dir():
+            return core
+    return community_path()
+
+
+def code_addons(db: str, addons: list[str]) -> list[str]:
+    e = parallel_of(db)
+    if not (e and e.get("worktree")):
+        return addons
+    return _map_code(",".join(addons), worktree_paths(e["worktree"])).split(",")
+
+
+def parallel_plan(db: str) -> dict:
+    """What the app needs to ask how to start `db` while others run."""
+    info = database_info(db)
+    series = info.get("series") or (info.get("script") or {}).get("branch") or ""
+    code = info.get("code_series") or ""
+    procs = odoo_processes()
+    branch = branch_for_series(series) or ops.get_current_branch(str(community_path())) or ""
+    import toolchain as TC
+    env = pyenv_for_series(series) if series else info.get("pyenv") or ""
+    return {
+        "ok": True, "name": db, "series": series, "code_series": code,
+        "repos_branch": ops.get_current_branch(str(community_path())),
+        "needs_worktree": bool(series and code and norm_series(series) != norm_series(code)),
+        "default_branch": branch, "has_enterprise": enterprise_path() is not None,
+        "port": info["port"], "free_port": free_port(db), "host": parallel_host(db),
+        "pyenv": env, "pyenv_exists": TC.env_exists(env) if env else False,
+        "running": [p for p in procs if p["kind"] == "server" and p["db"] != db],
+        "worktrees": sorted(d.name for d in WORKTREES_DIR.iterdir() if d.is_dir()) if WORKTREES_DIR.is_dir() else [],
+    }
+
+
+def _prepare_parallel(db: str, info: dict, core_branch: str, ent_branch: str, pyenv: str, port: int,
+                      log: Log) -> tuple[Path, str, str, Optional[dict]]:
+    """Writes <db>.parallel.sh (the launch script on the free port, on the worktree's code) and records the run.
+    Returns (script, pyenv, url, worktree)."""
+    import toolchain as TC
+    prev = parallel_of(db) or {}
+    series = info.get("series") or (info.get("script") or {}).get("branch") or ""
+    code = info.get("code_series") or ""
+    core_branch = core_branch or prev.get("core_branch") or ""
+    ent_branch = ent_branch or prev.get("enterprise_branch") or ""
+    if not core_branch and series and code and norm_series(series) != norm_series(code):
+        core_branch = branch_for_series(series)
+    if core_branch and not ent_branch:
+        ent_branch = core_branch
+    pyenv = pyenv or prev.get("pyenv") or (pyenv_for_series(core_branch) if core_branch else "") \
+        or config.get_pyenv_global_env() or info.get("pyenv") or ""
+    if pyenv and not TC.env_exists(pyenv):
+        raise DBError(f"The Python environment {pyenv} does not exist.",
+                      hint=f"Create it: `odoodb env create {pyenv} -b {core_branch or branch_for_series(series)}`.",
+                      code="env_missing")
+    port = port or prev.get("port") or free_port(db)
+    clash = [p for p in odoo_processes() if p["kind"] == "server" and p["db"] != db and p["port"] == port]
+    if clash:
+        if prev.get("port") == port:
+            port = free_port(db)
+        else:
+            raise DBError(f"Port {port} is already used by '{clash[0]['db']}'.", hint="Pick another port.", code="port_busy")
+    sc = info.get("script")
+    if not sc:
+        _apply_fix(db, "script", info, force=False, log=log)
+        sc = script_for(db)
+    wt = ensure_worktree(core_branch, ent_branch, log) if core_branch else None
+    state = _par_load()
+    state[db] = {"port": port, "pyenv": pyenv, "core_branch": core_branch, "enterprise_branch": ent_branch,
+                 "worktree": wt["key"] if wt else None, "hold_until": time.time() + START_GRACE}
+    _par_save(state)
+    text = Path(sc["path"]).read_text(encoding="utf-8", errors="replace")
+    if wt:
+        text = _map_code(text, wt)
+    text, n = re.subn(r"--http-port[=\s]+\d+", f"--http-port={port}", text)
+    if not n:
+        text = re.sub(r"(exec\s+\"\$PYTHON\"\s+\S+)", rf"\1 --http-port={port}", text, count=1)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    script = LOG_DIR / f"{db}.parallel.sh"
+    script.write_text(text, encoding="utf-8")
+    script.chmod(0o755)
+    if log:
+        where = f"worktree {wt['key']}" if wt else "the main checkout"
+        log(f"✓ Alongside on port {port}, code from {where}, Python {pyenv or 'default'}")
+    return script, pyenv, f"http://{parallel_host(db)}:{port}", wt
+
+
+def worktrees() -> dict:
+    """The temporary worktrees, their size and the databases running on them."""
+    state = _par_load()
+    procs = odoo_processes()
+    items = []
+    if WORKTREES_DIR.is_dir():
+        for d in sorted(WORKTREES_DIR.iterdir()):
+            if d.is_dir():
+                items.append({"key": d.name, "path": str(d), "size": _dir_size(d),
+                              "databases": _worktree_users(d.name, state, procs)})
+    return {"ok": True, "root": str(WORKTREES_DIR), "worktrees": items}
+
+
+def _parallel_summary(db: str, entry: Optional[dict]) -> Optional[dict]:
+    if not entry:
+        return None
+    wt = worktree_paths(entry["worktree"]) if entry.get("worktree") else None
+    return {"port": entry.get("port"), "pyenv": entry.get("pyenv") or "", "core_branch": entry.get("core_branch") or "",
+            "enterprise_branch": entry.get("enterprise_branch") or "", "worktree": entry.get("worktree"),
+            "path": wt["path"] if wt else None, "host": parallel_host(db)}
+
+
+# --------------------------------------------------------------------------- #
 # Start / stop
 # --------------------------------------------------------------------------- #
 
@@ -969,16 +1240,36 @@ TERMINAL_KINDS = ("server", "shell", "zsh")
 
 
 def terminal_command(db: str, kind: str = "server", switch_branch: bool = False, force: bool = False,
-                     log: Log = None) -> dict:
+                     log: Log = None, alongside: bool = False, core_branch: str = "", enterprise_branch: str = "",
+                     pyenv_name: str = "", port: int = 0) -> dict:
     """What the app's built-in terminal runs for a database, prepared like `start` (branch, locks, script,
     port, log rotation): `server` = the launch script in the foreground (Ctrl+C, breakpoints), `shell` =
     `odoo-bin shell`, `zsh` = a shell in the community folder with the database's Python environment first
     in PATH. The app writes the terminal output to `log` so the Logs and History tabs see it."""
     if kind not in TERMINAL_KINDS:
         raise DBError(f"Unknown terminal kind {kind}", hint="One of: " + ", ".join(TERMINAL_KINDS), code="bad_args")
+    parallel_gc()
     info = database_info(db)
     sc = info.get("script")
-    pyenv = info.get("pyenv") or ""
+    par = parallel_of(db)
+    pyenv = (par or {}).get("pyenv") or info.get("pyenv") or ""
+    core = code_core(db)
+    if kind == "server" and not info.get("running") and (alongside or core_branch or enterprise_branch or par):
+        script, pyenv, url, wt = _prepare_parallel(db, info, core_branch, enterprise_branch, pyenv_name, port, log)
+        env = _script_env(pyenv)
+        env.update({"TERM": "xterm-256color", "COLORTERM": "truecolor", "ODOODB_DB": db})
+        env.pop("NO_COLOR", None)
+        if info.get("modules_locked"):
+            ops.clear_module_locks(db)
+        lp = _rotate_log(db)
+        lp.touch()
+        try:
+            _pid_path(db).unlink()
+        except OSError:
+            pass
+        title = f"{db} · {(wt or {}).get('key') or info.get('series') or ''} · :{parallel_of(db)['port']}"
+        return {"ok": True, "name": db, "kind": kind, "title": title, "executable": "/bin/bash", "args": [str(script)],
+                "cwd": str(odoo_root()), "env": env, "log": str(lp), "url": url}
     env = _script_env(pyenv)
     env.update({"TERM": "xterm-256color", "COLORTERM": "truecolor", "ODOODB_DB": db})
     env.pop("NO_COLOR", None)
@@ -987,21 +1278,22 @@ def terminal_command(db: str, kind: str = "server", switch_branch: bool = False,
         env["PATH"] = py_bin + ":" + env.get("PATH", "")
         env["VIRTUAL_ENV"] = str(Path(py_bin).parent)
         return {"ok": True, "name": db, "kind": kind, "title": f"zsh · {db}", "executable": "/bin/zsh",
-                "args": ["-l"], "cwd": str(community_path()), "env": env, "log": None}
+                "args": ["-l"], "cwd": str(core), "env": env, "log": None}
     if kind == "server" and info.get("running"):
         raise DBError(f"{db} is already running ({info['running'].get('mode')}).",
                       hint=f"Stop it first: `odoodb stop {db}`.", code="running")
     # Checks first: a refused run must not have changed the database.
-    _check_startable(db, {**info, "port": info["port"] if kind == "server" else None}, switch_branch, force, log)
+    if not (kind == "shell" and (par or {}).get("worktree")):
+        _check_startable(db, {**info, "port": info["port"] if kind == "server" else None}, switch_branch, force, log)
     if info.get("modules_locked"):
         ops.clear_module_locks(db)
         if log:
             log("✓ Pending module states reset")
     if kind == "shell":
-        addons = effective_addons_path(db, sc)
-        args = [str(community_path() / "odoo-bin"), "shell", "-d", db, f"--addons-path={','.join(addons)}"]
+        addons = code_addons(db, effective_addons_path(db, sc))
+        args = [str(core / "odoo-bin"), "shell", "-d", db, f"--addons-path={','.join(addons)}"]
         return {"ok": True, "name": db, "kind": kind, "title": f"odoo shell · {db}",
-                "executable": str(Path(py_bin) / "python3"), "args": args, "cwd": str(community_path()),
+                "executable": str(Path(py_bin) / "python3"), "args": args, "cwd": str(core),
                 "env": env, "log": None}
     if not sc:
         _apply_fix(db, "script", info, force=force, log=log)
@@ -1018,10 +1310,17 @@ def terminal_command(db: str, kind: str = "server", switch_branch: bool = False,
 
 
 def start(db: str, terminal: bool = False, wait: bool = True, switch_branch: bool = False,
-          force: bool = False, timeout: int = 600, log: Log = None) -> dict:
+          force: bool = False, timeout: int = 600, log: Log = None, alongside: bool = False,
+          core_branch: str = "", enterprise_branch: str = "", pyenv: str = "", port: int = 0) -> dict:
+    """`alongside`: next to the running databases, on a free port; on other code than the checkout (the database's
+    version, or `core_branch` / `enterprise_branch`), from a temporary worktree. A database stopped with
+    `keep_worktree` (restart, update) starts alongside again with the same settings."""
+    parallel_gc()
     info = database_info(db)
     if info.get("running"):
         return {"ok": True, "name": db, "already_running": True, "url": info["url"], "running": info["running"]}
+    if alongside or core_branch or enterprise_branch or parallel_of(db):
+        return _start_alongside(db, info, terminal, wait, timeout, log, core_branch, enterprise_branch, pyenv, port)
     # Checks first: a refused start must not have changed the database.
     _check_startable(db, info, switch_branch, force, log)
     if info.get("modules_locked"):
@@ -1042,6 +1341,45 @@ def start(db: str, terminal: bool = False, wait: bool = True, switch_branch: boo
         return {"ok": True, "name": db, "mode": "terminal", "message": msg, "url": info["url"],
                 "note": "Running in the terminal: logs are not captured by odoodb."}
     return _spawn_script(db, Path(sc["path"]), pyenv, wait=wait, timeout=timeout, url=info["url"], log=log)
+
+
+def _start_alongside(db: str, info: dict, terminal: bool, wait: bool, timeout: int, log: Log,
+                     core_branch: str, ent_branch: str, pyenv: str, port: int) -> dict:
+    script, env, url, wt = _prepare_parallel(db, info, core_branch, ent_branch, pyenv, port, log)
+    if info.get("modules_locked"):
+        ops.clear_module_locks(db)
+        if log:
+            log("✓ Pending module states reset")
+    if terminal:
+        ok, msg = ops.run_script_for_db(script, odoo_root=wt["core"] if wt else str(community_path()), pyenv_env=env or None)
+        if not ok:
+            raise DBError(msg, code="terminal")
+        return {"ok": True, "name": db, "mode": "terminal", "message": msg, "url": url,
+                "note": "Running in the terminal: logs are not captured by odoodb."}
+    res = _spawn_script(db, script, env, wait=wait, timeout=timeout, url=url, log=log)
+    res["parallel"] = _parallel_summary(db, parallel_of(db))
+    return res
+
+
+def _end_parallel(db: str, keep_worktree: bool, log: Log = None) -> str:
+    """After `db` stopped: forget its parallel run, and remove its worktree if no other database uses it."""
+    state = _par_load()
+    e = state.get(db)
+    if not e:
+        return ""
+    if keep_worktree:
+        e["hold_until"] = time.time() + HOLD_SECONDS
+        _par_save(state)
+        return ""
+    del state[db]
+    _par_save(state)
+    key = e.get("worktree")
+    if not key:
+        return ""
+    users = _worktree_users(key, state, odoo_processes())
+    if users:
+        return f"Worktree {key} kept: still used by {', '.join(users)}."
+    return _remove_worktree(key, log)
 
 
 def _rotate_log(db: str) -> Path:
@@ -1114,10 +1452,13 @@ def wait_ready(db: str, proc: Optional[subprocess.Popen], timeout: int, log: Log
     return {"ready": False, "message": f"Still loading after {timeout}s (it keeps running).", "errors": errors[-10:]}
 
 
-def stop(db: str, timeout: int = 15) -> dict:
+def stop(db: str, timeout: int = 15, keep_worktree: bool = False, log: Log = None) -> dict:
+    """`keep_worktree`: the database is started again right after (restart, update): its parallel settings and
+    worktree are kept for an hour instead of being removed."""
     procs = [p for p in odoo_processes() if p["db"] == db and p["kind"] == "server"]
     if not procs:
-        return {"ok": True, "name": db, "was_running": False, "message": f"{db} is not running."}
+        note = _end_parallel(db, keep_worktree, log)
+        return {"ok": True, "name": db, "was_running": False, "message": f"{db} is not running." + (" " + note if note else "")}
     ok, msg = ops.stop_odoo_server(db)
     deadline = time.time() + timeout
     while time.time() < deadline and running_server(db):
@@ -1134,12 +1475,14 @@ def stop(db: str, timeout: int = 15) -> dict:
         _pid_path(db).unlink()
     except OSError:
         pass
-    return {"ok": True, "name": db, "was_running": True, "message": msg}
+    note = _end_parallel(db, keep_worktree, log)
+    return {"ok": True, "name": db, "was_running": True, "message": msg + (" " + note if note else ""),
+            **({"worktree": note} if note else {})}
 
 
 def restart(db: str, wait: bool = True, log: Log = None) -> dict:
     prev = running_server(db)
-    stop(db)
+    stop(db, keep_worktree=True)
     terminal = bool(prev and prev["mode"] == "terminal")
     return start(db, terminal=terminal, wait=wait, log=log)
 
@@ -1180,11 +1523,14 @@ def run_odoo_task(db: str, args: list[str], log: Log = None, timeout: int = 3600
     if running_server(db):
         raise DBError(f"{db} is running.", hint=f"Stop it first: `odoodb stop {db}`.", code="running")
     sc = script_for(db)
-    addons = effective_addons_path(db, sc)
+    # A database that runs alongside on a worktree is updated with that code and Python.
+    addons = code_addons(db, effective_addons_path(db, sc))
+    core = code_core(db)
     summary = _db_summary(db)
     series = summary.get("series") or (sc or {}).get("branch") or code_series()
-    pyenv = config.get_pyenv_global_env() or (sc or {}).get("pyenv") or pyenv_for_series(series)
-    cmd = [_python_for(pyenv), str(community_path() / "odoo-bin")]
+    pyenv = (parallel_of(db) or {}).get("pyenv") or config.get_pyenv_global_env() or (sc or {}).get("pyenv") \
+        or pyenv_for_series(series)
+    cmd = [_python_for(pyenv), str(core / "odoo-bin")]
     if subcommand:
         cmd += [subcommand]
     cmd += [f"--addons-path={','.join(addons)}", "-d", db] + args
@@ -1206,7 +1552,7 @@ def run_odoo_task(db: str, args: list[str], log: Log = None, timeout: int = 3600
             log(line)
 
     try:
-        code, out = ops.run_cmd_streaming(cmd, cwd=str(community_path()), on_output=on_line)
+        code, out = ops.run_cmd_streaming(cmd, cwd=str(core), on_output=on_line)
     finally:
         log_fh.close()
         history.ingest(db, final=True)
@@ -1218,7 +1564,8 @@ def run_odoo_task(db: str, args: list[str], log: Log = None, timeout: int = 3600
 
 def update_modules(db: str, modules: list[str], log: Log = None, switch_branch: bool = False, force: bool = False) -> dict:
     info = database_info(db)
-    _check_startable(db, {**info, "port": None}, switch_branch, force, log)
+    if not (parallel_of(db) or {}).get("worktree"):
+        _check_startable(db, {**info, "port": None}, switch_branch, force, log)
     ops.clear_module_locks(db)
     mods = ",".join(modules) if modules else "all"
     return run_odoo_task(db, ["-u", mods, "--stop-after-init"], log=log)
@@ -1226,7 +1573,8 @@ def update_modules(db: str, modules: list[str], log: Log = None, switch_branch: 
 
 def install_modules(db: str, modules: list[str], log: Log = None, switch_branch: bool = False, force: bool = False) -> dict:
     info = database_info(db)
-    _check_startable(db, {**info, "port": None}, switch_branch, force, log)
+    if not (parallel_of(db) or {}).get("worktree"):
+        _check_startable(db, {**info, "port": None}, switch_branch, force, log)
     return run_odoo_task(db, ["-i", ",".join(modules), "--stop-after-init"], log=log)
 
 

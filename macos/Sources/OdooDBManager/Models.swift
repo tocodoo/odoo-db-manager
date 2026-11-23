@@ -43,6 +43,8 @@ struct DBSummary: Decodable, Identifiable, Hashable {
     var port: Int
     var url: String
     var matchesCode: Bool?
+    /// Running alongside others (free port, maybe a temporary worktree).
+    var parallel: ParallelInfo?
     /// Most recent of lastLogin / created, filled by DBListResponse (not in the JSON).
     var lastActivity: Date?
 }
@@ -59,6 +61,35 @@ struct RunningProcess: Decodable, Identifiable, Hashable {
     var workers: Int
     var mode: String
     var url: String
+}
+
+/// A database running alongside others: its port, and the temporary worktree it runs from (if other code).
+struct ParallelInfo: Decodable, Hashable {
+    var port: Int?
+    var pyenv: String
+    var coreBranch: String
+    var enterpriseBranch: String
+    var worktree: String?
+    var path: String?
+    var host: String
+}
+
+/// `odoodb parallel <db>`: how a database would start next to the running ones.
+struct ParallelPlan: Decodable {
+    var name: String
+    var series: String
+    var codeSeries: String
+    var reposBranch: String?
+    var needsWorktree: Bool
+    var defaultBranch: String
+    var hasEnterprise: Bool
+    var port: Int
+    var freePort: Int
+    var host: String
+    var pyenv: String
+    var pyenvExists: Bool
+    var running: [RunningProcess]
+    var worktrees: [String]
 }
 
 struct PSResponse: Decodable {
@@ -84,6 +115,7 @@ struct DBInfo: Decodable {
     var running: RunningProcess?
     var port: Int
     var url: String
+    var parallel: ParallelInfo?
     var log: LogFile
     var pyenv: String?
     var customModules: [String]

@@ -66,7 +66,7 @@ agent/install-agent.sh        # only odoodb + skill + MCP
 
 ## The app: a monitor
 
-- **Home**: every database as a card — real version (read from the database, not guessed), running state, port, memory, size, custom addons, last login. Search, filter (running, with addons, needing attention), sort. Hover a card to start, stop or open it.
+- **Home**: every database as a card — real version (read from the database, not guessed), running state, port, memory, size, custom addons, last login. Search, filter (running, with addons, needing attention), sort. Hover a card to start, stop or open it. Starting a database while others run asks whether to stop them or to **run both**: on a free port at `http://<db>.localhost:<port>` (separate logins), and when it needs another version or branch, from a temporary git worktree of core + enterprise (about 2 GB, shared, removed when its last database stops), with the Python environment of your choice (created on the spot if missing).
 - **Database page**:
   - **Overview**: health (version ≠ checked-out code, modules stuck *to upgrade*, installed modules without code, port busy, missing filestore…) with a **Fix** button for each, stats, the **repositories** of its addons path (branch, last commit, local changes, behind/ahead), custom modules, launch script.
   - **Modules**: every module with its version and where its code lives (community, enterprise, custom, *no code*). Select and **Update**.
@@ -95,6 +95,7 @@ odoodb info bike                            # repos, modules, issues, url…
 odoodb create demo -b 19.0 -m sale,website  # created, started, admin/admin
 odoodb create demo2 --dump ~/Downloads/backup.zip
 odoodb start bike --switch-branch           # checks out the database's branch first
+odoodb start old17 --alongside              # next to the running ones: free port, 17.0 code from a temporary worktree
 odoodb logs bike --errors
 odoodb doctor bike && odoodb repair bike
 odoodb update bike -m my_module

@@ -70,10 +70,16 @@ TOOLS = [
                           + _flag(a.get("start") is False, "--no-start"))),
     tool("start_database",
          "Start a database in the background (logs captured) and wait until it is up. If the database's version "
-         "differs from the checked-out code, it fails with code 'branch_mismatch': retry with switch_branch=true.",
-         {"name": S, "switch_branch": B, "force": B}, ["name"],
+         "differs from the checked-out code, it fails with code 'branch_mismatch': retry with switch_branch=true. "
+         "alongside=true runs it next to the running databases instead: free port (or `port`), url "
+         "http://<db>.localhost:<port>, and another version from a temporary worktree (core_branch / "
+         "enterprise_branch / pyenv to choose other code), removed when its last database stops.",
+         {"name": S, "switch_branch": B, "force": B, "alongside": B, "core_branch": S, "enterprise_branch": S,
+          "pyenv": S, "port": I}, ["name"],
          build=lambda a: ["start", a["name"]] + _flag(a.get("switch_branch"), "--switch-branch")
-         + _flag(a.get("force"), "--force")),
+         + _flag(a.get("force"), "--force") + _flag(a.get("alongside"), "--alongside")
+         + sum((["--" + k.replace("_", "-"), str(a[k])] for k in ("core_branch", "enterprise_branch", "pyenv", "port")
+                if a.get(k)), [])),
     tool("stop_database", "Stop a running database.", {"name": S}, ["name"],
          build=lambda a: ["stop", a["name"]]),
     tool("restart_database", "Restart a database.", {"name": S}, ["name"],

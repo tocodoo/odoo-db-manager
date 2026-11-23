@@ -7,6 +7,7 @@ Every command accepts --json (machine-readable result on stdout; progress on std
   odoodb info <db>                    everything about one database (repos, modules, issues…)
   odoodb create <db> -b 19.0 -m sale  create a database (and start it)
   odoodb start|stop|restart <db>      run it in the background (logs captured)
+  odoodb start <db> --alongside       next to the running ones: free port, another version from a temporary worktree
   odoodb logs <db> [-f] [--errors]    server log
   odoodb history <db> [--errors]      past warnings, errors and tracebacks (folded, with counts)
   odoodb terminal <db> [--kind shell] run it in this terminal (foreground), or odoo shell / zsh
@@ -174,7 +175,9 @@ def cmd_create(a):
 
 def cmd_start(a):
     res = T.start(a.db, terminal=a.terminal, wait=not a.no_wait, switch_branch=a.switch_branch,
-                  force=a.force, timeout=a.timeout, log=log)
+                  force=a.force, timeout=a.timeout, log=log, alongside=a.alongside,
+                  core_branch=a.core_branch or "", enterprise_branch=a.enterprise_branch or "",
+                  pyenv=a.pyenv or "", port=a.port or 0)
     if JSON:
         return res
     _summary(res)
@@ -183,17 +186,46 @@ def cmd_start(a):
 def cmd_stop(a):
     if a.all:
         dbs = [p["db"] for p in T.odoo_processes() if p["kind"] == "server"]
-        res = {"ok": True, "stopped": [T.stop(d)["name"] for d in dbs]}
+        res = {"ok": True, "stopped": [T.stop(d, keep_worktree=a.keep_worktree)["name"] for d in dbs]}
         if JSON:
             return res
         print("Stopped: " + (", ".join(res["stopped"]) or "nothing was running"))
         return
     if not a.db:
         raise T.DBError("Database name required (or --all).", code="bad_args")
-    res = T.stop(a.db)
+    res = T.stop(a.db, keep_worktree=a.keep_worktree, log=log)
     if JSON:
         return res
     print(res["message"])
+
+
+def cmd_parallel(a):
+    res = T.parallel_plan(a.db)
+    if JSON:
+        return res
+    others = ", ".join(f"{p['db']} (:{p['port']})" for p in res["running"]) or "none"
+    print(f"{a.db} ({res['series']}) — running now: {others}")
+    print(f"  alongside: port {res['free_port']}, http://{res['host']}:{res['free_port']}")
+    if res["needs_worktree"]:
+        print(f"  code: temporary worktree on {res['default_branch']} (repos are on {res['code_series']})")
+    print(f"  python: {res['pyenv']}" + ("" if res["pyenv_exists"] else " (missing: odoodb env create " + res["pyenv"] + ")"))
+    print(f"→ odoodb start {a.db} --alongside")
+
+
+def cmd_worktrees(a):
+    if a.gc:
+        notes = T.parallel_gc(log=log)
+        res = {"ok": True, "removed": notes, **T.worktrees()}
+    else:
+        res = T.worktrees()
+    if JSON:
+        return res
+    for n in res.get("removed", []):
+        print(n)
+    if not res["worktrees"]:
+        print(f"No worktree ({res['root']}).")
+    for w in res["worktrees"]:
+        print(f"  {w['key']:<24} {_size(w['size']):>8}  {', '.join(w['databases']) or '(unused)'}  {w['path']}")
 
 
 def cmd_restart(a):
@@ -267,7 +299,9 @@ def cmd_history(a):
 
 
 def cmd_terminal(a):
-    res = T.terminal_command(a.db, kind=a.kind, switch_branch=a.switch_branch, force=a.force, log=log)
+    res = T.terminal_command(a.db, kind=a.kind, switch_branch=a.switch_branch, force=a.force, log=log,
+                             alongside=a.alongside, core_branch=a.core_branch or "",
+                             enterprise_branch=a.enterprise_branch or "", pyenv_name=a.pyenv or "", port=a.port or 0)
     if JSON:
         return res
     os.chdir(res["cwd"])
@@ -639,6 +673,16 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--force", action="store_true", help="switch branch even if other databases run")
     s.add_argument("--timeout", type=int, default=1800)
 
+    def alongside_args(s):
+        g = s.add_argument_group("alongside (next to the running databases)")
+        g.add_argument("--alongside", action="store_true",
+                       help="on a free port, at http://<db>.localhost:<port>; another version runs from a temporary "
+                            "worktree (removed when its last database stops)")
+        g.add_argument("--core-branch", help="run on this core branch (temporary worktree)")
+        g.add_argument("--enterprise-branch", help="enterprise branch (default: the core one)")
+        g.add_argument("--pyenv", help="Python environment (default: odoo-<version>)")
+        g.add_argument("--port", type=int, help="HTTP port (default: the first free one)")
+
     for name, func, h in (("start", cmd_start, "start a database (background, logs captured)"),):
         s = add(name, func, h)
         s.add_argument("db")
@@ -647,10 +691,19 @@ def build_parser() -> argparse.ArgumentParser:
         s.add_argument("--switch-branch", action="store_true", help="checkout the database's branch if needed")
         s.add_argument("--force", action="store_true", help="switch branch even if other databases run")
         s.add_argument("--timeout", type=int, default=600)
+        alongside_args(s)
+
+    s = add("parallel", cmd_parallel, "how a database would start next to the running ones (port, worktree, Python)")
+    s.add_argument("db")
+
+    s = add("worktrees", cmd_worktrees, "temporary worktrees of the databases running alongside")
+    s.add_argument("--gc", action="store_true", help="remove the ones no running database uses")
 
     s = add("stop", cmd_stop, "stop a database")
     s.add_argument("db", nargs="?")
     s.add_argument("--all", action="store_true")
+    s.add_argument("--keep-worktree", action="store_true",
+                   help="started again soon (update, restart): keep its alongside settings and worktree for an hour")
 
     s = add("restart", cmd_restart, "restart a database")
     s.add_argument("db")
@@ -675,6 +728,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--kind", choices=["server", "shell", "zsh"], default="server")
     s.add_argument("--switch-branch", action="store_true")
     s.add_argument("--force", action="store_true")
+    alongside_args(s)
 
     s = add("doctor", cmd_doctor, "diagnose a database")
     s.add_argument("db")

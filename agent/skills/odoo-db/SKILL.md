@@ -54,8 +54,20 @@ odoodb --json restart <db>
 odoodb --json logs <db> -n 200              # add --errors for errors/tracebacks only
 odoodb --json history <db> --errors         # past errors/tracebacks, folded with counts (survives restarts)
 odoodb open <db>                            # browser
-odoodb --json port <db> 8070                # run several databases at once
+odoodb --json port <db> 8070                # move a database to another port for good
 ```
+
+Several databases at once, even of different versions (instead of switching branches under a running one):
+```bash
+odoodb --json parallel <db>                 # the plan: free port, needs_worktree, pyenv (exists?), running ones
+odoodb --json start <db> --alongside        # free port, url http://<db>.localhost:<port> (separate login cookies);
+                                            # another version than the checkout runs from a temporary worktree
+odoodb --json start <db> --alongside --core-branch 17.0 --enterprise-branch 17.0 --pyenv odoo-17 --port 8075
+odoodb --json worktrees                     # temporary worktrees (~2 GB each), size, databases on them
+```
+The worktree (`~/Library/Caches/OdooDBManager/worktrees/<branch>`) is shared by the databases on the same
+branches and removed when the last of them stops (kept if files in it were modified; `worktrees --gc` retries).
+`restart` and `update` keep it. Error `env_missing` → `odoodb env create <pyenv> -b <branch>`, then start again.
 
 A failed start returns `log_tail` and `errors`: read them before anything else.
 

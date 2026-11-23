@@ -330,7 +330,10 @@ struct DatabaseCard: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer(minLength: 4)
-                if db.matchesCode == false {
+                if let wt = db.parallel?.worktree {
+                    Chip(text: wt, symbol: "square.stack.3d.down.right", tint: Theme.running)
+                        .help("Runs alongside from a temporary worktree: \(db.parallel?.path ?? "")")
+                } else if db.matchesCode == false {
                     Image(systemName: "arrow.triangle.branch")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -347,7 +350,7 @@ struct DatabaseCard: View {
                 if let busy {
                     Text(busy).foregroundStyle(Color.accentColor)
                 } else if let proc {
-                    Text(verbatim: "localhost:\(proc.port) · up \(Fmt.duration(proc.uptime)) · \(Fmt.bytes(proc.rss))")
+                    Text(verbatim: "\(proc.url.replacingOccurrences(of: "http://", with: "")) · up \(Fmt.duration(proc.uptime)) · \(Fmt.bytes(proc.rss))")
                         .foregroundStyle(Theme.running)
                 } else if !db.customAddons.isEmpty {
                     Text(db.customAddons.joined(separator: " · ")).foregroundStyle(.secondary)

@@ -36,6 +36,13 @@ struct NewDatabaseRequest: Identifiable {
     var dropped: URL?
 }
 
+/// Starting a database while others run: the sheet asking to stop them or to run alongside.
+struct ParallelStartRequest: Identifiable {
+    let id = UUID()
+    var db: String
+    var inTerminal: Bool
+}
+
 struct Toast: Identifiable, Equatable {
     let id = UUID()
     var text: String
@@ -83,6 +90,8 @@ final class Store {
     var scriptEditor: ScriptEditorTarget?
     /// The New Database sheet, with the backup dropped on the window if any.
     var newDatabase: NewDatabaseRequest?
+    /// Start requested while other databases run.
+    var parallelStart: ParallelStartRequest?
     var setupLoading = false
 
     private var pollTask: Task<Void, Never>?
@@ -337,7 +346,42 @@ final class Store {
         return r != nil
     }
 
-    func start(_ db: String) { Task { await runStart(db) } }
+    /// Other databases running: asks whether to stop them or run this one alongside.
+    func start(_ db: String) {
+        if othersRunning(db).isEmpty { Task { await runStart(db) } } else { parallelStart = ParallelStartRequest(db: db, inTerminal: false) }
+    }
+
+    func othersRunning(_ db: String) -> [RunningProcess] {
+        running.filter { $0.kind == "server" && $0.db != db }
+    }
+
+    /// Stops the other databases, then starts this one alone (on its usual port and the main checkout).
+    func startAlone(_ db: String, inTerminal: Bool) {
+        let others = othersRunning(db).map(\.db)
+        Task {
+            for o in others { _ = await runStop(o) }
+            if inTerminal { openTerminal(db, kind: "server") } else { await runStart(db) }
+        }
+    }
+
+    /// Next to the running databases: `flags` are odoodb's --alongside options. A missing Python environment is
+    /// created first (`env create`, requirements of the core branch).
+    func startAlongside(_ db: String, flags: [String], inTerminal: Bool, createEnv: (name: String, branch: String)? = nil) {
+        Task {
+            if let env = createEnv {
+                guard await perform("Python environment \(env.name)", db: db, busyLabel: "Creating \(env.name)…",
+                                    args: ["env", "create", env.name, "-b", env.branch],
+                                    success: { r in r.message ?? "\(env.name) ready" }) != nil else { return }
+            }
+            if inTerminal {
+                openTerminal(db, kind: "server", extra: flags)
+            } else {
+                await perform("Start \(db) alongside", db: db, busyLabel: "Starting alongside…", args: ["start", db] + flags) { r in
+                    "\(db) is up on \(r.url ?? "")"
+                }
+            }
+        }
+    }
 
     @discardableResult
     func runStart(_ db: String) async -> Bool {
@@ -347,7 +391,9 @@ final class Store {
     }
 
     /// Runs the database in the built-in terminal (Terminal tab of its page).
-    func startInTerminal(_ db: String) { openTerminal(db, kind: "server") }
+    func startInTerminal(_ db: String) {
+        if othersRunning(db).isEmpty { openTerminal(db, kind: "server") } else { parallelStart = ParallelStartRequest(db: db, inTerminal: true) }
+    }
 
     /// The configured external terminal app (Warp, Terminal, iTerm2).
     func startInExternalTerminal(_ db: String) {
@@ -356,9 +402,13 @@ final class Store {
 
     func stop(_ db: String) { Task { await runStop(db) } }
 
+    /// `keepWorktree`: started again right after (update, translate): a database running alongside keeps its
+    /// port and worktree. Otherwise its worktree is removed when no other database uses it.
     @discardableResult
-    func runStop(_ db: String) async -> Bool {
-        await perform("Stop \(db)", db: db, busyLabel: "Stopping…", args: ["stop", db]) { _ in "\(db) stopped" } != nil
+    func runStop(_ db: String, keepWorktree: Bool = false) async -> Bool {
+        await perform("Stop \(db)", db: db, busyLabel: "Stopping…", args: ["stop", db] + (keepWorktree ? ["--keep-worktree"] : [])) { r in
+            r.message?.contains("Worktree") == true ? r.message ?? "" : "\(db) stopped"
+        } != nil
     }
 
     func restart(_ db: String) { Task { await runRestart(db) } }
@@ -387,7 +437,7 @@ final class Store {
     func runUpdate(_ db: String, modules: [String]) async -> Bool {
         let mods = modules.isEmpty ? "all" : modules.joined(separator: ",")
         let wasRunning = isRunning(db)
-        if wasRunning { _ = await perform("Stop \(db)", db: db, args: ["stop", db]) { _ in "\(db) stopped" } }
+        if wasRunning { _ = await runStop(db, keepWorktree: true) }
         let r = await perform("Update \(mods) on \(db)", db: db, busyLabel: "Updating…", args: ["update", db, "-m", mods]) { _ in "Modules updated on \(db)" }
         if wasRunning, r != nil { await runStart(db) }
         return r != nil

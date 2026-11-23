@@ -11,7 +11,7 @@ enum DevSnapshot {
     static let terminal = ProcessInfo.processInfo.environment["DBM_TERMINAL"]
     /// Opens the launch script editor of DBM_OPEN at launch.
     static let scriptEditor = ProcessInfo.processInfo.environment["DBM_SCRIPT_EDITOR"] != nil
-    /// Capture mode: with DBM_CAPTURE=<prefix>, opens DBM_SHEET (new, dump:<path>, setup, env, reset, settings),
+    /// Capture mode: with DBM_CAPTURE=<prefix>, opens DBM_SHEET (new, dump:<path>, setup, env, reset, parallel, settings),
     /// waits DBM_CAPTURE_DELAY seconds, writes every visible window (dark) to DBM_SNAPSHOT_DIR/<prefix>-<i>.png, quits.
     static let capture = ProcessInfo.processInfo.environment["DBM_CAPTURE"]
     static let sheet = ProcessInfo.processInfo.environment["DBM_SHEET"]

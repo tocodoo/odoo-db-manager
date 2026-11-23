@@ -160,6 +160,10 @@ struct DetailHeader: View {
                         Text("Running on")
                         Link(proc.url.replacingOccurrences(of: "http://", with: ""), destination: URL(string: proc.url)!)
                         Text("· \(proc.mode == "terminal" ? "in terminal" : "in background")").foregroundStyle(.secondary)
+                        if let par = info.parallel, let wt = par.worktree {
+                            Text("· \(wt) worktree, \(par.pyenv)").foregroundStyle(.secondary)
+                                .help(par.path ?? "")
+                        }
                     } else {
                         Text("Stopped").foregroundStyle(.secondary)
                         Text("· port \(String(info.port))").foregroundStyle(.tertiary)

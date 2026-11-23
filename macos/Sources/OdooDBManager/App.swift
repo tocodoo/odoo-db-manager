@@ -62,6 +62,7 @@ struct RootView: View {
         }
         .overlay(alignment: .bottom) { ToastView() }
         .sheet(item: $store.scriptEditor) { t in ScriptEditorSheet(db: t.db) }
+        .sheet(item: $store.parallelStart) { r in ParallelStartSheet(request: r) }
         .sheet(item: $store.newDatabase) { r in
             NewDatabaseSheet(dropped: r.dropped) { name in path = [name] }
         }
@@ -111,6 +112,7 @@ struct RootView: View {
                 store.newDatabase = NewDatabaseRequest(dropped: URL(fileURLWithPath: String(s.dropFirst(5))))
             }
             if DevSnapshot.sheet == "reset", let db = DevSnapshot.openDB { store.confirmReset(db) }
+            if DevSnapshot.sheet == "parallel", let db = DevSnapshot.openDB { store.parallelStart = ParallelStartRequest(db: db, inTerminal: false) }
             await DevSnapshot.run(store: store)
         }
         .onReceive(NotificationCenter.default.publisher(for: .openDatabase)) { note in
