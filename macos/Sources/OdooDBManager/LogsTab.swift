@@ -94,40 +94,10 @@ struct LogsTab: View {
         .task(id: info.log.path) { await poll() }
     }
 
+    /// One native text view for the whole log, so a selection can span any number of lines.
     private var logView: some View {
-        ScrollViewReader { proxy in
-            ScrollView([.vertical]) {
-                LazyVStack(alignment: .leading, spacing: 1) {
-                    ForEach(visible) { line in
-                        Text(line.text)
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(color(line.level))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 1)
-                            .background(line.level == .error ? Color.red.opacity(0.06) : .clear)
-                            .id(line.id)
-                    }
-                }
-                .textSelection(.enabled)
-                .padding(.vertical, 8)
-            }
+        LogTextView(lines: visible, follow: follow)
             .background(Color(nsColor: .textBackgroundColor))
-            .onChange(of: lines.last?.id) { _, id in
-                guard follow, let id else { return }
-                proxy.scrollTo(id, anchor: .bottom)
-            }
-            .onAppear { if let id = visible.last?.id { proxy.scrollTo(id, anchor: .bottom) } }
-        }
-    }
-
-    private func color(_ level: LogLine.Level) -> Color {
-        switch level {
-        case .error: .red
-        case .warning: .orange
-        case .debug: .secondary
-        case .info, .plain: .primary
-        }
     }
 
     private func poll() async {
@@ -176,5 +146,96 @@ struct LogsTab: View {
         var all = chunk.fresh ? added : lines + added
         if all.count > 3000 { all.removeFirst(all.count - 3000) }
         lines = all
+    }
+}
+
+/// Read-only, selectable NSTextView showing the log lines. Appends (and trims from the top)
+/// incrementally instead of re-rendering the whole text every poll.
+private struct LogTextView: NSViewRepresentable {
+    var lines: [LogLine]
+    var follow: Bool
+
+    final class Coordinator {
+        var ids: [Int] = []
+        var lengths: [Int] = []
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scroll = NSTextView.scrollableTextView()
+        scroll.drawsBackground = false
+        scroll.hasVerticalScroller = true
+        let tv = scroll.documentView as! NSTextView
+        tv.isEditable = false
+        tv.isSelectable = true
+        tv.isRichText = false
+        tv.drawsBackground = false
+        tv.textContainerInset = NSSize(width: 10, height: 8)
+        tv.isAutomaticLinkDetectionEnabled = false
+        tv.usesFindBar = true
+        tv.isIncrementalSearchingEnabled = true
+        tv.layoutManager?.allowsNonContiguousLayout = true
+        update(tv, context: context, scroll: true)
+        return scroll
+    }
+
+    func updateNSView(_ scroll: NSScrollView, context: Context) {
+        guard let tv = scroll.documentView as? NSTextView else { return }
+        update(tv, context: context, scroll: false)
+    }
+
+    private func update(_ tv: NSTextView, context: Context, scroll force: Bool) {
+        let c = context.coordinator
+        guard let storage = tv.textStorage else { return }
+        let newIDs = lines.map(\.id)
+        guard newIDs != c.ids else { return }
+
+        // Common case: some lines dropped from the top and/or new ones appended at the bottom.
+        var dropped = -1
+        if let first = newIDs.first, let k = c.ids.firstIndex(of: first) {
+            let kept = c.ids.count - k
+            if kept <= newIDs.count, Array(c.ids[k...]) == Array(newIDs.prefix(kept)) { dropped = k }
+        } else if newIDs.isEmpty == false, c.ids.isEmpty {
+            dropped = 0
+        }
+
+        storage.beginEditing()
+        if dropped >= 0 {
+            let cut = c.lengths.prefix(dropped).reduce(0, +)
+            if cut > 0 { storage.deleteCharacters(in: NSRange(location: 0, length: cut)) }
+            c.ids.removeFirst(dropped)
+            c.lengths.removeFirst(dropped)
+            for line in lines.dropFirst(c.ids.count) { append(line, to: storage, c) }
+        } else {
+            storage.setAttributedString(NSAttributedString())
+            c.ids = []
+            c.lengths = []
+            for line in lines { append(line, to: storage, c) }
+        }
+        storage.endEditing()
+
+        // Follow the tail, unless the user is in the middle of selecting something.
+        if force || (follow && tv.selectedRange().length == 0) {
+            tv.scrollToEndOfDocument(nil)
+        }
+    }
+
+    private func append(_ line: LogLine, to storage: NSTextStorage, _ c: Coordinator) {
+        let color: NSColor = switch line.level {
+        case .error: .systemRed
+        case .warning: .systemOrange
+        case .debug: .secondaryLabelColor
+        case .info, .plain: .labelColor
+        }
+        var attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular),
+            .foregroundColor: color,
+        ]
+        if line.level == .error { attrs[.backgroundColor] = NSColor.systemRed.withAlphaComponent(0.06) }
+        let text = line.text + "\n"
+        storage.append(NSAttributedString(string: text, attributes: attrs))
+        c.ids.append(line.id)
+        c.lengths.append((text as NSString).length)
     }
 }
